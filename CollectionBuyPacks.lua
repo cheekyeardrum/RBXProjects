@@ -21,7 +21,7 @@ sg.Name = "AutoBuyGUI"
 
 -- Draggable main frame
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 220, 0, 130)
+mainFrame.Size = UDim2.new(0, 220, 0, 250)
 mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
@@ -103,6 +103,67 @@ end
 -- Buttons
 local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", 30)
 local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", 80)
+
+-- View Packs button
+local viewPacksBtn = Instance.new("TextButton", mainFrame)
+viewPacksBtn.Size = UDim2.new(1,0,0,25)
+viewPacksBtn.Position = UDim2.new(0,0,0,140)
+viewPacksBtn.Text = "View Packs"
+viewPacksBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+viewPacksBtn.TextColor3 = Color3.new(1,1,1)
+
+-- Frame to display pack counts
+local packsListFrame = Instance.new("ScrollingFrame", mainFrame)
+packsListFrame.Size = UDim2.new(1, -20, 0, 100)
+packsListFrame.Position = UDim2.new(0, 10, 0, 170)
+packsListFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+packsListFrame.BorderSizePixel = 0
+packsListFrame.CanvasSize = UDim2.new(0,0,0,0)
+packsListFrame.Visible = false
+
+local uiLayout = Instance.new("UIListLayout", packsListFrame)
+uiLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiLayout.Padding = UDim.new(0,2)
+
+-- Function to populate pack list
+local function listPacks()
+    packsListFrame.Visible = true
+    -- Clear previous items
+    for _, child in ipairs(packsListFrame:GetChildren()) do
+        if child:IsA("TextLabel") then child:Destroy() end
+    end
+
+    local backpack = Player:WaitForChild("Backpack")
+    for _, item in ipairs(backpack:GetChildren()) do
+        if type(item.Name) == "string" and item.Name:find("Pack") then
+            local count = 1
+            local amountObj = item:FindFirstChild("Amount") or item:FindFirstChild("Quantity")
+            if amountObj and (amountObj:IsA("IntValue") or amountObj:IsA("NumberValue")) then
+                count = amountObj.Value
+            end
+            local attr = item:GetAttribute("Amount") or item:GetAttribute("Quantity")
+            if attr then count = attr end
+
+            local label = Instance.new("TextLabel", packsListFrame)
+            label.Size = UDim2.new(1,0,0,20)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.new(1,1,1)
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Text = item.Name.." x"..count
+        end
+    end
+
+    -- Update scroll area
+    local totalHeight = #packsListFrame:GetChildren() * 22
+    packsListFrame.CanvasSize = UDim2.new(0,0,0,totalHeight)
+end
+
+viewPacksBtn.MouseButton1Click:Connect(function()
+    packsListFrame.Visible = not packsListFrame.Visible
+    if packsListFrame.Visible then
+        listPacks()
+    end
+end)
 
 -- Safe loop function with progress bar
 local function startLoop(toggleFlagVar, interval, action, bar)
