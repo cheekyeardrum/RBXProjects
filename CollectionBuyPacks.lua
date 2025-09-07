@@ -19,7 +19,7 @@ local toolsToggle = false
 local sg = Instance.new("ScreenGui", Player.PlayerGui)
 sg.Name = "AutoBuyGUI"
 
--- Draggable frame
+-- Draggable main frame
 local mainFrame = Instance.new("Frame", sg)
 mainFrame.Size = UDim2.new(0, 220, 0, 130)
 mainFrame.Position = UDim2.new(0,50,0,50)
