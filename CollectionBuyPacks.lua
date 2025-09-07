@@ -49,7 +49,7 @@ end
 -- Buttons
 local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", UDim2.new(0,50,0,50))
 local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", UDim2.new(0,50,0,120))
-local magnetBtn, magnetBar = createButton("Auto Magnet Cash", UDim2.new(0,50,0,190))
+local magnetBtn, magnetBar = createButton("Auto Magnet (5s)", UDim2.new(0,50,0,190))
 
 -- Safe loop function with progress bar
 local function startLoop(toggleFlag, interval, action, bar)
@@ -101,22 +101,14 @@ toolsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Magnet Cash Button
+-- Magnet Button
 magnetBtn.MouseButton1Click:Connect(function()
     magnetToggle = not magnetToggle
     if magnetToggle then
-        startLoop(function() return magnetToggle end, 5, function() -- every 5 seconds
-            local backpack = Player:FindFirstChild("Backpack")
-            local character = Player.Character
-            if not backpack or not character then return end
-
-            local magnetTool = backpack:FindFirstChild("Magnet") or character:FindFirstChild("Magnet")
-            if magnetTool and character:FindFirstChild("Humanoid") then
-                character.Humanoid:EquipTool(magnetTool)
-                magnetTool:Activate() -- start collecting
-                task.wait(3) -- hold for 3 seconds
-                -- magnetTool:Deactivate() -- optional if needed
-            end
+        startLoop(function() return magnetToggle end, 5, function() -- every 5s
+            pcall(function()
+                brks:InvokeServer("FaveTool", "Magnet", 0)
+            end)
         end, magnetBar)
     end
 end)
