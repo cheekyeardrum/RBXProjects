@@ -3,7 +3,6 @@ local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local vu = game:GetService("VirtualUser")
 
 local Player = Players.LocalPlayer
@@ -56,14 +55,14 @@ local cashBtn, cashBar = createButton("Auto Claim Cash (fast)", UDim2.new(0,50,0
 -- Safe loop function with progress bar
 local function startLoop(toggleFlag, interval, action, bar)
     task.spawn(function()
-        while toggleFlag() do
+        while toggleFlag()() do
             action()
             local st = tick()
             repeat
                 local progress = math.clamp((tick()-st)/interval,0,1)
                 bar.Size = UDim2.new(progress,0,1,0)
                 RunService.RenderStepped:Wait()
-            until tick()-st >= interval or not toggleFlag()
+            until tick()-st >= interval or not toggleFlag()()
             bar.Size = UDim2.new(0,0,1,0)
         end
     end)
@@ -103,20 +102,31 @@ toolsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Cash Button
+-- Cash Button with safe folder check
 cashBtn.MouseButton1Click:Connect(function()
     cashToggle = not cashToggle
     if cashToggle then
-        startLoop(function() return cashToggle end, 1, function() -- fast loop
-            local cashFolder = Workspace:FindFirstChild("CashFolder")
-            if cashFolder then
-                for _, cash in ipairs(cashFolder:GetChildren()) do
-                    local cashTable = cash:FindFirstChild("ClaimData") -- adjust name if needed
-                    if cashTable and cashTable.Value then
-                        pcall(function()
-                            brks:InvokeServer("ClaimCash", cashTable.Value)
-                        end)
-                    end
+        -- Wait up to 10 seconds for CashFolder
+        local cashFolder
+        local startTime = tick()
+        repeat
+            cashFolder = Workspace:FindFirstChild("CashFolder")
+            task.wait(0.1)
+        until cashFolder or tick()-startTime > 10
+
+        if not cashFolder then
+            warn("CashFolder not found after 10 seconds. Auto-claim disabled.")
+            return
+        end
+
+        -- Start fast claim loop
+        startLoop(function() return cashToggle end, 1, function()
+            for _, cash in ipairs(cashFolder:GetChildren()) do
+                local cashTable = cash:FindFirstChild("ClaimData") -- adjust if different
+                if cashTable and cashTable.Value then
+                    pcall(function()
+                        brks:InvokeServer("ClaimCash", cashTable.Value)
+                    end)
                 end
             end
         end, cashBar)
