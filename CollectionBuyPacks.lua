@@ -51,17 +51,17 @@ local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", UDim2.new(0,50
 local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", UDim2.new(0,50,0,120))
 local magnetBtn, magnetBar = createButton("Auto Magnet (5s)", UDim2.new(0,50,0,190))
 
--- Safe loop function with progress bar
-local function startLoop(toggleFlag, interval, action, bar)
+-- Fixed safe loop function with progress bar
+local function startLoop(toggleFlagVar, interval, action, bar)
     task.spawn(function()
-        while toggleFlag()() do
+        while toggleFlagVar do
             action()
             local st = tick()
             repeat
                 local progress = math.clamp((tick()-st)/interval,0,1)
                 bar.Size = UDim2.new(progress,0,1,0)
                 RunService.RenderStepped:Wait()
-            until tick()-st >= interval or not toggleFlag()()
+            until tick()-st >= interval or not toggleFlagVar
             bar.Size = UDim2.new(0,0,1,0)
         end
     end)
@@ -71,7 +71,7 @@ end
 packsBtn.MouseButton1Click:Connect(function()
     packsToggle = not packsToggle
     if packsToggle then
-        startLoop(function() return packsToggle end, 300, function()
+        startLoop(packsToggle, 300, function()
             for _, packName in ipairs(packs) do
                 for i = 1, 20 do
                     pcall(function()
@@ -88,7 +88,7 @@ end)
 toolsBtn.MouseButton1Click:Connect(function()
     toolsToggle = not toolsToggle
     if toolsToggle then
-        startLoop(function() return toolsToggle end, 300, function()
+        startLoop(toolsToggle, 300, function()
             for _, toolID in ipairs(tools) do
                 for i = 1, 20 do
                     pcall(function()
@@ -105,7 +105,7 @@ end)
 magnetBtn.MouseButton1Click:Connect(function()
     magnetToggle = not magnetToggle
     if magnetToggle then
-        startLoop(function() return magnetToggle end, 5, function() -- every 5s
+        startLoop(magnetToggle, 5, function() -- every 5s
             pcall(function()
                 brks:InvokeServer("FaveTool", "Magnet", 0)
             end)
