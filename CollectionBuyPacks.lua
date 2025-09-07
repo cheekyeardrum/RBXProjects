@@ -21,7 +21,7 @@ sg.Name = "AutoBuyGUI"
 
 -- Draggable main frame
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 220, 0, 250)
+mainFrame.Size = UDim2.new(0, 240, 0, 340)
 mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
@@ -77,7 +77,7 @@ end
 -- Helper to create button + progress bar
 local function createButton(name, yPosition)
     local f = Instance.new("Frame", mainFrame)
-    f.Size = UDim2.new(0, 200, 0, 50)
+    f.Size = UDim2.new(0, 220, 0, 50)
     f.Position = UDim2.new(0,10,0,yPosition)
     f.BackgroundColor3 = Color3.fromRGB(40,40,40)
     f.BorderSizePixel = 0
@@ -127,7 +127,6 @@ uiLayout.Padding = UDim.new(0,2)
 
 -- Function to populate pack list
 local function listPacks()
-    -- Clear previous items
     for _, child in ipairs(packsListFrame:GetChildren()) do
         if child:IsA("TextLabel") then child:Destroy() end
     end
@@ -152,7 +151,6 @@ local function listPacks()
         end
     end
 
-    -- Update scroll area
     local totalHeight = #packsListFrame:GetChildren() * 22
     packsListFrame.CanvasSize = UDim2.new(0,0,0,totalHeight)
 end
@@ -213,6 +211,56 @@ toolsBtn.MouseButton1Click:Connect(function()
         end, toolsBar)
     end
 end)
+
+-- Luck Slider Frame
+local luckFrame = Instance.new("Frame", mainFrame)
+luckFrame.Size = UDim2.new(0, 220, 0, 50)
+luckFrame.Position = UDim2.new(0,10,0,280)
+luckFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+luckFrame.BorderSizePixel = 0
+
+local luckLabel = Instance.new("TextLabel", luckFrame)
+luckLabel.Size = UDim2.new(1,0,0.4,0)
+luckLabel.Position = UDim2.new(0,0,0,0)
+luckLabel.Text = "Luck: 200"
+luckLabel.TextColor3 = Color3.new(1,1,1)
+luckLabel.BackgroundTransparency = 1
+luckLabel.Font = Enum.Font.SourceSans
+luckLabel.TextSize = 14
+
+local sliderBg = Instance.new("Frame", luckFrame)
+sliderBg.Size = UDim2.new(0.9,0,0.3,0)
+sliderBg.Position = UDim2.new(0.05,0,0.6,0)
+sliderBg.BackgroundColor3 = Color3.fromRGB(60,60,60)
+local sliderFill = Instance.new("Frame", sliderBg)
+sliderFill.Size = UDim2.new(200/300,0,1,0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(100,200,100)
+
+-- Luck slider input
+do
+    local dragging = false
+    sliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    sliderBg.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    sliderBg.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local relative = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X)/sliderBg.AbsoluteSize.X,0,1)
+            local value = math.floor(relative*300)
+            sliderFill.Size = UDim2.new(relative,0,1,0)
+            luckLabel.Text = "Luck: "..value
+            pcall(function()
+                brks:InvokeServer("SetLimitLuck", value)
+            end)
+        end
+    end)
+end
 
 -- Anti-AFK
 Player.Idled:Connect(function()
