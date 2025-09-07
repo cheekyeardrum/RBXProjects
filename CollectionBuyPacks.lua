@@ -25,8 +25,6 @@ mainFrame.Size = UDim2.new(0, 220, 0, 130)
 mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
 
 -- Title
 local title = Instance.new("TextLabel", mainFrame)
@@ -39,7 +37,44 @@ title.BorderSizePixel = 0
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 18
 
--- Helper to create button + progress bar inside mainFrame
+-- Manual dragging
+do
+    local dragging = false
+    local dragInput, dragStart, startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                       startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    title.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    title.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            update(dragInput)
+        end
+    end)
+end
+
+-- Helper to create button + progress bar
 local function createButton(name, yPosition)
     local f = Instance.new("Frame", mainFrame)
     f.Size = UDim2.new(0, 200, 0, 50)
@@ -65,7 +100,7 @@ local function createButton(name, yPosition)
     return btn, bar
 end
 
--- Buttons stacked neatly
+-- Buttons
 local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", 30)
 local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", 80)
 
