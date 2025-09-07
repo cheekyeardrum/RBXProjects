@@ -1,7 +1,6 @@
 -- Services
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
 local vu = game:GetService("VirtualUser")
 
@@ -15,7 +14,7 @@ local tools = {6, 7} -- numeric IDs from logger
 -- Flags
 local packsToggle = false
 local toolsToggle = false
-local cashToggle = false
+local magnetToggle = false
 
 -- GUI
 local sg = Instance.new("ScreenGui", Player.PlayerGui)
@@ -50,7 +49,7 @@ end
 -- Buttons
 local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", UDim2.new(0,50,0,50))
 local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", UDim2.new(0,50,0,120))
-local cashBtn, cashBar = createButton("Auto Claim Cash (fast)", UDim2.new(0,50,0,190))
+local magnetBtn, magnetBar = createButton("Auto Magnet Cash", UDim2.new(0,50,0,190))
 
 -- Safe loop function with progress bar
 local function startLoop(toggleFlag, interval, action, bar)
@@ -102,34 +101,23 @@ toolsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Cash Button with safe folder check
-cashBtn.MouseButton1Click:Connect(function()
-    cashToggle = not cashToggle
-    if cashToggle then
-        -- Wait up to 10 seconds for CashFolder
-        local cashFolder
-        local startTime = tick()
-        repeat
-            cashFolder = Workspace:FindFirstChild("CashFolder")
-            task.wait(0.1)
-        until cashFolder or tick()-startTime > 10
+-- Magnet Cash Button
+magnetBtn.MouseButton1Click:Connect(function()
+    magnetToggle = not magnetToggle
+    if magnetToggle then
+        startLoop(function() return magnetToggle end, 5, function() -- every 5 seconds
+            local backpack = Player:FindFirstChild("Backpack")
+            local character = Player.Character
+            if not backpack or not character then return end
 
-        if not cashFolder then
-            warn("CashFolder not found after 10 seconds. Auto-claim disabled.")
-            return
-        end
-
-        -- Start fast claim loop
-        startLoop(function() return cashToggle end, 1, function()
-            for _, cash in ipairs(cashFolder:GetChildren()) do
-                local cashTable = cash:FindFirstChild("ClaimData") -- adjust if different
-                if cashTable and cashTable.Value then
-                    pcall(function()
-                        brks:InvokeServer("ClaimCash", cashTable.Value)
-                    end)
-                end
+            local magnetTool = backpack:FindFirstChild("Magnet") or character:FindFirstChild("Magnet")
+            if magnetTool and character:FindFirstChild("Humanoid") then
+                character.Humanoid:EquipTool(magnetTool)
+                magnetTool:Activate() -- start collecting
+                task.wait(3) -- hold for 3 seconds
+                -- magnetTool:Deactivate() -- optional if needed
             end
-        end, cashBar)
+        end, magnetBar)
     end
 end)
 
