@@ -21,7 +21,7 @@ sg.Name = "AutoBuyGUI"
 
 -- Draggable main frame
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 220, 0, 300)
+mainFrame.Size = UDim2.new(0, 220, 0, 250)
 mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
@@ -112,18 +112,10 @@ viewPacksBtn.Text = "View Packs"
 viewPacksBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
 viewPacksBtn.TextColor3 = Color3.new(1,1,1)
 
--- Open Packs button
-local openPacksBtn = Instance.new("TextButton", mainFrame)
-openPacksBtn.Size = UDim2.new(1,0,0,25)
-openPacksBtn.Position = UDim2.new(0,0,0,170)
-openPacksBtn.Text = "Open All Packs"
-openPacksBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-openPacksBtn.TextColor3 = Color3.new(1,1,1)
-
 -- Frame to display pack counts
 local packsListFrame = Instance.new("ScrollingFrame", mainFrame)
 packsListFrame.Size = UDim2.new(1, -20, 0, 100)
-packsListFrame.Position = UDim2.new(0, 10, 0, 200)
+packsListFrame.Position = UDim2.new(0, 10, 0, 170)
 packsListFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
 packsListFrame.BorderSizePixel = 0
 packsListFrame.CanvasSize = UDim2.new(0,0,0,0)
@@ -169,37 +161,6 @@ viewPacksBtn.MouseButton1Click:Connect(function()
     packsListFrame.Visible = not packsListFrame.Visible
     if packsListFrame.Visible then
         listPacks()
-    end
-end)
-
--- Function to open all packs in batches of 3
-openPacksBtn.MouseButton1Click:Connect(function()
-    local backpack = Player:WaitForChild("Backpack")
-    
-    for _, item in ipairs(backpack:GetChildren()) do
-        if type(item.Name) == "string" and item.Name:find("Pack") then
-            -- Determine total quantity
-            local total = 1
-            local amountObj = item:FindFirstChild("Amount") or item:FindFirstChild("Quantity")
-            if amountObj and (amountObj:IsA("IntValue") or amountObj:IsA("NumberValue")) then
-                total = amountObj.Value
-            end
-            local attr = item:GetAttribute("Amount") or item:GetAttribute("Quantity")
-            if attr then total = attr end
-
-            -- Open in batches of 3
-            while total > 0 do
-                local batch = math.min(3, total)
-                local success, err = pcall(function()
-                    brks:InvokeServer("OpenBoosterPack", item.Name, batch)
-                end)
-                if not success then
-                    warn("Failed to open pack:", item.Name, err)
-                end
-                total = total - batch
-                task.wait(0.1)
-            end
-        end
     end
 end)
 
@@ -259,4 +220,3 @@ Player.Idled:Connect(function()
     task.wait(0.1)
     vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
-
