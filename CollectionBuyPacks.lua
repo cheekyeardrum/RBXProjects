@@ -175,25 +175,28 @@ end)
 -- Function to open all packs in batches of 3
 openPacksBtn.MouseButton1Click:Connect(function()
     local backpack = Player:WaitForChild("Backpack")
-
+    
     for _, item in ipairs(backpack:GetChildren()) do
         if type(item.Name) == "string" and item.Name:find("Pack") then
-            -- Get total quantity of this pack
-            local count = 1
+            -- Determine total quantity
+            local total = 1
             local amountObj = item:FindFirstChild("Amount") or item:FindFirstChild("Quantity")
             if amountObj and (amountObj:IsA("IntValue") or amountObj:IsA("NumberValue")) then
-                count = amountObj.Value
+                total = amountObj.Value
             end
             local attr = item:GetAttribute("Amount") or item:GetAttribute("Quantity")
-            if attr then count = attr end
+            if attr then total = attr end
 
             -- Open in batches of 3
-            while count > 0 do
-                local toOpen = math.min(3, count)
-                pcall(function()
-                    brks:InvokeServer("OpenBoosterPack", item.Name, toOpen)
+            while total > 0 do
+                local batch = math.min(3, total)
+                local success, err = pcall(function()
+                    brks:InvokeServer("OpenBoosterPack", item.Name, batch)
                 end)
-                count = count - toOpen
+                if not success then
+                    warn("Failed to open pack:", item.Name, err)
+                end
+                total = total - batch
                 task.wait(0.1)
             end
         end
@@ -256,3 +259,4 @@ Player.Idled:Connect(function()
     task.wait(0.1)
     vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
+
