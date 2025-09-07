@@ -212,12 +212,11 @@ toolsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Luck Slider Frame
+-- Luck Slider Snippet (0–1000)
 local luckFrame = Instance.new("Frame", mainFrame)
 luckFrame.Size = UDim2.new(0, 220, 0, 50)
 luckFrame.Position = UDim2.new(0,10,0,280)
 luckFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-luckFrame.BorderSizePixel = 0
 
 local luckLabel = Instance.new("TextLabel", luckFrame)
 luckLabel.Size = UDim2.new(1,0,0.4,0)
@@ -232,11 +231,12 @@ local sliderBg = Instance.new("Frame", luckFrame)
 sliderBg.Size = UDim2.new(0.9,0,0.3,0)
 sliderBg.Position = UDim2.new(0.05,0,0.6,0)
 sliderBg.BackgroundColor3 = Color3.fromRGB(60,60,60)
+
 local sliderFill = Instance.new("Frame", sliderBg)
-sliderFill.Size = UDim2.new(200/300,0,1,0)
+sliderFill.Size = UDim2.new(200/1000,0,1,0) -- initial 200/1000
 sliderFill.BackgroundColor3 = Color3.fromRGB(100,200,100)
 
--- Luck slider input
+-- Slider input
 do
     local dragging = false
     sliderBg.InputBegan:Connect(function(input)
@@ -252,7 +252,7 @@ do
     sliderBg.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local relative = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X)/sliderBg.AbsoluteSize.X,0,1)
-            local value = math.floor(relative*300)
+            local value = math.floor(relative*1000)
             sliderFill.Size = UDim2.new(relative,0,1,0)
             luckLabel.Text = "Luck: "..value
             pcall(function()
@@ -268,3 +268,4 @@ Player.Idled:Connect(function()
     task.wait(0.1)
     vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
+
