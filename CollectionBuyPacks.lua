@@ -1,112 +1,126 @@
 -- Services
-local Player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local vu = game:GetService("VirtualUser")
 
+local Player = Players.LocalPlayer
 local brks = RS:WaitForChild("Remotes"):WaitForChild("InfoFunction")
+
+-- Packs and Tools
 local packs = {"Starter Pack","Electric Pack","Twins Pack","Blood Pack","Toxic Pack","Circuit Pack","Grass Pack","Rock Pack","Waterfall Pack","Volcano Pack"}
-local tools = {"BuyPSATool 6","BuyPSATool 7"}
+local tools = {6, 7} -- numeric IDs from logger
 
-local s = Instance.new("Sound", workspace)
-s.SoundId = "rbxassetid://9118828692"
-s.Volume = 1.2
+-- Flags
+local packsToggle = false
+local toolsToggle = false
+local cashToggle = false
 
--- ===== GUI =====
-local screen = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
-screen.Name = "AutoBuyGUI"
+-- GUI
+local sg = Instance.new("ScreenGui", Player.PlayerGui)
+sg.Name = "AutoBuyGUI"
 
-local frame = Instance.new("Frame", screen)
-frame.Size = UDim2.new(0, 300, 0, 180)
-frame.Position = UDim2.new(0,50,0,50)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
+-- Helper to create button + progress bar
+local function createButton(name, position)
+    local f = Instance.new("Frame", sg)
+    f.Size = UDim2.new(0, 200, 0, 50)
+    f.Position = position
+    f.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    f.BorderSizePixel = 0
 
-local function createButton(name, positionY)
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 280, 0, 40)
-    btn.Position = UDim2.new(0, 10, 0, positionY)
-    btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    local btn = Instance.new("TextButton", f)
+    btn.Size = UDim2.new(1,0,0.6,0)
+    btn.Position = UDim2.new(0,0,0,0)
     btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.TextSize = 18
-    return btn
-end
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
 
-local function createStatusLabel(text, positionY)
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0, 280, 0, 20)
-    label.Position = UDim2.new(0, 10, 0, positionY)
-    label.BackgroundTransparency = 1
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.TextSize = 16
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    return label
-end
-
-local function createProgressBar(positionY)
-    local bg = Instance.new("Frame", frame)
-    bg.Size = UDim2.new(0, 280, 0, 15)
-    bg.Position = UDim2.new(0,10,0,positionY)
-    bg.BackgroundColor3 = Color3.fromRGB(50,50,50)
-
-    local bar = Instance.new("Frame", bg)
+    local barBg = Instance.new("Frame", f)
+    barBg.Size = UDim2.new(0.95,0,0.3,0)
+    barBg.Position = UDim2.new(0.025,0,0.65,0)
+    barBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    local bar = Instance.new("Frame", barBg)
     bar.Size = UDim2.new(0,0,1,0)
-    bar.BackgroundColor3 = Color3.fromRGB(50,200,50)
-    return bar
+    bar.BackgroundColor3 = Color3.fromRGB(100,200,100)
+
+    return btn, bar
 end
 
--- Packs
-local packsBtn = createButton("Start Pack Auto-Buy", 10)
-local packsLabel = createStatusLabel("Idle", 55)
-local packsBar = createProgressBar(75)
-local packsRunning = false
+-- Buttons
+local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", UDim2.new(0,50,0,50))
+local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", UDim2.new(0,50,0,120))
+local cashBtn, cashBar = createButton("Auto Claim Cash (fast)", UDim2.new(0,50,0,190))
 
--- Tools
-local toolsBtn = createButton("Start Tools Auto-Buy", 105)
-local toolsLabel = createStatusLabel("Idle", 150)
-local toolsBar = createProgressBar(170)
-local toolsRunning = false
-
--- ===== FUNCTIONS =====
-local function buyLoop(list, label, bar, runningFlag)
+-- Safe loop function with progress bar
+local function startLoop(toggleFlag, interval, action, bar)
     task.spawn(function()
-        while runningFlag do
-            label.Text = "Buying..."
-            for _,v in ipairs(list) do
-                for i=1,20 do
-                    pcall(function() brks:InvokeServer(list==packs and "BuyBoosterPack" or "BuyPSATool", v) end)
-                    s:Play()
-                    task.wait(0.05)
-                end
-            end
-            for i=0,300 do -- 5 minutes
-                if not runningFlag then break end
-                bar.Size = UDim2.new(i/300,0,1,0)
-                label.Text = "Waiting... ("..(300-i).."s)"
-                task.wait(1)
-            end
+        while toggleFlag() do
+            action()
+            local st = tick()
+            repeat
+                local progress = math.clamp((tick()-st)/interval,0,1)
+                bar.Size = UDim2.new(progress,0,1,0)
+                RunService.RenderStepped:Wait()
+            until tick()-st >= interval or not toggleFlag()
             bar.Size = UDim2.new(0,0,1,0)
         end
-        label.Text = "Idle"
-        bar.Size = UDim2.new(0,0,1,0)
     end)
 end
 
--- ===== BUTTON CALLBACKS =====
+-- Packs Button
 packsBtn.MouseButton1Click:Connect(function()
-    packsRunning = not packsRunning
-    packsBtn.Text = packsRunning and "Stop Pack Auto-Buy" or "Start Pack Auto-Buy"
-    if packsRunning then buyLoop(packs, packsLabel, packsBar, packsRunning) end
+    packsToggle = not packsToggle
+    if packsToggle then
+        startLoop(function() return packsToggle end, 300, function()
+            for _, packName in ipairs(packs) do
+                for i = 1, 20 do
+                    pcall(function()
+                        brks:InvokeServer("BuyBoosterPack", packName)
+                    end)
+                    task.wait(0.05)
+                end
+            end
+        end, packsBar)
+    end
 end)
 
+-- Tools Button
 toolsBtn.MouseButton1Click:Connect(function()
-    toolsRunning = not toolsRunning
-    toolsBtn.Text = toolsRunning and "Stop Tools Auto-Buy" or "Start Tools Auto-Buy"
-    if toolsRunning then buyLoop(tools, toolsLabel, toolsBar, toolsRunning) end
+    toolsToggle = not toolsToggle
+    if toolsToggle then
+        startLoop(function() return toolsToggle end, 300, function()
+            for _, toolID in ipairs(tools) do
+                for i = 1, 20 do
+                    pcall(function()
+                        brks:InvokeServer("BuyPSATool", toolID)
+                    end)
+                    task.wait(0.05)
+                end
+            end
+        end, toolsBar)
+    end
 end)
 
--- ===== Anti-AFK =====
+-- Cash Button
+cashBtn.MouseButton1Click:Connect(function()
+    cashToggle = not cashToggle
+    if cashToggle then
+        startLoop(function() return cashToggle end, 1, function() -- very fast loop
+            for _, cash in ipairs(Workspace:WaitForChild("CashFolder"):GetChildren()) do
+                local cashTable = cash:FindFirstChild("ClaimData") -- adjust name if different
+                if cashTable and cashTable.Value then
+                    pcall(function()
+                        brks:InvokeServer("ClaimCash", cashTable.Value)
+                    end)
+                end
+            end
+        end, cashBar)
+    end
+end)
+
+-- Anti-AFK
 Player.Idled:Connect(function()
     vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
     task.wait(0.1)
