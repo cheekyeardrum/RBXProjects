@@ -81,8 +81,83 @@ local packsBtn = MainTab:CreateButton({
     Callback = function()
         packsRunning = not packsRunning
         if packsRunning then
+            packsBtn:ChangeText("Stop Pack Auto-Buy")
+            packsLoop()
+        else
+            packsBtn:ChangeText("Start Pack Auto-Buy (5 min)")
+        end
+    end
+})
 
+-- ===== TOOLS =====
+local toolsRunning = false
+local toolsStatus = MainTab:CreateLabel("Tools Status: Idle")
+
+local toolsProgressBG = Instance.new("Frame")
+toolsProgressBG.BackgroundColor3 = Color3.fromRGB(40,40,40)
+toolsProgressBG.BorderSizePixel = 0
+toolsProgressBG.Size = UDim2.new(1,0,0,20)
+toolsProgressBG.Position = UDim2.new(0,0,0,30)
+toolsProgressBG.Parent = MainTab.ElementHolder
+
+local toolsProgressBar = Instance.new("Frame")
+toolsProgressBar.BackgroundColor3 = Color3.fromRGB(50,200,50)
+toolsProgressBar.BorderSizePixel = 0
+toolsProgressBar.Size = UDim2.new(0,0,1,0)
+toolsProgressBar.Position = UDim2.new(0,0,0,0)
+toolsProgressBar.Parent = toolsProgressBG
+toolsProgressBar.ZIndex = toolsProgressBG.ZIndex + 1
+
+local function updateToolsProgress(percent)
+    toolsProgressBar.Size = UDim2.new(percent,0,1,0)
+end
+
+local function toolsLoop()
+    task.spawn(function()
+        while toolsRunning do
+            toolsStatus:Set("Tools Status: Buying...")
+            for _,v in ipairs(tools) do
+                for i=1,20 do
+                    pcall(function() brks:InvokeServer("BuyPSATool",v) end)
+                    s:Play()
+                    task.wait(0.05)
+                end
+            end
+            -- countdown 5 mins
+            for i=0,300 do
+                if not toolsRunning then break end
+                updateToolsProgress(i/300)
+                toolsStatus:Set("Tools Status: Waiting... ("..(300-i).."s)")
+                task.wait(1)
+            end
+            updateToolsProgress(0)
+        end
+        toolsStatus:Set("Tools Status: Idle")
+        updateToolsProgress(0)
+    end)
+end
+
+local toolsBtn = MainTab:CreateButton({
+    Name = "Start Tools Auto-Buy (5 min)",
+    Callback = function()
+        toolsRunning = not toolsRunning
+        if toolsRunning then
+            toolsBtn:ChangeText("Stop Tools Auto-Buy")
+            toolsLoop()
+        else
+            toolsBtn:ChangeText("Start Tools Auto-Buy (5 min)")
+        end
+    end
+})
+
+-- Anti-AFK
+Player.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    task.wait(0.1)
     vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
 end)
+
+end)
+
 
 
