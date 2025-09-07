@@ -107,13 +107,16 @@ end)
 cashBtn.MouseButton1Click:Connect(function()
     cashToggle = not cashToggle
     if cashToggle then
-        startLoop(function() return cashToggle end, 1, function() -- very fast loop
-            for _, cash in ipairs(Workspace:WaitForChild("CashFolder"):GetChildren()) do
-                local cashTable = cash:FindFirstChild("ClaimData") -- adjust name if different
-                if cashTable and cashTable.Value then
-                    pcall(function()
-                        brks:InvokeServer("ClaimCash", cashTable.Value)
-                    end)
+        startLoop(function() return cashToggle end, 1, function() -- fast loop
+            local cashFolder = Workspace:FindFirstChild("CashFolder")
+            if cashFolder then
+                for _, cash in ipairs(cashFolder:GetChildren()) do
+                    local cashTable = cash:FindFirstChild("ClaimData") -- adjust name if needed
+                    if cashTable and cashTable.Value then
+                        pcall(function()
+                            brks:InvokeServer("ClaimCash", cashTable.Value)
+                        end)
+                    end
                 end
             end
         end, cashBar)
