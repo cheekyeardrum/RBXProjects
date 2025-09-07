@@ -28,33 +28,31 @@ s.Volume = 1.2
 -- Tabs
 local MainTab = Window:CreateTab("Main", 4483362458)
 
--- ===== PACKS =====
-local packsRunning = false
-local packsStatus = MainTab:CreateLabel("Packs Status: Idle")
+-- Packs Button
+local PacksStatus = MainTab:CreateLabel("Packs Status: Idle")
+local PacksProgressBG = Instance.new("Frame")
+PacksProgressBG.BackgroundColor3 = Color3.fromRGB(40,40,40)
+PacksProgressBG.BorderSizePixel = 0
+PacksProgressBG.Size = UDim2.new(1,0,0,20)
+PacksProgressBG.Position = UDim2.new(0,0,0,0)
+PacksProgressBG.Parent = MainTab.ElementHolder
 
-local packsProgressBG = Instance.new("Frame")
-packsProgressBG.BackgroundColor3 = Color3.fromRGB(40,40,40)
-packsProgressBG.BorderSizePixel = 0
-packsProgressBG.Size = UDim2.new(1,0,0,20)
-packsProgressBG.Position = UDim2.new(0,0,0,0)
-packsProgressBG.Parent = MainTab.ElementHolder
+local PacksProgressBar = Instance.new("Frame")
+PacksProgressBar.BackgroundColor3 = Color3.fromRGB(50,200,50)
+PacksProgressBar.BorderSizePixel = 0
+PacksProgressBar.Size = UDim2.new(0,0,1,0)
+PacksProgressBar.Position = UDim2.new(0,0,0,0)
+PacksProgressBar.Parent = PacksProgressBG
+PacksProgressBar.ZIndex = PacksProgressBG.ZIndex + 1
 
-local packsProgressBar = Instance.new("Frame")
-packsProgressBar.BackgroundColor3 = Color3.fromRGB(50,200,50)
-packsProgressBar.BorderSizePixel = 0
-packsProgressBar.Size = UDim2.new(0,0,1,0)
-packsProgressBar.Position = UDim2.new(0,0,0,0)
-packsProgressBar.Parent = packsProgressBG
-packsProgressBar.ZIndex = packsProgressBG.ZIndex + 1
-
-local function updatePacksProgress(percent)
-    packsProgressBar.Size = UDim2.new(percent,0,1,0)
+local function UpdatePacksProgress(percent)
+    PacksProgressBar.Size = UDim2.new(percent,0,1,0)
 end
 
-local function packsLoop()
+local function BuyPacksLoop()
     task.spawn(function()
-        while packsRunning do
-            packsStatus:Set("Packs Status: Buying...")
+        while true do
+            PacksStatus:Set("Packs Status: Buying...")
             for _,v in ipairs(packs) do
                 for i=1,20 do
                     pcall(function() brks:InvokeServer("BuyBoosterPack",v) end)
@@ -62,60 +60,49 @@ local function packsLoop()
                     task.wait(0.05)
                 end
             end
-            -- countdown 5 mins
-            for i=0,300 do
-                if not packsRunning then break end
-                updatePacksProgress(i/300)
-                packsStatus:Set("Packs Status: Waiting... ("..(300-i).."s)")
+            -- 5 min countdown with progress bar
+            for i = 0,300 do
+                UpdatePacksProgress(i/300)
+                PacksStatus:Set("Packs Status: Waiting... ("..(300-i).."s)")
                 task.wait(1)
             end
-            updatePacksProgress(0)
+            UpdatePacksProgress(0)
         end
-        packsStatus:Set("Packs Status: Idle")
-        updatePacksProgress(0)
     end)
 end
 
-local packsBtn = MainTab:CreateButton({
+MainTab:CreateButton({
     Name = "Start Pack Auto-Buy (5 min)",
     Callback = function()
-        packsRunning = not packsRunning
-        if packsRunning then
-            packsBtn:ChangeText("Stop Pack Auto-Buy")
-            packsLoop()
-        else
-            packsBtn:ChangeText("Start Pack Auto-Buy (5 min)")
-        end
+        BuyPacksLoop()
     end
 })
 
--- ===== TOOLS =====
-local toolsRunning = false
-local toolsStatus = MainTab:CreateLabel("Tools Status: Idle")
+-- Tools Button
+local ToolsStatus = MainTab:CreateLabel("Tools Status: Idle")
+local ToolsProgressBG = Instance.new("Frame")
+ToolsProgressBG.BackgroundColor3 = Color3.fromRGB(40,40,40)
+ToolsProgressBG.BorderSizePixel = 0
+ToolsProgressBG.Size = UDim2.new(1,0,0,20)
+ToolsProgressBG.Position = UDim2.new(0,0,0,30)
+ToolsProgressBG.Parent = MainTab.ElementHolder
 
-local toolsProgressBG = Instance.new("Frame")
-toolsProgressBG.BackgroundColor3 = Color3.fromRGB(40,40,40)
-toolsProgressBG.BorderSizePixel = 0
-toolsProgressBG.Size = UDim2.new(1,0,0,20)
-toolsProgressBG.Position = UDim2.new(0,0,0,30)
-toolsProgressBG.Parent = MainTab.ElementHolder
+local ToolsProgressBar = Instance.new("Frame")
+ToolsProgressBar.BackgroundColor3 = Color3.fromRGB(50,200,50)
+ToolsProgressBar.BorderSizePixel = 0
+ToolsProgressBar.Size = UDim2.new(0,0,1,0)
+ToolsProgressBar.Position = UDim2.new(0,0,0,0)
+ToolsProgressBar.Parent = ToolsProgressBG
+ToolsProgressBar.ZIndex = ToolsProgressBG.ZIndex + 1
 
-local toolsProgressBar = Instance.new("Frame")
-toolsProgressBar.BackgroundColor3 = Color3.fromRGB(50,200,50)
-toolsProgressBar.BorderSizePixel = 0
-toolsProgressBar.Size = UDim2.new(0,0,1,0)
-toolsProgressBar.Position = UDim2.new(0,0,0,0)
-toolsProgressBar.Parent = toolsProgressBG
-toolsProgressBar.ZIndex = toolsProgressBG.ZIndex + 1
-
-local function updateToolsProgress(percent)
-    toolsProgressBar.Size = UDim2.new(percent,0,1,0)
+local function UpdateToolsProgress(percent)
+    ToolsProgressBar.Size = UDim2.new(percent,0,1,0)
 end
 
-local function toolsLoop()
+local function BuyToolsLoop()
     task.spawn(function()
-        while toolsRunning do
-            toolsStatus:Set("Tools Status: Buying...")
+        while true do
+            ToolsStatus:Set("Tools Status: Buying...")
             for _,v in ipairs(tools) do
                 for i=1,20 do
                     pcall(function() brks:InvokeServer("BuyPSATool",v) end)
@@ -123,30 +110,21 @@ local function toolsLoop()
                     task.wait(0.05)
                 end
             end
-            -- countdown 5 mins
-            for i=0,300 do
-                if not toolsRunning then break end
-                updateToolsProgress(i/300)
-                toolsStatus:Set("Tools Status: Waiting... ("..(300-i).."s)")
+            -- 5 min countdown with progress bar
+            for i = 0,300 do
+                UpdateToolsProgress(i/300)
+                ToolsStatus:Set("Tools Status: Waiting... ("..(300-i).."s)")
                 task.wait(1)
             end
-            updateToolsProgress(0)
+            UpdateToolsProgress(0)
         end
-        toolsStatus:Set("Tools Status: Idle")
-        updateToolsProgress(0)
     end)
 end
 
-local toolsBtn = MainTab:CreateButton({
+MainTab:CreateButton({
     Name = "Start Tools Auto-Buy (5 min)",
     Callback = function()
-        toolsRunning = not toolsRunning
-        if toolsRunning then
-            toolsBtn:ChangeText("Stop Tools Auto-Buy")
-            toolsLoop()
-        else
-            toolsBtn:ChangeText("Start Tools Auto-Buy (5 min)")
-        end
+        BuyToolsLoop()
     end
 })
 
@@ -156,8 +134,4 @@ Player.Idled:Connect(function()
     task.wait(0.1)
     vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
 end)
-
-end)
-
-
 
