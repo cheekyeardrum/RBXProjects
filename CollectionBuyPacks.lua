@@ -14,13 +14,14 @@ local tools = {6,7} -- numeric IDs from logger
 -- Flags
 local packsToggle = false
 local toolsToggle = false
+local autoCollect = false
 
 -- GUI
 local sg = Instance.new("ScreenGui", Player.PlayerGui)
 sg.Name = "AutoBuyGUI"
 
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 220, 0, 140)
+mainFrame.Size = UDim2.new(0, 220, 0, 200)
 mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
@@ -87,18 +88,19 @@ end
 -- Buttons
 local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", 30)
 local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", 80)
+local collectBtn, collectBar = createButton("Auto Collect Cash", 130)
 
 -- Loop function
-local function startLoop(toggleFlagVar, interval, action, bar)
+local function startLoop(flag, interval, action, bar)
     task.spawn(function()
-        while toggleFlagVar do
+        while flag do
             action()
             local st = tick()
             repeat
                 local progress = math.clamp((tick()-st)/interval,0,1)
                 bar.Size = UDim2.new(progress,0,1,0)
                 RunService.RenderStepped:Wait()
-            until tick()-st >= interval or not toggleFlagVar
+            until tick()-st >= interval or not flag
             bar.Size = UDim2.new(0,0,1,0)
         end
     end)
@@ -135,6 +137,23 @@ toolsBtn.MouseButton1Click:Connect(function()
                 end
             end
         end, toolsBar)
+    end
+end)
+
+-- Auto Collect Button
+collectBtn.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+    collectBtn.Text = autoCollect and "Auto Collect ON" or "Auto Collect Cash"
+    if autoCollect then
+        startLoop(autoCollect, 0.5, function()
+            for _, obj in ipairs(workspace:GetChildren()) do
+                if obj.Name == "Cash" then
+                    pcall(function()
+                        brks:InvokeServer("ClaimCash", obj)
+                    end)
+                end
+            end
+        end, collectBar)
     end
 end)
 
