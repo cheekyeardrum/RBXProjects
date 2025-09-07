@@ -14,18 +14,37 @@ local tools = {6, 7} -- numeric IDs from logger
 -- Flags
 local packsToggle = false
 local toolsToggle = false
-local magnetToggle = false
 
 -- GUI
 local sg = Instance.new("ScreenGui", Player.PlayerGui)
 sg.Name = "AutoBuyGUI"
 
--- Helper to create button + progress bar
-local function createButton(name, position)
-    local f = Instance.new("Frame", sg)
+-- Draggable frame
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 220, 0, 130)
+mainFrame.Position = UDim2.new(0,50,0,50)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+-- Title
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1,0,0,25)
+title.Position = UDim2.new(0,0,0,0)
+title.Text = "Auto Buy GUI"
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundColor3 = Color3.fromRGB(35,35,35)
+title.BorderSizePixel = 0
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 18
+
+-- Helper to create button + progress bar inside mainFrame
+local function createButton(name, yPosition)
+    local f = Instance.new("Frame", mainFrame)
     f.Size = UDim2.new(0, 200, 0, 50)
-    f.Position = position
-    f.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    f.Position = UDim2.new(0,10,0,yPosition)
+    f.BackgroundColor3 = Color3.fromRGB(40,40,40)
     f.BorderSizePixel = 0
 
     local btn = Instance.new("TextButton", f)
@@ -38,7 +57,7 @@ local function createButton(name, position)
     local barBg = Instance.new("Frame", f)
     barBg.Size = UDim2.new(0.95,0,0.3,0)
     barBg.Position = UDim2.new(0.025,0,0.65,0)
-    barBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    barBg.BackgroundColor3 = Color3.fromRGB(60,60,60)
     local bar = Instance.new("Frame", barBg)
     bar.Size = UDim2.new(0,0,1,0)
     bar.BackgroundColor3 = Color3.fromRGB(100,200,100)
@@ -46,12 +65,11 @@ local function createButton(name, position)
     return btn, bar
 end
 
--- Buttons
-local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", UDim2.new(0,50,0,50))
-local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", UDim2.new(0,50,0,120))
-local magnetBtn, magnetBar = createButton("Auto Magnet (5s)", UDim2.new(0,50,0,190))
+-- Buttons stacked neatly
+local packsBtn, packsBar = createButton("Auto Buy Packs (5 min)", 30)
+local toolsBtn, toolsBar = createButton("Auto Buy Tools (5 min)", 80)
 
--- Fixed safe loop function with progress bar
+-- Safe loop function with progress bar
 local function startLoop(toggleFlagVar, interval, action, bar)
     task.spawn(function()
         while toggleFlagVar do
@@ -98,18 +116,6 @@ toolsBtn.MouseButton1Click:Connect(function()
                 end
             end
         end, toolsBar)
-    end
-end)
-
--- Magnet Button
-magnetBtn.MouseButton1Click:Connect(function()
-    magnetToggle = not magnetToggle
-    if magnetToggle then
-        startLoop(magnetToggle, 5, function() -- every 5s
-            pcall(function()
-                brks:InvokeServer("FaveTool", "Magnet", 0)
-            end)
-        end, magnetBar)
     end
 end)
 
