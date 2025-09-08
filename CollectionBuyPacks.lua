@@ -231,22 +231,32 @@ eventBtn.MouseButton1Click:Connect(function()
     if eventToggle then
         task.spawn(function()
             while eventToggle do
-                local beachFolder = workspace:FindFirstChild("Beach Event")
+                local beachFolder = workspace:WaitForChild("Beach Event", 5) -- wait up to 5 seconds
                 if beachFolder then
-                    local prompt = findProximityPrompt(beachFolder)
-                    if prompt then
-                        for i = 1, 100 do
-                            pcall(function()
-                                prompt:InputHoldBegin()
-                                task.wait(0.05)
-                                prompt:InputHoldEnd()
-                            end)
+                    local mainFolder = beachFolder:FindFirstChild("Main")
+                    if mainFolder then
+                        local subFolder = mainFolder:FindFirstChild("Main")
+                        if subFolder then
+                            local prompt = subFolder:FindFirstChildWhichIsA("ProximityPrompt")
+                            if prompt then
+                                for i = 1, 100 do
+                                    pcall(function()
+                                        prompt:InputHoldBegin()
+                                        task.wait(0.05)
+                                        prompt:InputHoldEnd()
+                                    end)
+                                end
+                            else
+                                warn("[EventPack] No ProximityPrompt found in subfolder.")
+                            end
+                        else
+                            warn("[EventPack] Subfolder 'Main' not found.")
                         end
                     else
-                        warn("[EventPack] No ProximityPrompt found yet.")
+                        warn("[EventPack] Main folder not found.")
                     end
                 else
-                    warn("[EventPack] Beach Event folder not found.")
+                    warn("[EventPack] Beach Event folder not found in workspace.")
                 end
 
                 -- 10 min cooldown with progress bar
@@ -263,7 +273,6 @@ eventBtn.MouseButton1Click:Connect(function()
         end)
     end
 end)
-
 -- Anti-AFK
 Player.Idled:Connect(function()
     vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
@@ -272,3 +281,4 @@ Player.Idled:Connect(function()
 end)
 
 print("✅ Improved Auto Buy + Open GUI loaded!")
+
