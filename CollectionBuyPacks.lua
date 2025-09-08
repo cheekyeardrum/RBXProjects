@@ -1,13 +1,4 @@
-
-
-
-
-
-
-
-
-
--- ✅ Delta-Safe Auto-Buy + Continuous Auto-Open Packs GUI (Part 1)
+-- ✅ Improved Delta-Safe Auto-Buy + Continuous Auto-Open Packs GUI
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -16,7 +7,7 @@ local vu = game:GetService("VirtualUser")
 
 local Player = Players.LocalPlayer
 local brks = RS:WaitForChild("Remotes"):WaitForChild("InfoFunction")
-local InventoryModule = require(RS:WaitForChild("Modules"):WaitForChild("InventoryModule"))
+local InventoryModule = require(RS.Modules:WaitForChild("InventoryModule"))
 
 -- Packs and Tools
 local packs = {"Starter Pack","Electric Pack","Twins Pack","Blood Pack","Toxic Pack","Circuit Pack","Grass Pack","Rock Pack","Waterfall Pack","Volcano Pack"}
@@ -58,7 +49,7 @@ local function equipAndOpen(packName)
         else
             warn("[PackLogger] Failed to open", packName, err)
         end
-        task.wait(3) -- 3-second cooldown
+        task.wait(3) -- cooldown
     end
 end
 
@@ -72,7 +63,6 @@ mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
 
--- Title
 local title = Instance.new("TextLabel", mainFrame)
 title.Size = UDim2.new(1,0,0,25)
 title.Position = UDim2.new(0,0,0,0)
@@ -108,6 +98,7 @@ do
         if dragging and dragInput then update(dragInput) end
     end)
 end
+
 -- Helper to create button + progress bar
 local function createButton(name, yPos)
     local f = Instance.new("Frame", mainFrame)
@@ -137,16 +128,16 @@ local collectBtn, collectBar = createButton("Auto Collect Cash", 130)
 local autoOpenBtn, autoOpenBar = createButton("Auto Open Packs", 180)
 
 -- Loop helper
-local function startLoop(flag, interval, action, bar)
+local function startLoop(flagGetter, interval, action, bar)
     task.spawn(function()
-        while flag do
+        while flagGetter() do
             action()
             local st = tick()
             repeat
                 local progress = math.clamp((tick()-st)/interval,0,1)
                 bar.Size = UDim2.new(progress,0,1,0)
                 RunService.RenderStepped:Wait()
-            until tick()-st >= interval or not flag
+            until tick()-st >= interval or not flagGetter()
             bar.Size = UDim2.new(0,0,1,0)
         end
     end)
@@ -157,7 +148,7 @@ packsBtn.MouseButton1Click:Connect(function()
     packsToggle = not packsToggle
     packsBtn.Text = packsToggle and "Auto Buy Packs ON" or "Auto Buy Packs"
     if packsToggle then
-        startLoop(packsToggle, 300, function()
+        startLoop(function() return packsToggle end, 300, function()
             for _, packName in ipairs(packs) do
                 for i = 1, 20 do
                     pcall(function()
@@ -175,7 +166,7 @@ toolsBtn.MouseButton1Click:Connect(function()
     toolsToggle = not toolsToggle
     toolsBtn.Text = toolsToggle and "Auto Buy Tools ON" or "Auto Buy Tools (5 min)"
     if toolsToggle then
-        startLoop(toolsToggle, 300, function()
+        startLoop(function() return toolsToggle end, 300, function()
             for _, toolID in ipairs(tools) do
                 for i = 1, 20 do
                     pcall(function()
@@ -188,29 +179,76 @@ toolsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Auto Collect Cash
+
+
+-- Auto Buy Event Pack (100 clicks, 10 min cooldown)
+local eventBtn, eventBar = createButton("Auto Buy Event Pack", 230)
+local eventToggle = false
+
+eventBtn.MouseButton1Click:Connect(function()
+    eventToggle = not eventToggle
+    eventBtn.Text = eventToggle and "Auto Buy Event Pack ON" or "Auto Buy Event Pack"
+
+    if eventToggle then
+        task.spawn(function()
+            while eventToggle do
+                -- Trigger the prompt 100 times quickly
+                for i = 1, 100 do
+                    local success, err = pcall(function()
+                        local prompt = workspace:WaitForChild("Beach Event")
+                                            .Main.Main:WaitForChild("ProximityPoint")
+                                            :WaitForChild("ProximityPrompt")
+                        prompt:InputHoldBegin()
+                        task.wait(0.05)
+                        prompt:InputHoldEnd()
+                    end)
+                    if not success then warn("[EventPack] Failed to trigger:", err) end
+                end
+
+                -- Update progress bar to show cooldown
+                local cooldown = 600 -- 10 minutes in seconds
+                local startTime = tick()
+                repeat
+                    local progress = math.clamp((tick()-startTime)/cooldown, 0, 1)
+                    eventBar.Size = UDim2.new(progress,0,1,0)
+                    RunService.RenderStepped:Wait()
+                until tick()-startTime >= cooldown or not eventToggle
+
+                eventBar.Size = UDim2.new(0,0,1,0)
+            end
+        end)
+    end
+end)
+
+-- Auto Collect Cash (IDs 1–100, 60-second cooldown)
 collectBtn.MouseButton1Click:Connect(function()
     autoCollect = not autoCollect
     collectBtn.Text = autoCollect and "Auto Collect ON" or "Auto Collect Cash"
     if autoCollect then
-        startLoop(autoCollect, 0.5, function()
-            for _, obj in ipairs(workspace:GetChildren()) do
-                if obj.Name == "Cash" then
-                    pcall(function()
-                        brks:InvokeServer("ClaimCash", obj)
-                    end)
-                end
+        startLoop(function() return autoCollect end, 0.5, function()
+            -- Claim cash IDs from D0001 to D0100
+            for i = 1, 100 do
+                local cashID = string.format("D%04d", i)
+                pcall(function()
+                    brks:InvokeServer("ClaimCash", cashID)
+                end)
             end
+            -- Wait 60 seconds before next cycle
+            local st = tick()
+            repeat
+                local progress = math.clamp((tick()-st)/60, 0, 1)
+                collectBar.Size = UDim2.new(progress,0,1,0)
+                RunService.RenderStepped:Wait()
+            until tick()-st >= 60 or not autoCollect
+            collectBar.Size = UDim2.new(0,0,1,0)
         end, collectBar)
     end
-end)
-
--- Auto Open Packs (continuous, 3-second cooldown)
+end)-- Auto Open Packs (continuous, 3-second cooldown)
 autoOpenBtn.MouseButton1Click:Connect(function()
     autoOpenToggle = not autoOpenToggle
     autoOpenBtn.Text = autoOpenToggle and "Auto Open ON" or "Auto Open Packs"
     if autoOpenToggle then
-        startLoop(autoOpenToggle, 1, function()
+        startLoop(function() return autoOpenToggle end, 3, function()
             for _, packName in ipairs(packs) do
                 if not autoOpenToggle then break end
                 pcall(function()
@@ -228,4 +266,4 @@ Player.Idled:Connect(function()
     vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
-print("✅ Auto Buy + Auto Open GUI loaded.")
+print("✅ Improved Auto Buy + Open GUI loaded!")
