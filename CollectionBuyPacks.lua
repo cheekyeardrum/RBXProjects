@@ -1,4 +1,4 @@
--- ✅ Improved Delta-Safe Auto-Buy + Continuous Auto-Open Packs GUI + Event Pack
+-- ✅ Improved Delta-Safe Auto-Buy + Continuous Auto-Open Packs GUI (with adjustable settings)
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -18,7 +18,13 @@ local packsToggle = false
 local toolsToggle = false
 local autoCollect = false
 local autoOpenToggle = false
-local eventToggle = false
+local beachToggle = false
+
+-- Adjustable Settings
+local packsAtOnce = 3
+local cooldownSeconds = 3
+local beachCooldown = 600 -- 10 mins default
+local beachClicks = 100
 
 -- Helper: find pack in hotbar/backpack
 local function findPack(packName)
@@ -43,25 +49,15 @@ local function equipAndOpen(packName)
     if item then
         InventoryModule.ToggleEquip(item)
         local success, err = pcall(function()
-            brks:InvokeServer("OpenBoosterPack", packName, 3)
+            brks:InvokeServer("OpenBoosterPack", packName, packsAtOnce)
         end)
         if success then
-            print("[PackLogger] Opened 3", packName)
+            print("[PackLogger] Opened", packsAtOnce, packName)
         else
             warn("[PackLogger] Failed to open", packName, err)
         end
-        task.wait(3) -- cooldown
+        task.wait(cooldownSeconds)
     end
-end
-
--- Recursive search for ProximityPrompt
-local function findProximityPrompt(parent)
-    for _, obj in ipairs(parent:GetDescendants()) do
-        if obj:IsA("ProximityPrompt") then
-            return obj
-        end
-    end
-    return nil
 end
 
 -- GUI
@@ -69,7 +65,7 @@ local sg = Instance.new("ScreenGui", Player.PlayerGui)
 sg.Name = "AutoBuyOpenGUI"
 
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 220, 0, 280)
+mainFrame.Size = UDim2.new(0, 260, 0, 350)
 mainFrame.Position = UDim2.new(0,50,0,50)
 mainFrame.BackgroundColor3 = Color3.fromRGB(25,25,25)
 mainFrame.BorderSizePixel = 0
@@ -113,7 +109,7 @@ end
 -- Helper to create button + progress bar
 local function createButton(name, yPos)
     local f = Instance.new("Frame", mainFrame)
-    f.Size = UDim2.new(0, 200, 0, 50)
+    f.Size = UDim2.new(0, 240, 0, 50)
     f.Position = UDim2.new(0,10,0,yPos)
     f.BackgroundColor3 = Color3.fromRGB(40,40,40)
     local btn = Instance.new("TextButton", f)
@@ -135,9 +131,31 @@ end
 -- Create buttons
 local packsBtn, packsBar = createButton("Auto Buy Packs", 30)
 local toolsBtn, toolsBar = createButton("Auto Buy Tools", 80)
-local collectBtn, collectBar = createButton("Auto Collect Cash", 130)
-local autoOpenBtn, autoOpenBar = createButton("Auto Open Packs", 180)
-local eventBtn, eventBar = createButton("Auto Buy Event Pack", 230)
+local autoOpenBtn, autoOpenBar = createButton("Auto Open Packs", 130)
+local beachBtn, beachBar = createButton("Beach Event Pack", 180)
+
+-- Adjustable settings GUI
+local packsBox = Instance.new("TextBox", mainFrame)
+packsBox.Size = UDim2.new(0, 100, 0, 25)
+packsBox.Position = UDim2.new(0, 10, 0, 230)
+packsBox.PlaceholderText = "Packs per batch"
+packsBox.Text = tostring(packsAtOnce)
+packsBox.ClearTextOnFocus = false
+packsBox.FocusLost:Connect(function()
+    local val = tonumber(packsBox.Text)
+    if val and val > 0 then packsAtOnce = val end
+end)
+
+local cooldownBox = Instance.new("TextBox", mainFrame)
+cooldownBox.Size = UDim2.new(0, 100, 0, 25)
+cooldownBox.Position = UDim2.new(0, 130, 0, 230)
+cooldownBox.PlaceholderText = "Cooldown (s)"
+cooldownBox.Text = tostring(cooldownSeconds)
+cooldownBox.ClearTextOnFocus = false
+cooldownBox.FocusLost:Connect(function()
+    local val = tonumber(cooldownBox.Text)
+    if val and val >= 0 then cooldownSeconds = val end
+end)
 
 -- Loop helper
 local function startLoop(flagGetter, interval, action, bar)
@@ -163,9 +181,7 @@ packsBtn.MouseButton1Click:Connect(function()
         startLoop(function() return packsToggle end, 300, function()
             for _, packName in ipairs(packs) do
                 for i = 1, 20 do
-                    pcall(function()
-                        brks:InvokeServer("BuyBoosterPack", packName)
-                    end)
+                    pcall(function() brks:InvokeServer("BuyBoosterPack", packName) end)
                     task.wait(0.05)
                 end
             end
@@ -181,9 +197,7 @@ toolsBtn.MouseButton1Click:Connect(function()
         startLoop(function() return toolsToggle end, 300, function()
             for _, toolID in ipairs(tools) do
                 for i = 1, 20 do
-                    pcall(function()
-                        brks:InvokeServer("BuyPSATool", toolID)
-                    end)
+                    pcall(function() brks:InvokeServer("BuyPSATool", toolID) end)
                     task.wait(0.05)
                 end
             end
@@ -191,88 +205,44 @@ toolsBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Auto Collect Cash (IDs 1–100 only)
-collectBtn.MouseButton1Click:Connect(function()
-    autoCollect = not autoCollect
-    collectBtn.Text = autoCollect and "Auto Collect ON" or "Auto Collect Cash"
-    if autoCollect then
-        startLoop(function() return autoCollect end, 60, function()
-            for i = 1, 100 do
-                local cashID = string.format("D%04d", i)
-                pcall(function()
-                    brks:InvokeServer("ClaimCash", cashID)
-                end)
-            end
-        end, collectBar)
-    end
-end)
-
--- Auto Open Packs (continuous, 3-second cooldown)
+-- Auto Open Packs
 autoOpenBtn.MouseButton1Click:Connect(function()
     autoOpenToggle = not autoOpenToggle
     autoOpenBtn.Text = autoOpenToggle and "Auto Open ON" or "Auto Open Packs"
     if autoOpenToggle then
-        startLoop(function() return autoOpenToggle end, 3, function()
+        startLoop(function() return autoOpenToggle end, cooldownSeconds, function()
             for _, packName in ipairs(packs) do
                 if not autoOpenToggle then break end
                 pcall(function()
-                    equipAndOpen(packName)
+                    for i = 1, packsAtOnce do
+                        equipAndOpen(packName)
+                    end
                 end)
             end
         end, autoOpenBar)
     end
 end)
 
--- Auto Buy Event Pack (100 clicks, 10 min cooldown)
-eventBtn.MouseButton1Click:Connect(function()
-    eventToggle = not eventToggle
-    eventBtn.Text = eventToggle and "Auto Buy Event Pack ON" or "Auto Buy Event Pack"
-
-    if eventToggle then
-        task.spawn(function()
-            while eventToggle do
-                local beachFolder = workspace:WaitForChild("Beach Event", 5) -- wait up to 5 seconds
-                if beachFolder then
-                    local mainFolder = beachFolder:FindFirstChild("Main")
-                    if mainFolder then
-                        local subFolder = mainFolder:FindFirstChild("Main")
-                        if subFolder then
-                            local prompt = subFolder:FindFirstChildWhichIsA("ProximityPrompt")
-                            if prompt then
-                                for i = 1, 100 do
-                                    pcall(function()
-                                        prompt:InputHoldBegin()
-                                        task.wait(0.05)
-                                        prompt:InputHoldEnd()
-                                    end)
-                                end
-                            else
-                                warn("[EventPack] No ProximityPrompt found in subfolder.")
-                            end
-                        else
-                            warn("[EventPack] Subfolder 'Main' not found.")
-                        end
-                    else
-                        warn("[EventPack] Main folder not found.")
+-- Beach Event Pack
+local beachPP = workspace:WaitForChild("Beach Event"):WaitForChild("Main"):WaitForChild("Main"):WaitForChild("ProximityPoint")
+beachBtn.MouseButton1Click:Connect(function()
+    beachToggle = not beachToggle
+    beachBtn.Text = beachToggle and "Beach Event ON" or "Beach Event Pack"
+    if beachToggle then
+        startLoop(function() return beachToggle end, beachCooldown, function()
+            for i = 1, beachClicks do
+                pcall(function()
+                    local pp = beachPP:FindFirstChildOfClass("ProximityPrompt")
+                    if pp then
+                        pp:InputHoldBegin()
+                        pp:InputHoldEnd()
                     end
-                else
-                    warn("[EventPack] Beach Event folder not found in workspace.")
-                end
-
-                -- 10 min cooldown with progress bar
-                local cooldown = 600
-                local startTime = tick()
-                repeat
-                    local progress = math.clamp((tick()-startTime)/cooldown, 0, 1)
-                    eventBar.Size = UDim2.new(progress,0,1,0)
-                    RunService.RenderStepped:Wait()
-                until tick()-startTime >= cooldown or not eventToggle
-
-                eventBar.Size = UDim2.new(0,0,1,0)
+                end)
             end
-        end)
+        end, beachBar)
     end
 end)
+
 -- Anti-AFK
 Player.Idled:Connect(function()
     vu:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
@@ -280,5 +250,4 @@ Player.Idled:Connect(function()
     vu:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
 end)
 
-print("✅ Improved Auto Buy + Open GUI loaded!")
-
+print("✅ Improved Auto Buy + Open GUI loaded with adjustable settings!")
