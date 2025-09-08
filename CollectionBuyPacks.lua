@@ -192,21 +192,36 @@ eventBtn.MouseButton1Click:Connect(function()
     if eventToggle then
         task.spawn(function()
             while eventToggle do
-                -- Trigger the prompt 100 times quickly
-                for i = 1, 100 do
-                    local success, err = pcall(function()
-                        local prompt = workspace:WaitForChild("Beach Event")
-                                            .Main.Main:WaitForChild("ProximityPoint")
-                                            :WaitForChild("ProximityPrompt")
-                        prompt:InputHoldBegin()
-                        task.wait(0.05)
-                        prompt:InputHoldEnd()
-                    end)
-                    if not success then warn("[EventPack] Failed to trigger:", err) end
+                -- Try to find the proximity prompt safely
+                local success, prompt = pcall(function()
+                    local beach = workspace:FindFirstChild("Beach Event")
+                    if not beach then return nil end
+                    local main = beach:FindFirstChild("Main")
+                    if not main then return nil end
+                    local main2 = main:FindFirstChild("Main")
+                    if not main2 then return nil end
+                    local pp = main2:FindFirstChild("ProximityPoint")
+                    if pp then
+                        return pp:FindFirstChild("ProximityPrompt")
+                    end
+                    return nil
+                end)
+
+                if success and prompt then
+                    -- Trigger the prompt 100 times
+                    for i = 1, 100 do
+                        pcall(function()
+                            prompt:InputHoldBegin()
+                            task.wait(0.05)
+                            prompt:InputHoldEnd()
+                        end)
+                    end
+                else
+                    warn("[EventPack] ProximityPrompt not found.")
                 end
 
-                -- Update progress bar to show cooldown
-                local cooldown = 600 -- 10 minutes in seconds
+                -- 10 minute cooldown with progress bar
+                local cooldown = 600
                 local startTime = tick()
                 repeat
                     local progress = math.clamp((tick()-startTime)/cooldown, 0, 1)
@@ -267,3 +282,4 @@ Player.Idled:Connect(function()
 end)
 
 print("✅ Improved Auto Buy + Open GUI loaded!")
+
