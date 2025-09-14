@@ -320,6 +320,7 @@ end
 
 -- ================= Eggs Tab =================
 -- ================= Eggs Tab =================
+-- Auto-Buy Eggs Tab
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -333,20 +334,15 @@ local function buildEggsTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
-    scrollFrame.Size = UDim2.new(1,-20,1,-50)
-    scrollFrame.Position = UDim2.new(0,10,0,50)
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
-    scrollFrame.ScrollBarThickness = 10
-    scrollFrame.BackgroundTransparency = 0.8
-    scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(scrollFrame, 8)
+    local eggs = {}
+    for world = 1,5 do
+        for egg = 1,3 do
+            table.insert(eggs, {Name = "World "..world.." Egg "..egg, World = world})
+        end
+    end
 
-    local uiList = Instance.new("UIListLayout", scrollFrame)
-    uiList.SortOrder = Enum.SortOrder.LayoutOrder
-    uiList.Padding = UDim.new(0,5)
-
-    local worldColors = {
+    -- World colors
+    local colors = {
         Color3.fromRGB(255,100,100),   -- World 1
         Color3.fromRGB(100,255,100),   -- World 2
         Color3.fromRGB(100,100,255),   -- World 3
@@ -354,43 +350,40 @@ local function buildEggsTab()
         Color3.fromRGB(255,100,255),   -- World 5
     }
 
-    local EggsRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs")
+    for i, egg in ipairs(eggs) do
+        local btn = Instance.new("TextButton", contentFrame)
+        btn.Size = UDim2.new(0.25,0,0,30)
+        btn.Position = UDim2.new(0.65, 0, 0, 10 + (i-1)*35)
+        btn.Text = "OFF"
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 16
+        btn.TextColor3 = Color3.new(1,1,1)
+        round(btn,6)
 
-    for world = 1,5 do
-        for egg = 1,3 do
-            local eggName = "World "..world.." Egg "..egg
-            local btn = Instance.new("TextButton", scrollFrame)
-            btn.Size = UDim2.new(1,0,0,30)
-            btn.Text = "OFF - "..eggName
-            btn.Font = Enum.Font.SourceSansBold
-            btn.TextSize = 16
-            btn.TextColor3 = Color3.new(1,1,1)
-            btn.BackgroundColor3 = worldColors[world]
-            round(btn,6)
+        local colorIndex = egg.World
+        btn.BackgroundColor3 = colors[colorIndex]
 
-            local buying = false
-            btn.MouseButton1Click:Connect(function()
-                buying = not buying
-                btn.Text = (buying and "ON - " or "OFF - ")..eggName
-                btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or worldColors[world]
+        local buying = false
+        btn.MouseButton1Click:Connect(function()
+            buying = not buying
+            btn.Text = buying and "ON" or "OFF"
+            btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or colors[colorIndex]
 
-                if buying then
-                    task.spawn(function()
-                        while buying do
-                            local args = {{Info="PurchaseEgg", Egg=eggName}}
-                            pcall(function()
-                                EggsRemote:InvokeServer(unpack(args))
-                            end)
-                            task.wait(0.15)
-                        end
-                    end)
-                end
-            end)
-        end
+            if buying then
+                task.spawn(function()
+                    while buying do
+                        local args = {{Info="PurchaseEgg", Egg=egg.Name}}
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs"):InvokeServer(unpack(args))
+                        end)
+                        task.wait(0.15)
+                    end
+                end)
+            end
+        end)
     end
-
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
+
 -- ================= Tab Switch =================
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
