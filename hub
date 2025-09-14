@@ -1,9 +1,4 @@
---[[ 
-    Cleaned LegitHub GUI
-    - Removed WalkSpeed / JumpPower / Gravity controls
-    - Safe: no key system, no Discord spam, no external loaders
-]]
-
+-- Clean Hub (WalkSpeed fixer)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -13,12 +8,13 @@ local CoreGui = game:GetService("CoreGui")
 local player = Players.LocalPlayer
 local guiParent = CoreGui
 
+-- Sizes
 local CLOSED_SZ = UDim2.new(0,1,0,1)
-local ENTRY_SZ = UDim2.new(0,400,0,240)
 local HUB_SZ = UDim2.new(0,700,0,450)
 local MINIMIZED_SZ = UDim2.new(0,200,0,40)
 
-local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local function tween(obj, props)
     local tw = TweenService:Create(obj, tweenInfo, props)
     tw:Play()
@@ -30,14 +26,16 @@ local function round(ui, radius)
     c.CornerRadius = UDim.new(0, radius or 8)
 end
 
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "LegitHubGui"
+screenGui.Name = "CleanHubGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = guiParent
 
+-- Main Frame
 local frame = Instance.new("Frame", screenGui)
 frame.Name = "MainFrame"
-frame.Size = CLOSED_SZ
+frame.Size = HUB_SZ
 frame.Position = UDim2.new(0.5,0,0.5,0)
 frame.AnchorPoint = Vector2.new(0.5,0.5)
 frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
@@ -45,7 +43,7 @@ frame.Active = true
 frame.BorderSizePixel = 0
 round(frame,10)
 
--- dragging
+-- Dragging
 local dragging, dragInput, dragStart, startPos
 UserInputService.InputChanged:Connect(function(input)
     if input==dragInput and dragging then
@@ -77,306 +75,291 @@ local function enableDrag(target)
     end)
 end
 
--- rgb effect
-local rgbActive, rgbConn = false, nil
-local function startRGB()
-    if rgbActive then return end
-    rgbActive = true
-    local hue=0
-    rgbConn = RunService.Heartbeat:Connect(function(dt)
-        hue=(hue+dt*0.2)%1
-        frame.BackgroundColor3=Color3.fromHSV(hue,1,1)
-    end)
+-- Top Bar
+local bar=Instance.new("Frame",frame)
+bar.Size=UDim2.new(1,0,0,40)
+bar.Position=UDim2.new(0,0,0,0)
+bar.BackgroundColor3=Color3.fromRGB(40,40,40)
+bar.Active=true
+round(bar,10)
+enableDrag(bar)
+
+local title=Instance.new("TextLabel",bar)
+title.Size=UDim2.new(1,-120,1,0)
+title.Position=UDim2.new(0,10,0,0)
+title.BackgroundTransparency=1
+title.Font=Enum.Font.SourceSansBold
+title.TextSize=24
+title.Text="Clean Hub"
+title.TextColor3=Color3.new(1,1,1)
+title.TextXAlignment=Enum.TextXAlignment.Left
+
+local closeBtn=Instance.new("TextButton",bar)
+closeBtn.Size=UDim2.new(0,30,0,30)
+closeBtn.Position=UDim2.new(1,-40,0,5)
+closeBtn.Text="X"
+closeBtn.Font=Enum.Font.SourceSansBold
+closeBtn.TextSize=18
+closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
+closeBtn.TextColor3=Color3.new(1,1,1)
+round(closeBtn,4)
+
+local minBtn=Instance.new("TextButton",bar)
+minBtn.Size=UDim2.new(0,30,0,30)
+minBtn.Position=UDim2.new(1,-80,0,5)
+minBtn.Text="-"
+minBtn.Font=Enum.Font.SourceSansBold
+minBtn.TextSize=22
+minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
+minBtn.TextColor3=Color3.new(1,1,1)
+round(minBtn,4)
+
+-- Tabs + Content
+local tabsFrame=Instance.new("Frame",frame)
+tabsFrame.Size=UDim2.new(0,140,1,-60)
+tabsFrame.Position=UDim2.new(0,0,0,50)
+tabsFrame.BackgroundTransparency=1
+
+local contentFrame=Instance.new("Frame",frame)
+contentFrame.Size=UDim2.new(1,-140,1,-60)
+contentFrame.Position=UDim2.new(0,140,0,50)
+contentFrame.BackgroundTransparency=1
+enableDrag(contentFrame)
+
+local tabNames={"Local","Stats","Badges","Misc","Credits"}
+local tabButtons={}
+
+-- Safe Humanoid access + helpers
+local function getHumanoid()
+    local char = player.Character
+    if not char then return nil end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    return hum
 end
-local function stopRGB()
-    if rgbConn then rgbConn:Disconnect() end
-    rgbActive=false
-    frame.BackgroundColor3=Color3.fromRGB(20,20,20)
+
+-- Limits (sensible ranges)
+local LIMITS = {
+    WalkSpeed = {min = 0, max = 300},
+    JumpPower = {min = 0, max = 300},
+}
+
+local function clamp(n, low, high)
+    if n < low then return low end
+    if n > high then return high end
+    return n
 end
 
-local scriptStates, runningThreads = {},{}
+local function modifyProperty(prop, delta)
+    -- Handles Gravity separately
+    if prop == "Gravity" then
+        workspace.Gravity = workspace.Gravity + delta
+        return workspace.Gravity
+    end
 
--- build hub
-local function buildHub()
-    tween(frame,{Size=HUB_SZ}).Completed:Wait()
-    for _,c in pairs(frame:GetChildren()) do if not c:IsA("UICorner") then c:Destroy() end end
+    local hum = getHumanoid()
+    if not hum then return nil end
 
-    local bar=Instance.new("Frame",frame)
-    bar.Size=UDim2.new(1,0,0,40)
-    bar.Position=UDim2.new(0,0,0,0)
-    bar.BackgroundColor3=Color3.fromRGB(40,40,40)
-    bar.Active=true
-    round(bar,10)
-    enableDrag(bar)
+    if prop == "WalkSpeed" then
+        local v = hum.WalkSpeed + delta
+        v = clamp(v, LIMITS.WalkSpeed.min, LIMITS.WalkSpeed.max)
+        hum.WalkSpeed = v
+        return hum.WalkSpeed
+    elseif prop == "JumpPower" then
+        local v = hum.JumpPower + delta
+        v = clamp(v, LIMITS.JumpPower.min, LIMITS.JumpPower.max)
+        hum.JumpPower = v
+        return hum.JumpPower
+    end
+    return nil
+end
 
-    local title=Instance.new("TextLabel",bar)
-    title.Size=UDim2.new(1,-120,1,0)
-    title.Position=UDim2.new(0,10,0,0)
-    title.BackgroundTransparency=1
-    title.Font=Enum.Font.SourceSansBold
-    title.TextSize=24
-    title.Text="Legit hub"
-    title.TextColor3=Color3.new(1,1,1)
-    title.TextXAlignment=Enum.TextXAlignment.Left
+local function resetProperty(prop, initialStats)
+    if prop == "Gravity" then
+        workspace.Gravity = initialStats.Gravity or workspace.Gravity
+        return workspace.Gravity
+    end
+    local hum = getHumanoid()
+    if not hum then return nil end
+    if prop == "WalkSpeed" then
+        hum.WalkSpeed = initialStats.WalkSpeed or hum.WalkSpeed
+        return hum.WalkSpeed
+    elseif prop == "JumpPower" then
+        hum.JumpPower = initialStats.JumpPower or hum.JumpPower
+        return hum.JumpPower
+    end
+    return nil
+end
 
-    local closeBtn=Instance.new("TextButton",bar)
-    closeBtn.Size=UDim2.new(0,30,0,30)
-    closeBtn.Position=UDim2.new(1,-40,0,5)
-    closeBtn.Text="X"
-    closeBtn.Font=Enum.Font.SourceSansBold
-    closeBtn.TextSize=18
-    closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
-    closeBtn.TextColor3=Color3.new(1,1,1)
-    round(closeBtn,4)
+-- Initial Stats (will be refreshed on CharacterAdded)
+local initialStats = {
+    WalkSpeed = 16,
+    JumpPower = 50,
+    Gravity = workspace.Gravity
+}
+local function refreshInitialStats()
+    local hum = getHumanoid()
+    if hum then
+        initialStats.WalkSpeed = hum.WalkSpeed
+        initialStats.JumpPower = hum.JumpPower
+    end
+    initialStats.Gravity = workspace.Gravity
+end
 
-    local minBtn=Instance.new("TextButton",bar)
-    minBtn.Size=UDim2.new(0,30,0,30)
-    minBtn.Position=UDim2.new(1,-80,0,5)
-    minBtn.Text="-"
-    minBtn.Font=Enum.Font.SourceSansBold
-    minBtn.TextSize=22
-    minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
-    minBtn.TextColor3=Color3.new(1,1,1)
-    round(minBtn,4)
+-- update when character spawns
+player.CharacterAdded:Connect(function()
+    -- small delay to allow humanoid to init
+    task.wait(0.1)
+    refreshInitialStats()
+end)
+-- try initial refresh now
+refreshInitialStats()
 
-    local tabsFrame=Instance.new("Frame",frame)
-    tabsFrame.Size=UDim2.new(0,140,1,-60)
-    tabsFrame.Position=UDim2.new(0,0,0,50)
-    tabsFrame.BackgroundTransparency=1
+-- leaderstats snapshot
+local initialLeaderstats = {}
+local ls = player:FindFirstChild("leaderstats")
+if ls then
+    for _,stat in ipairs(ls:GetChildren()) do
+        initialLeaderstats[stat.Name] = stat.Value
+    end
+end
 
-    local contentFrame=Instance.new("Frame",frame)
-    contentFrame.Size=UDim2.new(1,-140,1,-60)
-    contentFrame.Position=UDim2.new(0,140,0,50)
-    contentFrame.BackgroundTransparency=1
-    enableDrag(contentFrame)
+-- Tab Switch
+local function selectTab(idx)
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    for i,btn in ipairs(tabButtons) do
+        btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
+    end
 
-    local tabNames={"SB","Stats","Badges","Misc","Credits"}
-    local tabButtons={}
-
-    local function selectTab(idx)
-        for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-        for i,btn in ipairs(tabButtons) do
-            btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
-        end
-        if idx==1 then
-            local label=Instance.new("TextLabel",contentFrame)
-            label.Size=UDim2.new(1,-20,0,50)
-            label.Position=UDim2.new(0,10,0,10)
-            label.BackgroundTransparency=1
-            label.Text="SB Tab (empty placeholder)"
-            label.TextColor3=Color3.new(1,1,1)
-            label.Font=Enum.Font.SourceSansBold
-            label.TextSize=20
-        elseif idx==2 then
-            local y=0
-            local ls = player:FindFirstChild("leaderstats")
-            if ls then
-                for _,stat in ipairs(ls:GetChildren()) do
-                    local lbl=Instance.new("TextLabel",contentFrame)
-                    lbl.Size=UDim2.new(1,-20,0,30)
-                    lbl.Position=UDim2.new(0,10,0,10+y)
-                    lbl.BackgroundTransparency=1
-                    lbl.Text=stat.Name..": "..tostring(stat.Value)
-                    lbl.TextColor3=Color3.new(1,1,1)
-                    lbl.Font=Enum.Font.SourceSansBold
-                    lbl.TextSize=18
-                    y=y+40
-                end
+    if idx==1 then
+        -- Local Player Properties
+        local props={"WalkSpeed","Gravity","JumpPower"}
+        for i,prop in ipairs(props) do
+            local yOffset = (i-1)*60
+            local current
+            if prop=="Gravity" then
+                current = tostring(workspace.Gravity)
             else
-                local lbl=Instance.new("TextLabel",contentFrame)
-                lbl.Size=UDim2.new(1,-20,0,30)
-                lbl.Position=UDim2.new(0,10,0,10)
-                lbl.BackgroundTransparency=1
-                lbl.Text="No leaderstats found."
-                lbl.TextColor3=Color3.new(1,1,1)
-                lbl.Font=Enum.Font.SourceSansBold
-                lbl.TextSize=18
+                local hum = getHumanoid()
+                current = hum and tostring(hum[prop]) or "N/A"
             end
-        elseif idx==3 then
+
             local label=Instance.new("TextLabel",contentFrame)
-            label.Size=UDim2.new(1,-20,0,50)
-            label.Position=UDim2.new(0,10,0,10)
+            label.Size=UDim2.new(0.5,-10,0,30)
+            label.Position=UDim2.new(0,10,0,yOffset)
             label.BackgroundTransparency=1
-            label.Text="Badges tab coming soon!"
+            label.Text=prop..": "..tostring(current)
             label.TextColor3=Color3.new(1,1,1)
             label.Font=Enum.Font.SourceSansBold
-            label.TextSize=22
-        elseif idx==4 then
-            local names={"RGB MENU","SEE THRU MENU"}
-            for i,name in ipairs(names) do
-                local id=i
-                scriptStates[id]=scriptStates[id] or false
-                local btn=Instance.new("TextButton",contentFrame)
-                btn.Size=UDim2.new(1,0,0,50)
-                btn.Position=UDim2.new(0,0,0,(i-1)*60)
-                btn.Text=name..(scriptStates[id] and" [ON]" or" [OFF]")
-                btn.Font=Enum.Font.SourceSansBold
-                btn.TextSize=20
-                round(btn,6)
-                btn.BackgroundColor3=(scriptStates[id] and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
-                btn.TextColor3=Color3.new(1,1,1)
-                btn.MouseButton1Click:Connect(function()
-                    scriptStates[id]=not scriptStates[id]
-                    if scriptStates[id] then
-                        if id==1 then startRGB() end
-                        if id==2 then frame.BackgroundTransparency=0.75 end
-                    else
-                        if id==1 then stopRGB() end
-                        if id==2 then frame.BackgroundTransparency=0 end
-                    end
-                    btn.Text=name..(scriptStates[id] and" [ON]"or" [OFF]")
-                    btn.BackgroundColor3=(scriptStates[id] and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
-                end)
-            end
-        elseif idx==5 then
-            local label=Instance.new("TextLabel",contentFrame)
-            label.Size=UDim2.new(1,-20,0,50)
-            label.Position=UDim2.new(0,10,0,10)
-            label.BackgroundTransparency=1
-            label.Text="D1.3"
-            label.TextColor3=Color3.new(1,1,1)
-            label.Font=Enum.Font.SourceSansBold
-            label.TextSize=22
+            label.TextSize=18
+
+            local plus=Instance.new("TextButton",contentFrame)
+            plus.Size=UDim2.new(0.1,0,0,30)
+            plus.Position=UDim2.new(0.6,0,0,yOffset)
+            plus.Text="+5"
+            round(plus,6)
+            plus.MouseButton1Click:Connect(function()
+                modifyProperty(prop, 5)
+                selectTab(1) -- refresh UI
+            end)
+
+            local minus=Instance.new("TextButton",contentFrame)
+            minus.Size=UDim2.new(0.1,0,0,30)
+            minus.Position=UDim2.new(0.72,0,0,yOffset)
+            minus.Text="-5"
+            round(minus,6)
+            minus.MouseButton1Click:Connect(function()
+                modifyProperty(prop, -5)
+                selectTab(1) -- refresh UI
+            end)
+
+            local reset=Instance.new("TextButton",contentFrame)
+            reset.Size=UDim2.new(0.15,0,0,30)
+            reset.Position=UDim2.new(0.84,0,0,yOffset)
+            reset.Text="Reset"
+            round(reset,6)
+            reset.MouseButton1Click:Connect(function()
+                resetProperty(prop, initialStats)
+                selectTab(1)
+            end)
         end
-    end
-
-    for i,name in ipairs(tabNames) do
-        local btn=Instance.new("TextButton",tabsFrame)
-        btn.Size=UDim2.new(1,0,0,40)
-        btn.Position=UDim2.new(0,0,0,(i-1)*45)
-        btn.Text=name
-        btn.Font=Enum.Font.SourceSansBold
-        btn.TextSize=20
-        round(btn,6)
-        btn.BackgroundColor3=(i==1 and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
-        btn.TextColor3=Color3.new(1,1,1)
-        btn.MouseButton1Click:Connect(function() selectTab(i) end)
-        table.insert(tabButtons,btn)
-    end
-
-    selectTab(1)
-
-    local minimized=false
-    minBtn.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        tween(frame,{Size=(minimized and MINIMIZED_SZ or HUB_SZ)})
-        tabsFrame.Visible = not minimized
-        contentFrame.Visible = not minimized
-    end)
-    closeBtn.MouseButton1Click:Connect(function()
-        tween(frame,{Size=CLOSED_SZ}).Completed:Wait()
-        screenGui:Destroy()
-    end)
-end
-
--- Launch hub immediately
-buildHub()
--- Tab buttons container
-local TabContainer = Instance.new("Frame", MainFrame)
-TabContainer.Size = UDim2.new(0, 100, 1, -40)
-TabContainer.Position = UDim2.new(0, 0, 0, 40)
-TabContainer.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-
--- Content frame
-local ContentFrame = Instance.new("Frame", MainFrame)
-ContentFrame.Size = UDim2.new(1, -100, 1, -40)
-ContentFrame.Position = UDim2.new(0, 100, 0, 40)
-ContentFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-
--- Tabs
-local tabNames = {"SB", "Stats", "Badges", "Misc", "Credits"}
-local activeTab = nil
-
-local function switchTab(name)
-    ContentFrame:ClearAllChildren()
-
-    if name == "SB" then
-        local l = Instance.new("TextLabel", ContentFrame)
-        l.Size = UDim2.new(1, 0, 1, 0)
-        l.BackgroundTransparency = 1
-        l.Text = "Slap Battles scripts placeholder"
-        l.TextColor3 = Color3.new(1, 1, 1)
-        l.TextScaled = true
-        l.Font = Enum.Font.SourceSans
-    elseif name == "Stats" then
-        local char = player.Character or player.CharacterAdded:Wait()
-        local hum = char:WaitForChild("Humanoid")
-
-        local y = 10
-
-        local function addLabel(txt)
-            local l = Instance.new("TextLabel", ContentFrame)
-            l.Size = UDim2.new(1, -10, 0, 20)
-            l.Position = UDim2.new(0, 5, 0, y)
-            l.TextXAlignment = Enum.TextXAlignment.Left
-            l.BackgroundTransparency = 1
-            l.Font = Enum.Font.SourceSans
-            l.TextSize = 18
-            l.TextColor3 = Color3.new(1,1,1)
-            l.Text = txt
-            y = y + 25
+    elseif idx==2 then
+        -- Stats
+        local y=0
+        local function addStat(name,current,initial)
+            local lbl=Instance.new("TextLabel",contentFrame)
+            lbl.Size=UDim2.new(1,-20,0,30)
+            lbl.Position=UDim2.new(0,10,0,10+y)
+            lbl.BackgroundTransparency=1
+            lbl.Text=name..": "..tostring(current).." (Start: "..tostring(initial)..")"
+            lbl.TextColor3=Color3.new(1,1,1)
+            lbl.Font=Enum.Font.SourceSansBold
+            lbl.TextSize=18
+            y+=40
         end
-
-        -- Player info
-        addLabel("Display Name: "..player.DisplayName)
-        addLabel("UserId: "..player.UserId)
-        addLabel("Account Age: "..player.AccountAge.." days")
-        addLabel("Membership: "..tostring(player.MembershipType))
-
-        -- Humanoid info
-        addLabel("Health: "..math.floor(hum.Health).."/"..math.floor(hum.MaxHealth))
-        addLabel("WalkSpeed: "..hum.WalkSpeed)
-        addLabel("JumpPower: "..hum.JumpPower)
-
-        -- Leaderstats
-        if player:FindFirstChild("leaderstats") then
-            for _, stat in ipairs(player.leaderstats:GetChildren()) do
-                addLabel(stat.Name..": "..tostring(stat.Value))
+        local hum = getHumanoid()
+        addStat("WalkSpeed", hum and hum.WalkSpeed or "N/A", initialStats.WalkSpeed)
+        addStat("JumpPower", hum and hum.JumpPower or "N/A", initialStats.JumpPower)
+        addStat("Gravity", workspace.Gravity, initialStats.Gravity)
+        if ls then
+            for _,stat in ipairs(ls:GetChildren()) do
+                addStat(stat.Name,stat.Value,initialLeaderstats[stat.Name] or 0)
             end
         end
-    elseif name == "Badges" then
-        local l = Instance.new("TextLabel", ContentFrame)
-        l.Size = UDim2.new(1, 0, 1, 0)
-        l.BackgroundTransparency = 1
-        l.Text = "Badges coming soon"
-        l.TextColor3 = Color3.new(1, 1, 1)
-        l.TextScaled = true
-        l.Font = Enum.Font.SourceSans
-    elseif name == "Misc" then
-        local l = Instance.new("TextLabel", ContentFrame)
-        l.Size = UDim2.new(1, 0, 1, 0)
-        l.BackgroundTransparency = 1
-        l.Text = "Misc settings placeholder"
-        l.TextColor3 = Color3.new(1, 1, 1)
-        l.TextScaled = true
-        l.Font = Enum.Font.SourceSans
-    elseif name == "Credits" then
-        local l = Instance.new("TextLabel", ContentFrame)
-        l.Size = UDim2.new(1, 0, 1, 0)
-        l.BackgroundTransparency = 1
-        l.Text = "Hub v1.0\nCreated by You"
-        l.TextColor3 = Color3.new(1, 1, 1)
-        l.TextScaled = true
-        l.Font = Enum.Font.SourceSansBold
+    elseif idx==3 then
+        local label=Instance.new("TextLabel",contentFrame)
+        label.Size=UDim2.new(1,-20,0,50)
+        label.Position=UDim2.new(0,10,0,10)
+        label.BackgroundTransparency=1
+        label.Text="Badges tab (placeholder)"
+        label.TextColor3=Color3.new(1,1,1)
+        label.Font=Enum.Font.SourceSansBold
+        label.TextSize=22
+    elseif idx==4 then
+        local label=Instance.new("TextLabel",contentFrame)
+        label.Size=UDim2.new(1,-20,0,50)
+        label.Position=UDim2.new(0,10,0,10)
+        label.BackgroundTransparency=1
+        label.Text="Misc tab (add your own features here)"
+        label.TextColor3=Color3.new(1,1,1)
+        label.Font=Enum.Font.SourceSansBold
+        label.TextSize=22
+    elseif idx==5 then
+        local label=Instance.new("TextLabel",contentFrame)
+        label.Size=UDim2.new(1,-20,0,50)
+        label.Position=UDim2.new(0,10,0,10)
+        label.BackgroundTransparency=1
+        label.Text="Clean Hub v1.0"
+        label.TextColor3=Color3.new(1,1,1)
+        label.Font=Enum.Font.SourceSansBold
+        label.TextSize=22
     end
 end
 
--- Create tab buttons
-for i, name in ipairs(tabNames) do
-    local b = Instance.new("TextButton", TabContainer)
-    b.Size = UDim2.new(1, 0, 0, 40)
-    b.Position = UDim2.new(0, 0, 0, (i-1)*40)
-    b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    b.Text = name
-    b.TextColor3 = Color3.new(1,1,1)
-    b.TextScaled = true
-    b.Font = Enum.Font.SourceSansBold
-
-    b.MouseButton1Click:Connect(function()
-        switchTab(name)
-    end)
-
-    if i == 1 then
-        switchTab(name)
-    end
+for i,name in ipairs(tabNames) do
+    local btn=Instance.new("TextButton",tabsFrame)
+    btn.Size=UDim2.new(1,0,0,40)
+    btn.Position=UDim2.new(0,0,0,(i-1)*45)
+    btn.Text=name
+    btn.Font=Enum.Font.SourceSansBold
+    btn.TextSize=20
+    round(btn,6)
+    btn.BackgroundColor3=(i==1 and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
+    btn.TextColor3=Color3.new(1,1,1)
+    btn.MouseButton1Click:Connect(function() selectTab(i) end)
+    table.insert(tabButtons,btn)
 end
+
+selectTab(1)
+
+-- Close + Minimize
+local minimized=false
+minBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    tween(frame,{Size=(minimized and MINIMIZED_SZ or HUB_SZ)})
+    tabsFrame.Visible = not minimized
+    contentFrame.Visible = not minimized
+end)
+closeBtn.MouseButton1Click:Connect(function()
+    tween(frame,{Size=CLOSED_SZ}).Completed:Wait()
+    screenGui:Destroy()
+end)
