@@ -166,12 +166,9 @@ local function selectTab(idx)
             toggleBtn.BackgroundColor3 = toggle and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
         end)
 
-  -- Auto-buy loop inside the Buy tab
+ -- Auto-buy loop inside the Buy tab
 task.spawn(function()
     local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
-    local s = Instance.new("Sound", contentFrame)
-    s.SoundId = "rbxassetid://123456" -- optional sound
-    s.Volume = 1
 
     local packs = {
         "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
@@ -185,14 +182,12 @@ task.spawn(function()
             for _,v in ipairs(packs) do
                 for i=1,20 do
                     pcall(function() brks:InvokeServer("BuyBoosterPack",v) end)
-                    s:Play()
                     task.wait(0.05)
                 end
             end
             for _,v in ipairs(tools) do
                 for i=1,20 do
-                    pcall(function() brks:InvokeServer(v) end) -- call tool directly
-                    s:Play()
+                    pcall(function() brks:InvokeServer(v) end)
                     task.wait(0.05)
                 end
             end
