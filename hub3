@@ -318,7 +318,7 @@ local function buildTeleportTab()
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
--- Auto-Buy Eggs Tab (Grid Layout)
+-- Auto-Buy Eggs Tab
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -332,20 +332,12 @@ local function buildEggsTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local eggs = {"Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9","Egg 10","Egg 11","Egg 12"}
-    local columns = 3
-    local spacingX = 10
-    local spacingY = 40
-    local buttonWidth = (contentFrame.AbsoluteSize.X - 40) / columns
-    local buttonHeight = 30
+    local eggs = {"Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9","Egg 10","Egg 11","Egg 12"} -- extend as needed
 
-    for i, eggName in ipairs(eggs) do
-        local col = (i-1) % columns
-        local row = math.floor((i-1)/columns)
-
+    for i,eggName in ipairs(eggs) do
         local btn = Instance.new("TextButton", contentFrame)
-        btn.Size = UDim2.new(0, buttonWidth, 0, buttonHeight)
-        btn.Position = UDim2.new(0, 10 + col*(buttonWidth + spacingX), 0, 50 + row*(buttonHeight + spacingY))
+        btn.Size = UDim2.new(0.35,0,0,30)
+        btn.Position = UDim2.new(0.65,0,0,(i-1)*35)
         btn.Text = "OFF"
         btn.Font = Enum.Font.SourceSansBold
         btn.TextSize = 16
@@ -364,10 +356,13 @@ local function buildEggsTab()
                 task.spawn(function()
                     while buying do
                         local args = {{Info="PurchaseEgg", Egg=eggName}}
-                        pcall(function()
+                        local success,err = pcall(function()
                             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs"):InvokeServer(unpack(args))
                         end)
-                        task.wait(0.15)
+                        if not success then
+                            warn("Failed to buy "..eggName..": "..tostring(err))
+                        end
+                        task.wait(0.15) -- delay to avoid server rejection
                     end
                 end)
             end
