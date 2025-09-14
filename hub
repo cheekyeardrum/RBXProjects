@@ -1,9 +1,10 @@
--- Clean Hub with Buy/Sell/Teleport/Find Scripts Tabs
+-- Clean Hub with Buy/Sell/Teleport/Admin Tabs
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -126,16 +127,16 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames={"Buy","Sell","Teleport","Find Scripts"}
+local tabNames={"Buy","Sell","Teleport","Admin"}
 local tabButtons={}
 
--- BUY TAB
+-- Buy Tab Builder
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
     local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
+    label.Size = UDim2.new(0.6, -10, 0, 30)
+    label.Position = UDim2.new(0, 10, 0, 10)
     label.BackgroundTransparency = 1
     label.Text = "Auto-Buy Packs"
     label.TextColor3 = Color3.new(1,1,1)
@@ -144,14 +145,14 @@ local function buildBuyTab()
     label.TextXAlignment = Enum.TextXAlignment.Left
 
     local buyBtn = Instance.new("TextButton", contentFrame)
-    buyBtn.Size = UDim2.new(0.35,0,0,30)
-    buyBtn.Position = UDim2.new(0.65,0,0,10)
+    buyBtn.Size = UDim2.new(0.35, 0, 0, 30)
+    buyBtn.Position = UDim2.new(0.65, 0, 0, 10)
     buyBtn.Text = "OFF"
     buyBtn.Font = Enum.Font.SourceSansBold
     buyBtn.TextSize = 18
     buyBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
     buyBtn.TextColor3 = Color3.new(1,1,1)
-    round(buyBtn,6)
+    round(buyBtn, 6)
 
     local toggle = false
     buyBtn.MouseButton1Click:Connect(function()
@@ -159,8 +160,9 @@ local function buildBuyTab()
         buyBtn.Text = toggle and "ON" or "OFF"
     end)
 
+    -- Auto-buy loop
     task.spawn(function()
-        local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
+        local brks = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InfoFunction")
         local packs = {
             "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
             "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
@@ -190,7 +192,7 @@ local function buildBuyTab()
     end)
 end
 
--- SELL TAB
+-- Placeholder Sell Tab
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -203,7 +205,7 @@ local function buildSellTab()
     label.TextSize = 18
 end
 
--- TELEPORT TAB
+-- Placeholder Teleport Tab
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -216,59 +218,65 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- FIND SCRIPTS TAB
-local function buildFindScriptsTab()
+-- Admin Tab Builder
+local function buildAdminTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    local scroll = Instance.new("ScrollingFrame", contentFrame)
-    scroll.Size = UDim2.new(1,-20,1,-20)
-    scroll.Position = UDim2.new(0,10,0,10)
-    scroll.CanvasSize = UDim2.new(0,0,0,0)
-    scroll.ScrollBarThickness = 10
-    scroll.BackgroundTransparency = 1
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(0.4, -10, 0, 30)
+    label.Position = UDim2.new(0, 10, 0, 10)
+    label.BackgroundTransparency = 1
+    label.Text = "Admin Command:"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local layout = Instance.new("UIListLayout", scroll)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0,5)
+    local cmdBox = Instance.new("TextBox", contentFrame)
+    cmdBox.Size = UDim2.new(0.4, 0, 0, 30)
+    cmdBox.Position = UDim2.new(0.4, 10, 0, 10)
+    cmdBox.Text = ""
+    cmdBox.PlaceholderText = "Enter command (e.g., Fly)"
+    cmdBox.Font = Enum.Font.SourceSansBold
+    cmdBox.TextSize = 18
+    round(cmdBox, 6)
 
-    local codeBox = Instance.new("TextBox", contentFrame)
-    codeBox.Size = UDim2.new(1,-20,0.5,0)
-    codeBox.Position = UDim2.new(0,10,0.5,0)
-    codeBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    codeBox.TextColor3 = Color3.new(1,1,1)
-    codeBox.Font = Enum.Font.Code
-    codeBox.TextSize = 16
-    codeBox.ClearTextOnFocus = false
-    codeBox.MultiLine = true
-    codeBox.Text = ""
-    codeBox.Visible = false
-    round(codeBox,6)
+    local execBtn = Instance.new("TextButton", contentFrame)
+    execBtn.Size = UDim2.new(0.15, 0, 0, 30)
+    execBtn.Position = UDim2.new(0.82, 0, 0, 10)
+    execBtn.Text = "Run"
+    execBtn.Font = Enum.Font.SourceSansBold
+    execBtn.TextSize = 18
+    execBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+    execBtn.TextColor3 = Color3.new(1,1,1)
+    round(execBtn, 6)
 
-    local function addScriptEntry(scr)
-        local label = Instance.new("TextButton", scroll)
-        label.Size = UDim2.new(1,0,0,25)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.new(1,1,1)
-        label.Font = Enum.Font.SourceSansBold
-        label.TextSize = 16
-        label.Text = scr:GetFullName()
+    local output = Instance.new("TextLabel", contentFrame)
+    output.Size = UDim2.new(1, -20, 0, 30)
+    output.Position = UDim2.new(0, 10, 0, 50)
+    output.BackgroundTransparency = 1
+    output.Text = ""
+    output.TextColor3 = Color3.new(1,1,0)
+    output.Font = Enum.Font.SourceSansBold
+    output.TextSize = 16
+    output.TextXAlignment = Enum.TextXAlignment.Left
 
-        label.MouseButton1Click:Connect(function()
-            if scr:IsA("LocalScript") or scr:IsA("Script") then
-                codeBox.Text = scr.Source or "-- Cannot read source --"
-                codeBox.Visible = true
+    execBtn.MouseButton1Click:Connect(function()
+        local cmd = cmdBox.Text
+        if cmd ~= "" then
+            local success, err = pcall(function()
+                local adminRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Admin")
+                adminRemote:FireServer(cmd)
+            end)
+            if success then
+                output.Text = "Command sent: "..cmd
+            else
+                output.Text = "Error: "..tostring(err)
             end
-        end)
-    end
-
-    for _,obj in ipairs(game:GetDescendants()) do
-        if obj:IsA("Script") or obj:IsA("LocalScript") then
-            addScriptEntry(obj)
+        else
+            output.Text = "Enter a command first!"
         end
-    end
-
-    -- Adjust scroll canvas
-    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
+    end)
 end
 
 -- Tab Switch
@@ -284,7 +292,7 @@ local function selectTab(idx)
     elseif idx == 3 then
         buildTeleportTab()
     elseif idx == 4 then
-        buildFindScriptsTab()
+        buildAdminTab()
     end
 end
 
