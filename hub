@@ -254,6 +254,7 @@ local function buildFindItemsTab()
         label.MouseButton1Click:Connect(function()
             if not expanded then
                 expanded = true
+                label.Text = string.rep("    ", indent)..obj.Name.." [-] ["..obj.ClassName.."]"
                 childrenFrame = Instance.new("Frame")
                 childrenFrame.Size = UDim2.new(1, 0, 0, 0)
                 childrenFrame.BackgroundTransparency = 1
@@ -270,6 +271,7 @@ local function buildFindItemsTab()
                 end
             else
                 expanded = false
+                label.Text = string.rep("    ", indent)..obj.Name.." [+] ["..obj.ClassName.."]"
                 if childrenFrame then
                     childrenFrame:Destroy()
                     childrenFrame = nil
@@ -283,6 +285,7 @@ local function buildFindItemsTab()
         createTree(scroll, obj, 0)
     end
 end
+
 
 -- Tab Switch
 local function selectTab(idx)
