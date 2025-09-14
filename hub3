@@ -277,7 +277,7 @@ end
 -- Eggs Tab
 -- =========================
 -- Auto-Buy Eggs Tab
-local function buildEggsTab()
+
     local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
