@@ -1,158 +1,110 @@
--- Full Auto GUI (Collapsible + Scrollable)
+-- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Player = Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
--- GUI Setup
-local ScreenGui = Instance.new("ScreenGui", PlayerGui)
-ScreenGui.Name = "FullAutoGUI"
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FullRemoteGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 350, 0, 50)
-MainFrame.Position = UDim2.new(0, 50, 0, 50)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 400, 0, 600)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -300)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 MainFrame.BorderSizePixel = 0
+MainFrame.Parent = ScreenGui
 
-local Header = Instance.new("TextButton", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 50)
-Header.Text = "Auto GUI (Click to Toggle)"
-Header.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Header.TextColor3 = Color3.fromRGB(255, 255, 255)
-Header.Font = Enum.Font.SourceSansBold
-Header.TextSize = 20
-
-local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
-ScrollFrame.Size = UDim2.new(1, 0, 1, -50)
-ScrollFrame.Position = UDim2.new(0, 0, 0, 50)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.ScrollBarThickness = 8
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.Visible = false
-
-local UIListLayout = Instance.new("UIListLayout", ScrollFrame)
-UIListLayout.Padding = UDim.new(0, 5)
+local UIListLayout = Instance.new("UIListLayout")
 UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0,5)
+UIListLayout.Parent = MainFrame
 
-Header.MouseButton1Click:Connect(function()
-    ScrollFrame.Visible = not ScrollFrame.Visible
-    if ScrollFrame.Visible then
-        MainFrame.Size = UDim2.new(0, 350, 0, 600)
-    else
-        MainFrame.Size = UDim2.new(0, 350, 0, 50)
-    end
+-- Scroll Frame
+local ScrollFrame = Instance.new("ScrollingFrame")
+ScrollFrame.Size = UDim2.new(1,0,1,-10)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+ScrollFrame.ScrollBarThickness = 10
+ScrollFrame.Parent = MainFrame
+
+local ScrollLayout = Instance.new("UIListLayout")
+ScrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ScrollLayout.Padding = UDim.new(0,5)
+ScrollLayout.Parent = ScrollFrame
+
+ScrollLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    ScrollFrame.CanvasSize = UDim2.new(0,0,0,ScrollLayout.AbsoluteContentSize.Y)
 end)
 
--- Toggle Creator
-local function CreateToggle(name, default)
-    local frame = Instance.new("Frame", ScrollFrame)
-    frame.Size = UDim2.new(1, -10, 0, 40)
-    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    
-    local label = Instance.new("TextLabel", frame)
-    label.Text = name
-    label.Size = UDim2.new(0.7, 0, 1, 0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    
-    local button = Instance.new("TextButton", frame)
-    button.Size = UDim2.new(0.3, 0, 1, 0)
-    button.Position = UDim2.new(0.7, 0, 0, 0)
-    button.Text = default and "ON" or "OFF"
-    button.BackgroundColor3 = default and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    
-    local state = default
-    button.MouseButton1Click:Connect(function()
-        state = not state
-        button.Text = state and "ON" or "OFF"
-        button.BackgroundColor3 = state and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    end)
-    
-    return function() return state end
-end
-
--- Input Boxes
-local function CreateTextBox(placeholder, defaultY)
-    local box = Instance.new("TextBox", ScrollFrame)
-    box.Size = UDim2.new(1, -10, 0, 30)
+-- Helper functions
+local function CreateTextBox(placeholder)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1,-10,0,30)
     box.PlaceholderText = placeholder
-    box.Text = ""
-    box.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    box.BackgroundColor3 = Color3.fromRGB(50,50,50)
     box.TextColor3 = Color3.fromRGB(255,255,255)
+    box.BorderSizePixel = 0
     box.ClearTextOnFocus = false
+    box.Parent = ScrollFrame
     return box
 end
 
--- Toggles
-local AutoCoins = CreateToggle("Auto Collect Coins", true)
-local AutoDaily = CreateToggle("Auto Claim Daily", true)
-local AutoEquip = CreateToggle("Auto Equip Best Pet", true)
-local AutoHatch = CreateToggle("Auto Hatch Egg", false)
-local AutoDelete = CreateToggle("Auto Delete Pets by Name", false)
-local AutoBoosts = CreateToggle("Auto Boosts", false)
-local AutoWheel = CreateToggle("Auto Spin Wheel", false)
-local AutoPickaxe = CreateToggle("Auto Get Pickaxe", false)
-local AutoWorld = CreateToggle("Auto Get World Data", false)
-local AutoNotify = CreateToggle("Auto Notifications", false)
-local AutoFriends = CreateToggle("Auto Friends/Updates", false)
+local function CreateButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-10,0,30)
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    btn.Parent = ScrollFrame
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
 
+-- Egg and Pet inputs
 local EggNameBox = CreateTextBox("Egg Name")
 local PetDeleteBox = CreateTextBox("Pet Name to Delete")
 
--- Safe Remote Function
-local function FireRemote(remote, args)
-    if remote and remote:IsA("RemoteEvent") then
-        pcall(function() remote:FireServer(unpack(args or {})) end)
-    elseif remote and remote:IsA("RemoteFunction") then
-        return pcall(function() return remote:InvokeServer(unpack(args or {})) end)
-    end
+-- Add buttons for some key remotes
+local Remotes = {
+    "Eggs","GetGenerationData","GetMetadata","GetPetCount","GetPickaxe",
+    "GetWorld","WaitForData","Wheel","Boosts","Coins","Daily","DataSync",
+    "Friends","GameHandler","GameLoaded","ItemDrop","Metamethod",
+    "Notification","Pets","Playtime","ShopRemote","Sound","SystemChat",
+    "UpdateFriend","UpdateInterfaceType"
+}
+
+for _, remoteName in ipairs(Remotes) do
+    local remote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild(remoteName)
+    CreateButton(remoteName, function()
+        print("Firing remote:", remoteName)
+        -- Example fire
+        pcall(function()
+            remote:FireServer()
+        end)
+    end)
 end
 
--- Auto Loop
-RunService.Heartbeat:Connect(function()
-    if AutoCoins() and Remotes:FindFirstChild("Coins") then
-        FireRemote(Remotes.Coins, {"Collect"})
-    end
-    if AutoDaily() and Remotes:FindFirstChild("Daily") then
-        FireRemote(Remotes.Daily, {"Claim"})
-    end
-    if AutoEquip() and Remotes:FindFirstChild("Pets") then
-        FireRemote(Remotes.Pets, {{Info="EquipBest", PetId=""}})
-    end
-    if AutoHatch() and Remotes:FindFirstChild("Eggs") and EggNameBox.Text ~= "" then
-        FireRemote(Remotes.Eggs, {{Info="Hatch", EggName=EggNameBox.Text, Amount=1}})
-    end
-    if AutoDelete() and Remotes:FindFirstChild("Pets") and PetDeleteBox.Text ~= "" then
-        local success, pets = pcall(function()
-            return Remotes.GetPetCount:InvokeServer()
-        end)
-        if success and type(pets) == "table" then
-            for _, pet in ipairs(pets) do
-                if pet.PetName == PetDeleteBox.Text then
-                    FireRemote(Remotes.Pets, {{Info="DeletePet", PetId=pet.PetId}})
-                end
-            end
+-- Auto Delete Pet Button
+CreateButton("Auto Delete Pet", function()
+    local petName = PetDeleteBox.Text
+    for _, v in pairs(Player.Backpack:GetChildren()) do
+        if v:IsA("Tool") and v:FindFirstChild("PetName") and v.PetName.Value == petName then
+            local args = {
+                {Info="DeletePet", PetId=v.Name}
+            }
+            ReplicatedStorage.Remotes.Pets:FireServer(unpack(args))
         end
     end
-    if AutoBoosts() and Remotes:FindFirstChild("Boosts") then
-        FireRemote(Remotes.Boosts, {"Claim"})
-    end
-    if AutoWheel() and Remotes:FindFirstChild("Wheel") then
-        FireRemote(Remotes.Wheel, {"Spin"})
-    end
-    if AutoPickaxe() and Remotes:FindFirstChild("GetPickaxe") then
-        FireRemote(Remotes.GetPickaxe, {"Claim"})
-    end
-    if AutoWorld() and Remotes:FindFirstChild("GetWorld") then
-        FireRemote(Remotes.GetWorld, {"Sync"})
-    end
-    if AutoNotify() and Remotes:FindFirstChild("Notification") then
-        FireRemote(Remotes.Notification, {"Check"})
-    end
-    if AutoFriends() and Remotes:FindFirstChild("Friends") then
-        FireRemote(Remotes.Friends, {"Update"})
-    end
+end)
+
+-- Open/close GUI with toggle
+local guiOpen = true
+CreateButton("Toggle GUI", function()
+    guiOpen = not guiOpen
+    MainFrame.Visible = guiOpen
 end)
