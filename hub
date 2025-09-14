@@ -233,14 +233,38 @@ local function buildFindItemsTab()
     header.TextXAlignment = Enum.TextXAlignment.Left
 
     local yOffset = 50
+    local foundItems = {}
 
-    local brks = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InfoFunction")
-    local success, items = pcall(function()
-        return brks:InvokeServer("GetBoosterPacks")
-    end)
+    local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
+    if remotesFolder then
+        for _, remote in pairs(remotesFolder:GetChildren()) do
+            if remote:IsA("RemoteFunction") then
+                local argsList = { "GetBoosterPacks", "GetUpgrades", "GetItems" }
+                for _, arg in ipairs(argsList) do
+                    local success, items = pcall(function()
+                        return remote:InvokeServer(arg)
+                    end)
+                    if success and type(items) == "table" then
+                        for _, item in ipairs(items) do
+                            table.insert(foundItems, tostring(item))
+                        end
+                    end
+                end
+            end
+        end
+    end
 
-    if success and type(items) == "table" then
-        for _,name in ipairs(items) do
+    if #foundItems == 0 then
+        local noneLabel = Instance.new("TextLabel", contentFrame)
+        noneLabel.Size = UDim2.new(1,-20,0,30)
+        noneLabel.Position = UDim2.new(0,10,0,50)
+        noneLabel.BackgroundTransparency = 1
+        noneLabel.Text = "No buyable items found."
+        noneLabel.TextColor3 = Color3.new(1,0,0)
+        noneLabel.Font = Enum.Font.SourceSansBold
+        noneLabel.TextSize = 18
+    else
+        for _, name in ipairs(foundItems) do
             local itemLabel = Instance.new("TextLabel", contentFrame)
             itemLabel.Size = UDim2.new(1,-20,0,25)
             itemLabel.Position = UDim2.new(0,10,0,yOffset)
@@ -252,18 +276,8 @@ local function buildFindItemsTab()
             itemLabel.TextXAlignment = Enum.TextXAlignment.Left
             yOffset += 30
         end
-    else
-        local noneLabel = Instance.new("TextLabel", contentFrame)
-        noneLabel.Size = UDim2.new(1,-20,0,30)
-        noneLabel.Position = UDim2.new(0,10,0,50)
-        noneLabel.BackgroundTransparency = 1
-        noneLabel.Text = "No buyable items found."
-        noneLabel.TextColor3 = Color3.new(1,0,0)
-        noneLabel.Font = Enum.Font.SourceSansBold
-        noneLabel.TextSize = 18
     end
 end
-
 -- Tab Switch
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
