@@ -318,15 +318,19 @@ local function buildEggTab()
         toggleBtn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
     end)
 
+    -- Corrected auto-buy loop
     task.spawn(function()
         while true do
             if buying then
-                pcall(function()
+                local success, err = pcall(function()
                     EggsRemote:InvokeServer({{Info="PurchaseEgg",Egg=selectedEgg}})
                 end)
-                task.wait(0.1)
+                if not success then
+                    warn("Failed to buy egg:", err)
+                end
+                task.wait(0.3) -- Slight delay to let server process
             else
-                task.wait(1)
+                task.wait(0.5)
             end
         end
     end)
