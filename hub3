@@ -290,25 +290,41 @@ local function buildEggsTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local eggs = {"Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6"} -- extend as needed
+    local eggCount = 19
+    local eggs = {}
+    for i = 1, eggCount do
+        table.insert(eggs, "Egg "..i)
+    end
 
-    for i,eggName in ipairs(eggs) do
+    -- Color sets: one color per world
+    local colors = {
+        Color3.fromRGB(255,100,100),   -- World 1
+        Color3.fromRGB(100,255,100),   -- World 2
+        Color3.fromRGB(100,100,255),   -- World 3
+        Color3.fromRGB(255,255,100),   -- World 4 (last egg)
+    }
+
+    for i, eggName in ipairs(eggs) do
         local btn = Instance.new("TextButton", contentFrame)
-        btn.Size = UDim2.new(0.35,0,0,30)
-        btn.Position = UDim2.new(0.65,0,0,(i-1)*35)
+        btn.Size = UDim2.new(0.2,0,0,30)
+        btn.Position = UDim2.new(0.65, 0, 0, 10 + (i-1)*35)
         btn.Text = "OFF"
         btn.Font = Enum.Font.SourceSansBold
         btn.TextSize = 16
-        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
         btn.TextColor3 = Color3.new(1,1,1)
         round(btn,6)
+
+        -- Determine color based on egg group (3 eggs per world)
+        local colorIndex = math.ceil(i/3)
+        if colorIndex > #colors then colorIndex = #colors end
+        btn.BackgroundColor3 = colors[colorIndex]
 
         local buying = false
 
         btn.MouseButton1Click:Connect(function()
             buying = not buying
             btn.Text = buying and "ON" or "OFF"
-            btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
+            btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or colors[colorIndex]
 
             if buying then
                 task.spawn(function()
@@ -320,13 +336,14 @@ local function buildEggsTab()
                         if not success then
                             warn("Failed to buy "..eggName..": "..tostring(err))
                         end
-                        task.wait(0.15) -- delay to avoid server rejection
+                        task.wait(0.15)
                     end
                 end)
             end
         end)
     end
 end
+
 
 -- =========================
 -- Teleport Tab
