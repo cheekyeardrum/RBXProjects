@@ -133,17 +133,19 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs"}
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs", "Auto-Win"}
 local tabButtons={}
 
 
--- Auto-Win Toggle
+-- Auto-Win Tab
 local function buildAutoWinTab()
+    -- Clear content frame
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
+    -- Label
     local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
+    label.Size = UDim2.new(0.6, -10, 0, 30)
+    label.Position = UDim2.new(0, 10, 0, 10)
     label.BackgroundTransparency = 1
     label.Text = "Auto-Win"
     label.TextColor3 = Color3.new(1,1,1)
@@ -151,9 +153,10 @@ local function buildAutoWinTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
+    -- Toggle Button
     local winBtn = Instance.new("TextButton", contentFrame)
-    winBtn.Size = UDim2.new(0.35,0,0,30)
-    winBtn.Position = UDim2.new(0.65,0,0,10)
+    winBtn.Size = UDim2.new(0.35, 0, 0, 30)
+    winBtn.Position = UDim2.new(0.65, 0, 0, 10)
     winBtn.Text = "OFF"
     winBtn.Font = Enum.Font.SourceSansBold
     winBtn.TextSize = 16
@@ -161,8 +164,8 @@ local function buildAutoWinTab()
     winBtn.TextColor3 = Color3.new(1,1,1)
     round(winBtn,6)
 
+    -- Toggle logic
     local autoWin = false
-
     winBtn.MouseButton1Click:Connect(function()
         autoWin = not autoWin
         winBtn.Text = autoWin and "ON" or "OFF"
@@ -175,13 +178,12 @@ local function buildAutoWinTab()
                     pcall(function()
                         game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GameHandler"):FireServer(unpack(args))
                     end)
-                    task.wait(5) -- fires every 5 seconds
+                    task.wait(5) -- Fires every 5 seconds
                 end
             end)
         end
     end)
 end
-
 
 
 
@@ -444,7 +446,9 @@ local function selectTab(idx)
     elseif idx == 2 then buildWheelTab()
     elseif idx == 3 then buildRewardsTab()
     elseif idx == 4 then buildTeleportTab()
-    elseif idx == 5 then buildEggsTab() end
+    elseif idx == 5 then buildEggsTab() 
+    elseif idx == 6 then buildAutoWinTab() end
+
 end
 
 -- Create Tab Buttons
