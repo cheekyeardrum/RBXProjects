@@ -1,8 +1,7 @@
--- Clean Hub (WalkSpeed fixer)
+-- Clean Hub (Stats-only version)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
@@ -126,95 +125,10 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames={"Local","Stats","Badges","Misc","Credits"}
+local tabNames={"Stats","Badges","Misc","Credits"}
 local tabButtons={}
 
--- Safe Humanoid access + helpers
-local function getHumanoid()
-    local char = player.Character
-    if not char then return nil end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    return hum
-end
-
--- Limits (sensible ranges)
-local LIMITS = {
-    WalkSpeed = {min = 0, max = 300},
-    JumpPower = {min = 0, max = 300},
-}
-
-local function clamp(n, low, high)
-    if n < low then return low end
-    if n > high then return high end
-    return n
-end
-
-local function modifyProperty(prop, delta)
-    -- Handles Gravity separately
-    if prop == "Gravity" then
-        workspace.Gravity = workspace.Gravity + delta
-        return workspace.Gravity
-    end
-
-    local hum = getHumanoid()
-    if not hum then return nil end
-
-    if prop == "WalkSpeed" then
-        local v = hum.WalkSpeed + delta
-        v = clamp(v, LIMITS.WalkSpeed.min, LIMITS.WalkSpeed.max)
-        hum.WalkSpeed = v
-        return hum.WalkSpeed
-    elseif prop == "JumpPower" then
-        local v = hum.JumpPower + delta
-        v = clamp(v, LIMITS.JumpPower.min, LIMITS.JumpPower.max)
-        hum.JumpPower = v
-        return hum.JumpPower
-    end
-    return nil
-end
-
-local function resetProperty(prop, initialStats)
-    if prop == "Gravity" then
-        workspace.Gravity = initialStats.Gravity or workspace.Gravity
-        return workspace.Gravity
-    end
-    local hum = getHumanoid()
-    if not hum then return nil end
-    if prop == "WalkSpeed" then
-        hum.WalkSpeed = initialStats.WalkSpeed or hum.WalkSpeed
-        return hum.WalkSpeed
-    elseif prop == "JumpPower" then
-        hum.JumpPower = initialStats.JumpPower or hum.JumpPower
-        return hum.JumpPower
-    end
-    return nil
-end
-
--- Initial Stats (will be refreshed on CharacterAdded)
-local initialStats = {
-    WalkSpeed = 16,
-    JumpPower = 50,
-    Gravity = workspace.Gravity
-}
-local function refreshInitialStats()
-    local hum = getHumanoid()
-    if hum then
-        initialStats.WalkSpeed = hum.WalkSpeed
-        initialStats.JumpPower = hum.JumpPower
-    end
-    initialStats.Gravity = workspace.Gravity
-end
-
--- update when character spawns
-player.CharacterAdded:Connect(function()
-    -- small delay to allow humanoid to init
-    task.wait(0.1)
-    refreshInitialStats()
-end)
--- try initial refresh now
-refreshInitialStats()
-
--- leaderstats snapshot
+-- Initial leaderstats snapshot
 local initialLeaderstats = {}
 local ls = player:FindFirstChild("leaderstats")
 if ls then
@@ -231,58 +145,6 @@ local function selectTab(idx)
     end
 
     if idx==1 then
-        -- Local Player Properties
-        local props={"WalkSpeed","Gravity","JumpPower"}
-        for i,prop in ipairs(props) do
-            local yOffset = (i-1)*60
-            local current
-            if prop=="Gravity" then
-                current = tostring(workspace.Gravity)
-            else
-                local hum = getHumanoid()
-                current = hum and tostring(hum[prop]) or "N/A"
-            end
-
-            local label=Instance.new("TextLabel",contentFrame)
-            label.Size=UDim2.new(0.5,-10,0,30)
-            label.Position=UDim2.new(0,10,0,yOffset)
-            label.BackgroundTransparency=1
-            label.Text=prop..": "..tostring(current)
-            label.TextColor3=Color3.new(1,1,1)
-            label.Font=Enum.Font.SourceSansBold
-            label.TextSize=18
-
-            local plus=Instance.new("TextButton",contentFrame)
-            plus.Size=UDim2.new(0.1,0,0,30)
-            plus.Position=UDim2.new(0.6,0,0,yOffset)
-            plus.Text="+5"
-            round(plus,6)
-            plus.MouseButton1Click:Connect(function()
-                modifyProperty(prop, 5)
-                selectTab(1) -- refresh UI
-            end)
-
-            local minus=Instance.new("TextButton",contentFrame)
-            minus.Size=UDim2.new(0.1,0,0,30)
-            minus.Position=UDim2.new(0.72,0,0,yOffset)
-            minus.Text="-5"
-            round(minus,6)
-            minus.MouseButton1Click:Connect(function()
-                modifyProperty(prop, -5)
-                selectTab(1) -- refresh UI
-            end)
-
-            local reset=Instance.new("TextButton",contentFrame)
-            reset.Size=UDim2.new(0.15,0,0,30)
-            reset.Position=UDim2.new(0.84,0,0,yOffset)
-            reset.Text="Reset"
-            round(reset,6)
-            reset.MouseButton1Click:Connect(function()
-                resetProperty(prop, initialStats)
-                selectTab(1)
-            end)
-        end
-    elseif idx==2 then
         -- Stats
         local y=0
         local function addStat(name,current,initial)
@@ -296,16 +158,16 @@ local function selectTab(idx)
             lbl.TextSize=18
             y+=40
         end
-        local hum = getHumanoid()
-        addStat("WalkSpeed", hum and hum.WalkSpeed or "N/A", initialStats.WalkSpeed)
-        addStat("JumpPower", hum and hum.JumpPower or "N/A", initialStats.JumpPower)
-        addStat("Gravity", workspace.Gravity, initialStats.Gravity)
+        -- Humanoid health
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        addStat("Health", hum and hum.Health or "N/A", hum and hum.MaxHealth or "N/A")
+        -- Leaderstats
         if ls then
             for _,stat in ipairs(ls:GetChildren()) do
                 addStat(stat.Name,stat.Value,initialLeaderstats[stat.Name] or 0)
             end
         end
-    elseif idx==3 then
+    elseif idx==2 then
         local label=Instance.new("TextLabel",contentFrame)
         label.Size=UDim2.new(1,-20,0,50)
         label.Position=UDim2.new(0,10,0,10)
@@ -314,7 +176,7 @@ local function selectTab(idx)
         label.TextColor3=Color3.new(1,1,1)
         label.Font=Enum.Font.SourceSansBold
         label.TextSize=22
-    elseif idx==4 then
+    elseif idx==3 then
         local label=Instance.new("TextLabel",contentFrame)
         label.Size=UDim2.new(1,-20,0,50)
         label.Position=UDim2.new(0,10,0,10)
@@ -323,7 +185,7 @@ local function selectTab(idx)
         label.TextColor3=Color3.new(1,1,1)
         label.Font=Enum.Font.SourceSansBold
         label.TextSize=22
-    elseif idx==5 then
+    elseif idx==4 then
         local label=Instance.new("TextLabel",contentFrame)
         label.Size=UDim2.new(1,-20,0,50)
         label.Position=UDim2.new(0,10,0,10)
