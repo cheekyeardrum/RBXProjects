@@ -14,7 +14,7 @@ local GameHandler = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Game
 local WheelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Wheel")
 local PlaytimeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Playtime")
 local EggsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Eggs")
-local PetsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Pets") -- added for auto-delete
+local PetsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Pets")
 
 -- Sizes
 local CLOSED_SZ = UDim2.new(0,1,0,1)
@@ -134,7 +134,7 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs", "Auto-Win", "Emergency", "Auto-Delete"}
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs", "Auto-Win", "Emergency", "Auto-Delete Pets"}
 local tabButtons={}
 
 -- Global state
@@ -341,8 +341,10 @@ local function buildEggsTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local eggs = {}
-    for i=1,15 do eggs[i] = "Egg "..i end
+    local eggs = {
+        "Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9",
+        "Egg 10","Egg 11","Egg 12","Egg 13","Egg 14","Egg 15"
+    }
 
     local columns = 3
     local spacingX = 10
@@ -355,7 +357,6 @@ local function buildEggsTab()
     for i, eggName in ipairs(eggs) do
         local col = (i-1) % columns
         local row = math.floor((i-1)/columns)
-
         local btn = Instance.new("TextButton", contentFrame)
         btn.Size = UDim2.new(0, buttonWidth, 0, buttonHeight)
         btn.Position = UDim2.new(0, 10 + col*(buttonWidth + spacingX), 0, 50 + row*(buttonHeight + spacingY))
@@ -408,11 +409,9 @@ local function buildAutoWinTab()
     winBtn.TextSize = 16
     winBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
     winBtn.TextColor3 = Color3.new(1,1,1)
-    round(winBtn,6)
+    round(winBtn, 6)
 
     winBtn.MouseButton1Click:Connect(function()
-        autoWin = not autoWin
-            winBtn.MouseButton1Click:Connect(function()
         autoWin = not autoWin
         winBtn.Text = autoWin and "ON" or "OFF"
         winBtn.BackgroundColor3 = autoWin and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
@@ -432,10 +431,9 @@ end
 -- ================= Emergency Stop Tab =================
 local function buildEmergencyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1, -20, 0, 30)
-    label.Position = UDim2.new(0, 10, 0, 10)
+    label.Size = UDim2.new(1,-20,0,30)
+    label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
     label.Text = "EMERGENCY STOP"
     label.TextColor3 = Color3.new(1,1,1)
@@ -444,8 +442,8 @@ local function buildEmergencyTab()
     label.TextXAlignment = Enum.TextXAlignment.Center
 
     local stopBtn = Instance.new("TextButton", contentFrame)
-    stopBtn.Size = UDim2.new(0.5, 0, 0, 50)
-    stopBtn.Position = UDim2.new(0.25, 0, 0.5, 0)
+    stopBtn.Size = UDim2.new(0.5,0,0,50)
+    stopBtn.Position = UDim2.new(0.25,0,0.5,0)
     stopBtn.Text = "STOP ALL"
     stopBtn.Font = Enum.Font.SourceSansBold
     stopBtn.TextSize = 24
@@ -510,20 +508,12 @@ local function buildAutoDeleteTab()
     local function deletePetsOfType(petType)
         local petsFolder = player:FindFirstChild("Pets")
         if not petsFolder then return end
-
         for _, pet in ipairs(petsFolder:GetChildren()) do
             local pType = (pet:FindFirstChild("Type") and pet.Type.Value) or pet.Name
             local pId = (pet:FindFirstChild("PetId") and pet.PetId.Value)
             if pType == petType and pId then
-                local args = {
-                    {
-                        Info = "DeletePet",
-                        PetId = pId
-                    }
-                }
-                pcall(function()
-                    PetsRemote:FireServer(unpack(args))
-                end)
+                local args = {{Info="DeletePet", PetId=pId}}
+                pcall(function() PetsRemote:FireServer(unpack(args)) end)
             end
         end
     end
@@ -582,11 +572,8 @@ selectTab(1)
 local minimized = false
 minBtn.MouseButton1Click:Connect(function()
     minimized = not minimized
-    if minimized then
-        tween(frame, { Size = MINIMIZED_SZ })
-    else
-        tween(frame, { Size = HUB_SZ })
-    end
+    if minimized then tween(frame, { Size = MINIMIZED_SZ })
+    else tween(frame, { Size = HUB_SZ }) end
     tabsFrame.Visible = not minimized
     contentFrame.Visible = not minimized
 end)
@@ -595,4 +582,3 @@ closeBtn.MouseButton1Click:Connect(function()
     tween(frame, { Size = CLOSED_SZ }).Completed:Wait()
     screenGui:Destroy()
 end)
-
