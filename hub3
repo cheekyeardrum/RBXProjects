@@ -324,48 +324,62 @@ end
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    local scroll = Instance.new("ScrollingFrame", contentFrame)
-    scroll.Size = UDim2.new(1,0,1,0)
-    scroll.Position = UDim2.new(0,0,0,0)
-    scroll.CanvasSize = UDim2.new(0,0,0,35*15)
-    scroll.ScrollBarThickness = 10
-    scroll.BackgroundTransparency = 1
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(0.6,-10,0,30)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Auto-Buy Eggs"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
 
+    local eggCount = 19
+    local eggs = {}
+    for i = 1, eggCount do
+        table.insert(eggs, "Egg "..i)
+    end
+
+    -- Color sets: one color per world
     local colors = {
-        Color3.fromRGB(255,100,100),
-        Color3.fromRGB(100,255,100),
-        Color3.fromRGB(100,100,255),
-        Color3.fromRGB(255,255,100),
-        Color3.fromRGB(255,100,255),
+        Color3.fromRGB(255,100,100),   -- World 1
+        Color3.fromRGB(100,255,100),   -- World 2
+        Color3.fromRGB(100,100,255),   -- World 3
+        Color3.fromRGB(255,255,100),   -- World 4 (last egg)
     }
 
-    for i=1,15 do
-        local world = math.ceil(i/3)
-        local eggName = "World "..world.." Egg "..((i-1)%3+1)
-
-        local btn = Instance.new("TextButton", scroll)
-        btn.Size = UDim2.new(0.25,0,0,30)
+    for i, eggName in ipairs(eggs) do
+        local btn = Instance.new("TextButton", contentFrame)
+        btn.Size = UDim2.new(0.2,0,0,30)
         btn.Position = UDim2.new(0.65, 0, 0, 10 + (i-1)*35)
         btn.Text = "OFF"
         btn.Font = Enum.Font.SourceSansBold
         btn.TextSize = 16
         btn.TextColor3 = Color3.new(1,1,1)
-        btn.BackgroundColor3 = colors[world]
         round(btn,6)
 
+        -- Determine color based on egg group (3 eggs per world)
+        local colorIndex = math.ceil(i/3)
+        if colorIndex > #colors then colorIndex = #colors end
+        btn.BackgroundColor3 = colors[colorIndex]
+
         local buying = false
+
         btn.MouseButton1Click:Connect(function()
             buying = not buying
             btn.Text = buying and "ON" or "OFF"
-            btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or colors[world]
+            btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or colors[colorIndex]
 
             if buying then
                 task.spawn(function()
                     while buying do
                         local args = {{Info="PurchaseEgg", Egg=eggName}}
-                        pcall(function()
+                        local success,err = pcall(function()
                             game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs"):InvokeServer(unpack(args))
                         end)
+                        if not success then
+                            warn("Failed to buy "..eggName..": "..tostring(err))
+                        end
                         task.wait(0.15)
                     end
                 end)
