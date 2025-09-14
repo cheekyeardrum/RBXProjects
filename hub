@@ -4,7 +4,6 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -130,10 +129,9 @@ enableDrag(contentFrame)
 local tabNames={"Buy","Sell","Teleport","Find Items"}
 local tabButtons={}
 
--- ---------------- Buy Tab ----------------
+-- Buy Tab Builder
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6, -10, 0, 30)
     label.Position = UDim2.new(0, 10, 0, 10)
@@ -161,7 +159,7 @@ local function buildBuyTab()
     end)
 
     task.spawn(function()
-        local brks = RS:WaitForChild("Remotes"):WaitForChild("InfoFunction")
+        local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
         local packs = {
             "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
             "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
@@ -191,7 +189,7 @@ local function buildBuyTab()
     end)
 end
 
--- ---------------- Sell Tab ----------------
+-- Placeholder Tabs
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -204,7 +202,6 @@ local function buildSellTab()
     label.TextSize = 18
 end
 
--- ---------------- Teleport Tab ----------------
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -217,16 +214,15 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- ---------------- Find Items Tab ----------------
+-- Find Items Tab
 local function buildFindItemsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1,0,1,0)
-    scroll.Position = UDim2.new(0,0,0,0)
-    scroll.CanvasSize = UDim2.new(0,0,0,0)
-    scroll.ScrollBarThickness = 10
+    scroll.Size = UDim2.new(1, -10, 1, -10)
+    scroll.Position = UDim2.new(0, 5, 0, 5)
     scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 10
     scroll.Parent = contentFrame
 
     local layout = Instance.new("UIListLayout")
@@ -234,43 +230,70 @@ local function buildFindItemsTab()
     layout.Padding = UDim.new(0,2)
     layout.Parent = scroll
 
-    for _, obj in ipairs(workspace:GetChildren()) do
-        local lbl = Instance.new("TextButton")
-        lbl.Size = UDim2.new(1,0,0,25)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = obj.Name.." ["..obj.ClassName.."]"
-        lbl.Font = Enum.Font.SourceSans
-        lbl.TextSize = 18
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.TextColor3 = Color3.new(1,1,1)
-        lbl.Parent = scroll
+    local function createTree(parentUI, obj, indent)
+        indent = indent or 0
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, -10, 0, 25)
+        frame.BackgroundTransparency = 1
+        frame.LayoutOrder = 1
+        frame.Parent = parentUI
 
-        lbl.MouseButton1Click:Connect(function()
-            print("Selected object:", obj:GetFullName())
+        local label = Instance.new("TextButton")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.Position = UDim2.new(0, 0, 0, 0)
+        label.BackgroundTransparency = 1
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 18
+        label.TextColor3 = Color3.fromRGB(255,255,255)
+        label.Text = string.rep("    ", indent)..obj.Name.." ["..obj.ClassName.."]"
+        label.Parent = frame
+
+        local expanded = false
+        local childrenFrame = nil
+        label.MouseButton1Click:Connect(function()
+            if not expanded then
+                expanded = true
+                childrenFrame = Instance.new("Frame")
+                childrenFrame.Size = UDim2.new(1, 0, 0, 0)
+                childrenFrame.BackgroundTransparency = 1
+                childrenFrame.LayoutOrder = 1
+                childrenFrame.Parent = parentUI
+
+                local layout = Instance.new("UIListLayout")
+                layout.SortOrder = Enum.SortOrder.LayoutOrder
+                layout.Padding = UDim.new(0,2)
+                layout.Parent = childrenFrame
+
+                for _,child in ipairs(obj:GetChildren()) do
+                    createTree(childrenFrame, child, indent+1)
+                end
+            else
+                expanded = false
+                if childrenFrame then
+                    childrenFrame:Destroy()
+                    childrenFrame = nil
+                end
+            end
         end)
     end
 
-    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
-    end)
+    local topObjects = {workspace, game:GetService("ReplicatedStorage"), game.Players}
+    for _,obj in ipairs(topObjects) do
+        createTree(scroll, obj, 0)
+    end
 end
 
--- ---------------- Tab Switch ----------------
+-- Tab Switch
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
     end
 
-    if idx == 1 then
-        buildBuyTab()
-    elseif idx == 2 then
-        buildSellTab()
-    elseif idx == 3 then
-        buildTeleportTab()
-    elseif idx == 4 then
-        buildFindItemsTab()
-    end
+    if idx == 1 then buildBuyTab()
+    elseif idx == 2 then buildSellTab()
+    elseif idx == 3 then buildTeleportTab()
+    elseif idx == 4 then buildFindItemsTab() end
 end
 
 -- Create Tab Buttons
