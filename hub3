@@ -264,78 +264,97 @@ local function buildRewardsTab()
     end)
 end
 
--- Eggs Tab
-local function buildEggTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size=UDim2.new(0.6,-10,0,30)
-    label.Position=UDim2.new(0,10,0,10)
-    label.BackgroundTransparency=1
-    label.Text="Auto-Buy Egg"
-    label.TextColor3=Color3.new(1,1,1)
-    label.Font=Enum.Font.SourceSansBold
-    label.TextSize=18
-    label.TextXAlignment=Enum.TextXAlignment.Left
+-- Example parent frame
+local contentFrame = script.Parent or workspace -- replace with your actual content frame
 
-    local eggList = {}
-    for i=1,20 do table.insert(eggList,"Egg "..i) end
-    local selectedEgg = eggList[1]
+-- Label
+local label = Instance.new("TextLabel", contentFrame)
+label.Size = UDim2.new(0.6, -10, 0, 30)
+label.Position = UDim2.new(0, 10, 0, 10)
+label.BackgroundTransparency = 1
+label.Text = "Auto-Buy Egg"
+label.TextColor3 = Color3.new(1,1,1)
+label.Font = Enum.Font.SourceSansBold
+label.TextSize = 18
+label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local dropdown = Instance.new("TextButton", contentFrame)
-    dropdown.Size=UDim2.new(0.35,0,0,30)
-    dropdown.Position=UDim2.new(0.65,0,0,10)
-    dropdown.Text = selectedEgg
-    dropdown.Font = Enum.Font.SourceSansBold
-    dropdown.TextSize = 16
-    dropdown.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    dropdown.TextColor3 = Color3.new(1,1,1)
-    round(dropdown,6)
+-- Dropdown (simple TextButton acting as dropdown)
+local dropdown = Instance.new("TextButton", contentFrame)
+dropdown.Size = UDim2.new(0.35, 0, 0, 30)
+dropdown.Position = UDim2.new(0.65, 0, 0, 10)
+dropdown.Text = "Select Egg"
+dropdown.Font = Enum.Font.SourceSansBold
+dropdown.TextSize = 18
+dropdown.BackgroundColor3 = Color3.fromRGB(88,101,242)
+dropdown.TextColor3 = Color3.new(1,1,1)
+local round = Instance.new("UICorner", dropdown)
+round.CornerRadius = UDim.new(0,6)
 
-    dropdown.MouseButton1Click:Connect(function()
-        for i,v in ipairs(eggList) do
-            if v==selectedEgg then
-                selectedEgg = eggList[i%#eggList+1]
-                break
-            end
-        end
-        dropdown.Text = selectedEgg
+-- Egg options
+local eggs = {}
+for i=1,20 do
+    table.insert(eggs, "Egg "..i)
+end
+
+local selectedEgg = eggs[1]
+
+-- Dropdown menu
+local menu = Instance.new("Frame", contentFrame)
+menu.Size = UDim2.new(0.35, 0, 0, #eggs*30)
+menu.Position = UDim2.new(0.65, 0, 0, 40)
+menu.BackgroundColor3 = Color3.fromRGB(50,50,50)
+menu.Visible = false
+round = Instance.new("UICorner", menu)
+round.CornerRadius = UDim.new(0,6)
+
+for i,eggName in ipairs(eggs) do
+    local btn = Instance.new("TextButton", menu)
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.Position = UDim2.new(0,0,0,(i-1)*30)
+    btn.Text = eggName
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.BackgroundColor3 = Color3.fromRGB(70,70,70)
+    btn.TextColor3 = Color3.new(1,1,1)
+    local btnRound = Instance.new("UICorner", btn)
+    btnRound.CornerRadius = UDim.new(0,4)
+
+    btn.MouseButton1Click:Connect(function()
+        selectedEgg = eggName
+        dropdown.Text = eggName
+        menu.Visible = false
     end)
+end
 
-    local toggleBtn = Instance.new("TextButton", contentFrame)
-    toggleBtn.Size=UDim2.new(0.2,0,0,30)
-    toggleBtn.Position=UDim2.new(0.65,0,0,50)
-    toggleBtn.Text="OFF"
-    toggleBtn.Font=Enum.Font.SourceSansBold
-    toggleBtn.TextSize=18
-    toggleBtn.BackgroundColor3=Color3.fromRGB(88,101,242)
-    toggleBtn.TextColor3=Color3.new(1,1,1)
-    round(toggleBtn,6)
+dropdown.MouseButton1Click:Connect(function()
+    menu.Visible = not menu.Visible
+end)
 
-    local buying = false
-    toggleBtn.MouseButton1Click:Connect(function()
-        buying = not buying
-        toggleBtn.Text = buying and "ON" or "OFF"
-        toggleBtn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-    end)
+-- Toggle Button
+local toggleBtn = Instance.new("TextButton", contentFrame)
+toggleBtn.Size = UDim2.new(0.35,0,0,30)
+toggleBtn.Position = UDim2.new(0.65, 0, 0, 80)
+toggleBtn.Text = "OFF"
+toggleBtn.Font = Enum.Font.SourceSansBold
+toggleBtn.TextSize = 18
+toggleBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+round = Instance.new("UICorner", toggleBtn)
+round.CornerRadius = UDim.new(0,6)
 
-    -- Corrected auto-buy loop
- local buying = false
-local selectedEgg = "Egg 3" -- default
-
+-- Auto-Buy Logic
+local buying = false
 local function buyEgg()
+    local Remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs")
     while buying do
         local args = {{Info = "PurchaseEgg", Egg = selectedEgg}}
-        local success, err = pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs"):InvokeServer(unpack(args))
+        pcall(function()
+            Remote:InvokeServer(unpack(args))
         end)
-        if not success then
-            warn("Failed to buy egg:", err)
-        end
-        task.wait(0.2) -- wait between calls
+        task.wait(0.2)
     end
 end
 
--- Example toggle button
 toggleBtn.MouseButton1Click:Connect(function()
     buying = not buying
     toggleBtn.Text = buying and "ON" or "OFF"
@@ -345,8 +364,6 @@ toggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-    end)
-end
 
 -- Auto-Win Tab
 local function buildWinTab()
