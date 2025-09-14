@@ -1,10 +1,9 @@
--- Clean Hub with Buy/Sell/Teleport/Find Items Tabs
+-- Clean Hub with Buy/Sell/Teleport/Find Scripts Tabs
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local RS = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -127,16 +126,16 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames={"Buy","Sell","Teleport","Find Items"}
+local tabNames={"Buy","Sell","Teleport","Find Scripts"}
 local tabButtons={}
 
--- ---------------- Buy Tab ----------------
+-- BUY TAB
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
     local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6, -10, 0, 30)
-    label.Position = UDim2.new(0, 10, 0, 10)
+    label.Size = UDim2.new(0.6,-10,0,30)
+    label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
     label.Text = "Auto-Buy Packs"
     label.TextColor3 = Color3.new(1,1,1)
@@ -145,14 +144,14 @@ local function buildBuyTab()
     label.TextXAlignment = Enum.TextXAlignment.Left
 
     local buyBtn = Instance.new("TextButton", contentFrame)
-    buyBtn.Size = UDim2.new(0.35, 0, 0, 30)
-    buyBtn.Position = UDim2.new(0.65, 0, 0, 10)
+    buyBtn.Size = UDim2.new(0.35,0,0,30)
+    buyBtn.Position = UDim2.new(0.65,0,0,10)
     buyBtn.Text = "OFF"
     buyBtn.Font = Enum.Font.SourceSansBold
     buyBtn.TextSize = 18
     buyBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
     buyBtn.TextColor3 = Color3.new(1,1,1)
-    round(buyBtn, 6)
+    round(buyBtn,6)
 
     local toggle = false
     buyBtn.MouseButton1Click:Connect(function()
@@ -161,7 +160,7 @@ local function buildBuyTab()
     end)
 
     task.spawn(function()
-        local brks = RS:WaitForChild("Remotes"):WaitForChild("InfoFunction")
+        local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
         local packs = {
             "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
             "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
@@ -191,7 +190,7 @@ local function buildBuyTab()
     end)
 end
 
--- ---------------- Sell Tab ----------------
+-- SELL TAB
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -204,7 +203,7 @@ local function buildSellTab()
     label.TextSize = 18
 end
 
--- ---------------- Teleport Tab ----------------
+-- TELEPORT TAB
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -217,46 +216,62 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- ---------------- Find Items Tab ----------------
-local function buildFindItemsTab()
+-- FIND SCRIPTS TAB
+local function buildFindScriptsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1,0,1,0)
-    scroll.Position = UDim2.new(0,0,0,0)
+    local scroll = Instance.new("ScrollingFrame", contentFrame)
+    scroll.Size = UDim2.new(1,-20,1,-20)
+    scroll.Position = UDim2.new(0,10,0,10)
     scroll.CanvasSize = UDim2.new(0,0,0,0)
     scroll.ScrollBarThickness = 10
     scroll.BackgroundTransparency = 1
-    scroll.Parent = contentFrame
 
-    local layout = Instance.new("UIListLayout")
+    local layout = Instance.new("UIListLayout", scroll)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0,2)
-    layout.Parent = scroll
+    layout.Padding = UDim.new(0,5)
 
-    for _, obj in ipairs(workspace:GetChildren()) do
-        local lbl = Instance.new("TextButton")
-        lbl.Size = UDim2.new(1,0,0,25)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = obj.Name.." ["..obj.ClassName.."]"
-        lbl.Font = Enum.Font.SourceSans
-        lbl.TextSize = 18
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.TextColor3 = Color3.new(1,1,1)
-        lbl.Parent = scroll
+    local codeBox = Instance.new("TextBox", contentFrame)
+    codeBox.Size = UDim2.new(1,-20,0.5,0)
+    codeBox.Position = UDim2.new(0,10,0.5,0)
+    codeBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    codeBox.TextColor3 = Color3.new(1,1,1)
+    codeBox.Font = Enum.Font.Code
+    codeBox.TextSize = 16
+    codeBox.ClearTextOnFocus = false
+    codeBox.MultiLine = true
+    codeBox.Text = ""
+    codeBox.Visible = false
+    round(codeBox,6)
 
-        lbl.MouseButton1Click:Connect(function()
-            print("Selected object:", obj:GetFullName())
+    local function addScriptEntry(scr)
+        local label = Instance.new("TextButton", scroll)
+        label.Size = UDim2.new(1,0,0,25)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.new(1,1,1)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = 16
+        label.Text = scr:GetFullName()
+
+        label.MouseButton1Click:Connect(function()
+            if scr:IsA("LocalScript") or scr:IsA("Script") then
+                codeBox.Text = scr.Source or "-- Cannot read source --"
+                codeBox.Visible = true
+            end
         end)
     end
 
+    for _,obj in ipairs(game:GetDescendants()) do
+        if obj:IsA("Script") or obj:IsA("LocalScript") then
+            addScriptEntry(obj)
+        end
+    end
+
+    -- Adjust scroll canvas
     scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
-    end)
 end
 
--- ---------------- Tab Switch ----------------
+-- Tab Switch
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
@@ -269,7 +284,7 @@ local function selectTab(idx)
     elseif idx == 3 then
         buildTeleportTab()
     elseif idx == 4 then
-        buildFindItemsTab()
+        buildFindScriptsTab()
     end
 end
 
