@@ -130,11 +130,10 @@ enableDrag(contentFrame)
 local tabNames={"Buy","Sell","Teleport","Find Items"}
 local tabButtons={}
 
--- Buy Tab
+-- Buy Tab Builder
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    -- Label
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6, -10, 0, 30)
     label.Position = UDim2.new(0, 10, 0, 10)
@@ -145,7 +144,6 @@ local function buildBuyTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Toggle Button
     local buyBtn = Instance.new("TextButton", contentFrame)
     buyBtn.Size = UDim2.new(0.35, 0, 0, 30)
     buyBtn.Position = UDim2.new(0.65, 0, 0, 10)
@@ -162,6 +160,7 @@ local function buildBuyTab()
         buyBtn.Text = toggle and "ON" or "OFF"
     end)
 
+    -- Auto-buy Loop
     task.spawn(function()
         local brks = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InfoFunction")
         local packs = {
@@ -193,7 +192,7 @@ local function buildBuyTab()
     end)
 end
 
--- Sell Tab
+-- Placeholder Sell Tab
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -206,7 +205,7 @@ local function buildSellTab()
     label.TextSize = 18
 end
 
--- Teleport Tab
+-- Placeholder Teleport Tab
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -219,53 +218,29 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- Find Items Tab
+-- New: Find Items Tab
 local function buildFindItemsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Buyable Items Found:"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
+    local header = Instance.new("TextLabel", contentFrame)
+    header.Size = UDim2.new(1,-20,0,30)
+    header.Position = UDim2.new(0,10,0,10)
+    header.BackgroundTransparency = 1
+    header.Text = "Buyable Items:"
+    header.TextColor3 = Color3.new(1,1,1)
+    header.Font = Enum.Font.SourceSansBold
+    header.TextSize = 18
+    header.TextXAlignment = Enum.TextXAlignment.Left
 
     local yOffset = 50
-    local foundItems = {}
 
-    -- Look in common folders
-    local possibleFolders = {"Items","Shop","BoosterPacks","Tools","Products"}
-    for _,folderName in ipairs(possibleFolders) do
-        local folder = ReplicatedStorage:FindFirstChild(folderName)
-        if folder then
-            for _,item in ipairs(folder:GetChildren()) do
-                table.insert(foundItems, item.Name)
-            end
-        end
-    end
+    local brks = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InfoFunction")
+    local success, items = pcall(function()
+        return brks:InvokeServer("GetBoosterPacks")
+    end)
 
-    -- Scan for RemoteFunctions / RemoteEvents with "Buy" in the name
-    local function scanRemotes(parent)
-        for _,child in ipairs(parent:GetChildren()) do
-            if child:IsA("RemoteFunction") or child:IsA("RemoteEvent") then
-                if child.Name:lower():find("buy") then
-                    table.insert(foundItems, child.Name .. " (Remote)")
-                end
-            end
-            if #child:GetChildren() > 0 then
-                scanRemotes(child)
-            end
-        end
-    end
-    scanRemotes(ReplicatedStorage)
-
-    -- Display unique items
-    local unique = {}
-    for _,name in ipairs(foundItems) do
-        if not unique[name] then
-            unique[name] = true
+    if success and type(items) == "table" then
+        for _,name in ipairs(items) do
             local itemLabel = Instance.new("TextLabel", contentFrame)
             itemLabel.Size = UDim2.new(1,-20,0,25)
             itemLabel.Position = UDim2.new(0,10,0,yOffset)
@@ -277,9 +252,7 @@ local function buildFindItemsTab()
             itemLabel.TextXAlignment = Enum.TextXAlignment.Left
             yOffset += 30
         end
-    end
-
-    if next(unique) == nil then
+    else
         local noneLabel = Instance.new("TextLabel", contentFrame)
         noneLabel.Size = UDim2.new(1,-20,0,30)
         noneLabel.Position = UDim2.new(0,10,0,50)
