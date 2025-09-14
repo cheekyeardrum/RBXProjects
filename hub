@@ -1,7 +1,8 @@
--- Clean Hub (Empty Tabs: Buy, Sell, Teleport)
+-- Clean Hub with Buy Toggle
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
@@ -130,15 +131,98 @@ local tabButtons={}
 
 -- Tab Switch
 local function selectTab(idx)
-    -- Clear previous content
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    -- Update tab button colors
     for i,btn in ipairs(tabButtons) do
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
     end
-    -- Empty tabs placeholder (no content for now)
+
+    if idx == 1 then
+        -- Buy Tab
+        local y = 10
+        local label = Instance.new("TextLabel", contentFrame)
+        label.Size = UDim2.new(1,-20,0,30)
+        label.Position = UDim2.new(0,10,0,y)
+        label.BackgroundTransparency = 1
+        label.Text = "Buy Packs"
+        label.TextColor3 = Color3.new(1,1,1)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = 20
+        y += 40
+
+        local toggle = false
+        local toggleBtn = Instance.new("TextButton", contentFrame)
+        toggleBtn.Size = UDim2.new(0.3,0,0,30)
+        toggleBtn.Position = UDim2.new(0,10,0,y)
+        toggleBtn.Text = "OFF"
+        toggleBtn.Font = Enum.Font.SourceSansBold
+        toggleBtn.TextSize = 18
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        toggleBtn.TextColor3 = Color3.new(1,1,1)
+        round(toggleBtn,6)
+
+        toggleBtn.MouseButton1Click:Connect(function()
+            toggle = not toggle
+            toggleBtn.Text = toggle and "ON" or "OFF"
+            toggleBtn.BackgroundColor3 = toggle and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
+        end)
+
+        -- Auto-buy loop
+        task.spawn(function()
+            local packs = {"Pack1","Pack2"} -- replace with your packs
+            local tools = {"Tool1","Tool2"} -- replace with your tools
+            local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
+            local s = Instance.new("Sound", contentFrame)
+            s.SoundId = "rbxassetid://123456" -- optional sound
+            s.Volume = 1
+
+            while true do
+                if toggle then
+                    for _,v in ipairs(packs) do
+                        for i=1,20 do
+                            pcall(function() brks:InvokeServer("BuyBoosterPack",v) end)
+                            s:Play()
+                            task.wait(0.05)
+                        end
+                    end
+                    for _,v in ipairs(tools) do
+                        for i=1,20 do
+                            pcall(function() brks:InvokeServer("BuyPSATool",v) end)
+                            s:Play()
+                            task.wait(0.05)
+                        end
+                    end
+                    task.wait(300) -- wait 5 minutes
+                else
+                    task.wait(1)
+                end
+            end
+        end)
+
+    elseif idx == 2 then
+        -- Sell tab placeholder
+        local label = Instance.new("TextLabel", contentFrame)
+        label.Size = UDim2.new(1,-20,0,50)
+        label.Position = UDim2.new(0,10,0,10)
+        label.BackgroundTransparency = 1
+        label.Text = "Sell tab placeholder"
+        label.TextColor3 = Color3.new(1,1,1)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = 22
+
+    elseif idx == 3 then
+        -- Teleport tab placeholder
+        local label = Instance.new("TextLabel", contentFrame)
+        label.Size = UDim2.new(1,-20,0,50)
+        label.Position = UDim2.new(0,10,0,10)
+        label.BackgroundTransparency = 1
+        label.Text = "Teleport tab placeholder"
+        label.TextColor3 = Color3.new(1,1,1)
+        label.Font = Enum.Font.SourceSansBold
+        label.TextSize = 22
+    end
 end
 
+-- Create Tabs
 for i,name in ipairs(tabNames) do
     local btn=Instance.new("TextButton",tabsFrame)
     btn.Size=UDim2.new(1,0,0,40)
