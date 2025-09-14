@@ -470,7 +470,7 @@ local function buildEmergencyTab()
     end)
 end
 
--- ================= Auto-Delete Pets Tab =================
+-- Replace existing Auto-Delete Pets tab with this improved version
 local function buildAutoDeleteTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -487,8 +487,8 @@ local function buildAutoDeleteTab()
     local typeBox = Instance.new("TextBox", contentFrame)
     typeBox.Size = UDim2.new(0.6,0,0,30)
     typeBox.Position = UDim2.new(0,10,0,50)
-    typeBox.PlaceholderText = "Enter Pet Type"
-    typeBox.Text = ""
+    typeBox.PlaceholderText = "Enter Pet Type (e.g. Sigma Boy)"
+    typeBox.Text = targetPetType or ""
     typeBox.Font = Enum.Font.SourceSans
     typeBox.TextSize = 16
     typeBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
@@ -498,25 +498,120 @@ local function buildAutoDeleteTab()
     local deleteBtn = Instance.new("TextButton", contentFrame)
     deleteBtn.Size = UDim2.new(0.35,0,0,30)
     deleteBtn.Position = UDim2.new(0.65,0,0,50)
-    deleteBtn.Text = "OFF"
+    deleteBtn.Text = autoDelete and "ON" or "OFF"
     deleteBtn.Font = Enum.Font.SourceSansBold
     deleteBtn.TextSize = 16
-    deleteBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+    deleteBtn.BackgroundColor3 = autoDelete and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
     deleteBtn.TextColor3 = Color3.new(1,1,1)
     round(deleteBtn,6)
 
-    local function deletePetsOfType(petType)
-        local petsFolder = player:FindFirstChild("Pets")
-        if not petsFolder then return end
-        for _, pet in ipairs(petsFolder:GetChildren()) do
-            local pType = (pet:FindFirstChild("Type") and pet.Type.Value) or pet.Name
-            local pId = (pet:FindFirstChild("PetId") and pet.PetId.Value)
-            if pType == petType and pId then
-                local args = {{Info="DeletePet", PetId=pId}}
-                pcall(function() PetsRemote:FireServer(unpack(args)) end)
+    -- safe attribute/child value reader
+    local function readValue(inst, name)
+        -- try attribute first (roblox attributes)
+        if inst and type(inst.GetAttribute) == "function" then
+            local ok, val = pcall(function() return inst:GetAttribute(name) end)
+            if ok and val ~= nil then return val end
+        end
+        -- then try child StringValue / Value instances
+        if inst then
+            local child = inst:FindFirstChild(name)
+            if child and child:IsA("StringValue") or child and (child:IsA("IntValue") or child:IsA("NumberValue")) then
+                return child.Value
             end
         end
+        return nil
     end
+
+    local function getPetType(pet)
+        -- try common attribute/child names, fallback to instance name
+        local t = readValue(pet, "PetName") or readValue(pet, "Name") or readValue(pet, "Type") or pet.Name
+        return tostring(t or "")
+    end
+
+    local function getPetId(pet)
+        -- try attribute or child value named PetId / Id
+        local id = readValue(pet, "PetId") or readValue(pet, "Id")
+        if id then return tostring(id) end
+        -- fallback: sometimes PetId is stored in a child value named "UUID" or similar — try common ones
+        id = readValue(pet, "UUID") or readValue(pet, "UniqueId")
+        if id then return tostring(id) end
+        return nil
+    end
+
+    local function collectCandidatePets()
+        local list = {}
+        local petsFolder = player:FindFirstChild("Pets") or player:FindFirstChild("Inventory") or player:FindFirstChild("PetInventory")
+        if petsFolder then
+            for _,c in ipairs(petsFolder:GetChildren()) do table.insert(list, c) end
+        else
+            -- fallback: search player's descendants for things that look like pets
+            for _,desc in ipairs(player:GetDescendants()) do
+                -- prefer Models / Folders as pet containers
+                if desc:IsA("Model") or desc:IsA("Folder") then
+                    if readValue(desc, "PetName") or readValue(desc, "PetId") or desc:FindFirstChild("PetId") or desc:FindFirstChild("PetName") then
+                        table.insert(list, desc)
+                    end
+                end
+            end
+        end
+        return list
+    end
+
+    local function deletePetsOfType(petType)
+        if not petType or petType:match("^%s*$") then
+            warn("AutoDelete: target pet type is empty; type a name in the box (e.g. Sigma Boy).")
+            return
+        end
+        local targetLower = petType:lower()
+        local candidates = collectCandidatePets()
+        if #candidates == 0 then
+            warn("AutoDelete: no candidate pets found under player. Check where pets are stored in Explorer.")
+            return
+        end
+
+        local deleted = 0
+        for _,pet in ipairs(candidates) do
+            local pType = getPetType(pet) or ""
+            local pId = getPetId(pet)
+            if pType:lower() == targetLower then
+                if pId then
+                    local args = {
+                        {
+                            Info = "DeletePet",
+                            PetId = pId
+                        }
+                    }
+                    local ok, err = pcall(function() PetsRemote:FireServer(unpack(args)) end)
+                    if ok then
+                        deleted = deleted + 1
+                        warn(("AutoDelete: Requested delete of pet '%s' (PetId=%s)"):format(pType, tostring(pId)))
+                    else
+                        warn("AutoDelete: remote error deleting pet:", err)
+                    end
+                else
+                    warn(("AutoDelete: matched pet '%s' but no PetId found (instance: %s)"):format(pType, pet:GetFullName()))
+                end
+            end
+        end
+
+        if deleted == 0 then
+            warn(("AutoDelete: no pets of type '%s' found (checked %d candidates)."):format(petType, #candidates))
+        else
+            warn(("AutoDelete: delete requests sent for %d pet(s) of type '%s'."):format(deleted, petType))
+        end
+    end
+
+    -- update targetPetType as the user types or on focus lost
+    typeBox:GetPropertyChangedSignal("Text"):Connect(function()
+        targetPetType = typeBox.Text
+    end)
+    typeBox.FocusLost:Connect(function(enter)
+        targetPetType = typeBox.Text
+        if autoDelete and targetPetType ~= "" then
+            -- immediate pass: run once to pick up the new value
+            task.spawn(function() deletePetsOfType(targetPetType) end)
+        end
+    end)
 
     deleteBtn.MouseButton1Click:Connect(function()
         autoDelete = not autoDelete
@@ -528,9 +623,14 @@ local function buildAutoDeleteTab()
             task.spawn(function()
                 while autoDelete do
                     deletePetsOfType(targetPetType)
-                    task.wait(1)
+                    task.wait(1) -- throttle to avoid spamming the server
                 end
             end)
+        elseif autoDelete and (not targetPetType or targetPetType == "") then
+            warn("AutoDelete turned on but no pet type specified.")
+            autoDelete = false
+            deleteBtn.Text = "OFF"
+            deleteBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
         end
     end)
 end
