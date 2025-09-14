@@ -319,6 +319,7 @@ local function buildTeleportTab()
 end
 
 -- Auto-Buy Eggs Tab
+-- Auto-Buy Eggs Tab
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -336,14 +337,12 @@ local function buildEggsTab()
     local worlds = 5
     local eggsPerWorld = 3
 
-    -- Generate eggs: "World X Egg Y"
-    for w = 1, worlds do
-        for e = 1, eggsPerWorld do
-            table.insert(eggs, "World "..w.." Egg "..e)
-        end
+    -- Generate proper egg names: "Egg 1" -> "Egg 15"
+    for i = 1, worlds*eggsPerWorld do
+        table.insert(eggs, "Egg "..i)
     end
 
-    -- Color coding for worlds
+    -- Colors for worlds
     local colors = {
         Color3.fromRGB(255,100,100),  -- World 1
         Color3.fromRGB(100,255,100),  -- World 2
@@ -362,7 +361,6 @@ local function buildEggsTab()
         btn.TextColor3 = Color3.new(1,1,1)
         round(btn,6)
 
-        -- Color based on world
         local worldIndex = math.ceil(i/eggsPerWorld)
         btn.BackgroundColor3 = colors[worldIndex]
 
@@ -390,7 +388,6 @@ local function buildEggsTab()
         end)
     end
 end
-
 
 
 -- ================= Tab Switch =================
