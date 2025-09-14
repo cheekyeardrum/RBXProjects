@@ -166,37 +166,43 @@ local function selectTab(idx)
             toggleBtn.BackgroundColor3 = toggle and Color3.fromRGB(50,200,50) or Color3.fromRGB(200,50,50)
         end)
 
-        -- Auto-buy loop
-        task.spawn(function()
-            local packs = {"Pack1","Pack2"} -- replace with your packs
-            local tools = {"Tool1","Tool2"} -- replace with your tools
-            local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
-            local s = Instance.new("Sound", contentFrame)
-            s.SoundId = "rbxassetid://123456" -- optional sound
-            s.Volume = 1
+  -- Auto-buy loop inside the Buy tab
+task.spawn(function()
+    local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
+    local s = Instance.new("Sound", contentFrame)
+    s.SoundId = "rbxassetid://123456" -- optional sound
+    s.Volume = 1
 
-            while true do
-                if toggle then
-                    for _,v in ipairs(packs) do
-                        for i=1,20 do
-                            pcall(function() brks:InvokeServer("BuyBoosterPack",v) end)
-                            s:Play()
-                            task.wait(0.05)
-                        end
-                    end
-                    for _,v in ipairs(tools) do
-                        for i=1,20 do
-                            pcall(function() brks:InvokeServer("BuyPSATool",v) end)
-                            s:Play()
-                            task.wait(0.05)
-                        end
-                    end
-                    task.wait(300) -- wait 5 minutes
-                else
-                    task.wait(1)
+    local packs = {
+        "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
+        "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
+        "Waterfall Pack","Volcano Pack"
+    }
+    local tools = {"BuyPSATool 6","BuyPSATool 7"}
+
+    while true do
+        if toggle then
+            for _,v in ipairs(packs) do
+                for i=1,20 do
+                    pcall(function() brks:InvokeServer("BuyBoosterPack",v) end)
+                    s:Play()
+                    task.wait(0.05)
                 end
             end
-        end)
+            for _,v in ipairs(tools) do
+                for i=1,20 do
+                    pcall(function() brks:InvokeServer(v) end) -- call tool directly
+                    s:Play()
+                    task.wait(0.05)
+                end
+            end
+            task.wait(300) -- wait 5 minutes before next loop
+        else
+            task.wait(1)
+        end
+    end
+end)
+
 
     elseif idx == 2 then
         -- Sell tab placeholder
