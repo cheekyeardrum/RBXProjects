@@ -1,12 +1,11 @@
--- Clean Hub with Buy/Sell/Teleport Tabs
+-- Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-
+local RS = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
-local guiParent = CoreGui
+local guiParent = game:GetService("CoreGui")
 
 -- Sizes
 local CLOSED_SZ = UDim2.new(0,1,0,1)
@@ -126,131 +125,140 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames={"Buy","Sell","Teleport"}
+local tabNames={"Buy","Sell","Teleport","Find Items"}
 local tabButtons={}
 
--- Buy Tab Builder
+-- Remote
+local Remotes = RS:WaitForChild("Remotes")
+local InfoFunction = Remotes:WaitForChild("InfoFunction")
+
+-- Example Buy tab items
+local packs = {"Starter Pack","Electric Pack","Twins Pack","Blood Pack"}
+local toggledBuy = {}
+
+-- Build Buy tab
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    local yOffset=10
+    for _, packName in ipairs(packs) do
+        local lbl = Instance.new("TextLabel", contentFrame)
+        lbl.Size = UDim2.new(0.6,-10,0,30)
+        lbl.Position = UDim2.new(0,10,0,yOffset)
+        lbl.BackgroundTransparency=1
+        lbl.Text = packName
+        lbl.TextColor3 = Color3.new(1,1,1)
+        lbl.Font = Enum.Font.SourceSansBold
+        lbl.TextSize = 16
 
-    -- Label
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6, -10, 0, 30)
-    label.Position = UDim2.new(0, 10, 0, 10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Buy Packs"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
+        local toggleBtn = Instance.new("TextButton", contentFrame)
+        toggleBtn.Size = UDim2.new(0.35,0,0,30)
+        toggleBtn.Position = UDim2.new(0.65,0,0,yOffset)
+        toggleBtn.Font = Enum.Font.SourceSansBold
+        toggleBtn.TextSize = 16
+        toggleBtn.Text = "OFF"
+        round(toggleBtn,6)
 
-    -- Toggle Button
-    local buyBtn = Instance.new("TextButton", contentFrame)
-    buyBtn.Size = UDim2.new(0.35, 0, 0, 30)
-    buyBtn.Position = UDim2.new(0.65, 0, 0, 10)
-    buyBtn.Text = "OFF"
-    buyBtn.Font = Enum.Font.SourceSansBold
-    buyBtn.TextSize = 18
-    buyBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    buyBtn.TextColor3 = Color3.new(1,1,1)
-    round(buyBtn, 6)
+        toggledBuy[packName] = false
+        toggleBtn.MouseButton1Click:Connect(function()
+            toggledBuy[packName] = not toggledBuy[packName]
+            toggleBtn.Text = toggledBuy[packName] and "ON" or "OFF"
+        end)
 
-    -- Toggle variable
-    local toggle = false
-    buyBtn.MouseButton1Click:Connect(function()
-        toggle = not toggle
-        buyBtn.Text = toggle and "ON" or "OFF"
-    end)
-
-    -- Auto-buy Loop
-    task.spawn(function()
-        local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
-
-        local packs = {
-            "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
-            "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
-            "Waterfall Pack","Volcano Pack"
-        }
-        local tools = {"BuyPSATool 6","BuyPSATool 7"}
-
-        while true do
-            if toggle then
-                for _,v in ipairs(packs) do
-                    for i=1,20 do
-                        pcall(function() brks:InvokeServer("BuyBoosterPack",v) end)
-                        task.wait(0.05)
-                    end
-                end
-                for _,v in ipairs(tools) do
-                    for i=1,20 do
-                        pcall(function() brks:InvokeServer(v) end)
-                        task.wait(0.05)
-                    end
-                end
-                task.wait(300) -- 5 minute interval
-            else
-                task.wait(1)
-            end
-        end
-    end)
+        yOffset = yOffset + 40
+    end
 end
 
--- Placeholder Tabs
+-- Build Find Items tab (dynamic)
+local function buildFindItemsTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local ItemsFolder = RS:WaitForChild("Packs") -- change if needed
+    local buyableItems = {}
+    for _, item in ipairs(ItemsFolder:GetChildren()) do
+        table.insert(buyableItems, item.Name)
+    end
+
+    local toggledFind = {}
+    local yOffset = 10
+    for _, itemName in ipairs(buyableItems) do
+        local lbl = Instance.new("TextLabel", contentFrame)
+        lbl.Size = UDim2.new(0.6,-10,0,30)
+        lbl.Position = UDim2.new(0,10,0,yOffset)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = itemName
+        lbl.TextColor3 = Color3.new(1,1,1)
+        lbl.Font = Enum.Font.SourceSansBold
+        lbl.TextSize = 16
+
+        local toggleBtn = Instance.new("TextButton", contentFrame)
+        toggleBtn.Size = UDim2.new(0.35,0,0,30)
+        toggleBtn.Position = UDim2.new(0.65,0,0,yOffset)
+        toggleBtn.Font = Enum.Font.SourceSansBold
+        toggleBtn.TextSize = 16
+        toggleBtn.Text = "OFF"
+        round(toggleBtn,6)
+
+        toggledFind[itemName] = false
+        toggleBtn.MouseButton1Click:Connect(function()
+            toggledFind[itemName] = not toggledFind[itemName]
+            toggleBtn.Text = toggledFind[itemName] and "ON" or "OFF"
+        end)
+
+        yOffset = yOffset + 40
+    end
+end
+
+-- Placeholder tabs
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Sell tab content goes here"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(1,-20,0,50)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Sell tab placeholder"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=20
 end
 
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Teleport tab content goes here"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(1,-20,0,50)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Teleport tab placeholder"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=20
 end
 
--- Tab Switch
+-- Tab switch
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
     end
-
-    if idx == 1 then
-        buildBuyTab()
-    elseif idx == 2 then
-        buildSellTab()
-    elseif idx == 3 then
-        buildTeleportTab()
-    end
+    if idx==1 then buildBuyTab()
+    elseif idx==2 then buildSellTab()
+    elseif idx==3 then buildTeleportTab()
+    elseif idx==4 then buildFindItemsTab() end
 end
 
--- Create Tab Buttons
+-- Create tab buttons
 for i,name in ipairs(tabNames) do
-    local btn = Instance.new("TextButton", tabsFrame)
-    btn.Size = UDim2.new(1,0,0,40)
-    btn.Position = UDim2.new(0,0,0,(i-1)*45)
-    btn.Text = name
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 20
+    local btn=Instance.new("TextButton",tabsFrame)
+    btn.Size=UDim2.new(1,0,0,40)
+    btn.Position=UDim2.new(0,0,0,(i-1)*45)
+    btn.Text=name
+    btn.Font=Enum.Font.SourceSansBold
+    btn.TextSize=20
     round(btn,6)
-    btn.BackgroundColor3 = (i==1 and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
-    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3=(i==1 and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
+    btn.TextColor3=Color3.new(1,1,1)
     btn.MouseButton1Click:Connect(function() selectTab(i) end)
-    table.insert(tabButtons, btn)
+    table.insert(tabButtons,btn)
 end
 
--- Select first tab
 selectTab(1)
 
 -- Close + Minimize
