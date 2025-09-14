@@ -219,11 +219,9 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- Find Items Tab
 local function buildFindItemsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    -- ScrollFrame
     local scroll = Instance.new("ScrollingFrame")
     scroll.Size = UDim2.new(1,0,1,0)
     scroll.Position = UDim2.new(0,0,0,0)
@@ -236,6 +234,30 @@ local function buildFindItemsTab()
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Padding = UDim.new(0,2)
     layout.Parent = scroll
+
+    -- Simple one-level list
+    for _, obj in ipairs(workspace:GetChildren()) do
+        local lbl = Instance.new("TextButton")
+        lbl.Size = UDim2.new(1,0,0,25)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = obj.Name.." ["..obj.ClassName.."]"
+        lbl.Font = Enum.Font.SourceSans
+        lbl.TextSize = 18
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.TextColor3 = Color3.new(1,1,1)
+        lbl.Parent = scroll
+
+        lbl.MouseButton1Click:Connect(function()
+            print("Selected object:", obj:GetFullName())
+        end)
+    end
+
+    -- Update canvas size automatically
+    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y)
+    end)
+end
 
     -- Recursive tree function
     local function createTree(parentUI, obj, indent)
