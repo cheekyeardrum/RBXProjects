@@ -1,10 +1,9 @@
--- Clean Hub with Buy/Sell/Teleport/Find Items Tabs
+-- Clean Hub with Buy/Sell/Teleport/Find Items Tabs + Search
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -130,10 +129,9 @@ enableDrag(contentFrame)
 local tabNames={"Buy","Sell","Teleport","Find Items"}
 local tabButtons={}
 
--- Buy Tab Builder
+-- Buy Tab
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6, -10, 0, 30)
     label.Position = UDim2.new(0, 10, 0, 10)
@@ -160,16 +158,14 @@ local function buildBuyTab()
         buyBtn.Text = toggle and "ON" or "OFF"
     end)
 
-    -- Auto-buy Loop
     task.spawn(function()
-        local brks = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("InfoFunction")
+        local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
         local packs = {
             "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
             "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
             "Waterfall Pack","Volcano Pack"
         }
         local tools = {"BuyPSATool 6","BuyPSATool 7"}
-
         while true do
             if toggle then
                 for _,v in ipairs(packs) do
@@ -192,7 +188,7 @@ local function buildBuyTab()
     end)
 end
 
--- Placeholder Sell Tab
+-- Sell Tab
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -205,7 +201,7 @@ local function buildSellTab()
     label.TextSize = 18
 end
 
--- Placeholder Teleport Tab
+-- Teleport Tab
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -218,7 +214,7 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- New: Find Items Tab
+-- Find Items Tab with Search
 local function buildFindItemsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -226,58 +222,59 @@ local function buildFindItemsTab()
     header.Size = UDim2.new(1,-20,0,30)
     header.Position = UDim2.new(0,10,0,10)
     header.BackgroundTransparency = 1
-    header.Text = "Buyable Items:"
+    header.Text = "Game Explorer (Searchable)"
     header.TextColor3 = Color3.new(1,1,1)
     header.Font = Enum.Font.SourceSansBold
     header.TextSize = 18
-    header.TextXAlignment = Enum.TextXAlignment.Left
 
-    local yOffset = 50
-    local foundItems = {}
+    local searchBox = Instance.new("TextBox", contentFrame)
+    searchBox.Size = UDim2.new(0.5,-10,0,30)
+    searchBox.Position = UDim2.new(0,10,0,50)
+    searchBox.PlaceholderText = "Search..."
+    searchBox.Text = ""
+    searchBox.ClearTextOnFocus = false
+    round(searchBox,6)
 
-    local remotesFolder = ReplicatedStorage:FindFirstChild("Remotes")
-    if remotesFolder then
-        for _, remote in pairs(remotesFolder:GetChildren()) do
-            if remote:IsA("RemoteFunction") then
-                local argsList = { "GetBoosterPacks", "GetUpgrades", "GetItems" }
-                for _, arg in ipairs(argsList) do
-                    local success, items = pcall(function()
-                        return remote:InvokeServer(arg)
-                    end)
-                    if success and type(items) == "table" then
-                        for _, item in ipairs(items) do
-                            table.insert(foundItems, tostring(item))
-                        end
-                    end
-                end
-            end
+    local yOffset = 90
+    local labelSpacing = 20
+    local itemLabels = {}
+
+    local function addObjectLabel(obj, depth)
+        local label = Instance.new("TextLabel", contentFrame)
+        label.Size = UDim2.new(1,-20,0,labelSpacing)
+        label.Position = UDim2.new(0, 10 + depth*15, 0, yOffset)
+        label.BackgroundTransparency = 1
+        label.Text = obj.Name.." ("..obj.ClassName..")"
+        label.TextColor3 = Color3.new(1,1,1)
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 16
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        yOffset += labelSpacing
+        table.insert(itemLabels, label)
+    end
+
+    local function scanFolder(folder, depth)
+        addObjectLabel(folder, depth)
+        for _,obj in pairs(folder:GetChildren()) do
+            scanFolder(obj, depth+1)
         end
     end
 
-    if #foundItems == 0 then
-        local noneLabel = Instance.new("TextLabel", contentFrame)
-        noneLabel.Size = UDim2.new(1,-20,0,30)
-        noneLabel.Position = UDim2.new(0,10,0,50)
-        noneLabel.BackgroundTransparency = 1
-        noneLabel.Text = "No buyable items found."
-        noneLabel.TextColor3 = Color3.new(1,0,0)
-        noneLabel.Font = Enum.Font.SourceSansBold
-        noneLabel.TextSize = 18
-    else
-        for _, name in ipairs(foundItems) do
-            local itemLabel = Instance.new("TextLabel", contentFrame)
-            itemLabel.Size = UDim2.new(1,-20,0,25)
-            itemLabel.Position = UDim2.new(0,10,0,yOffset)
-            itemLabel.BackgroundTransparency = 1
-            itemLabel.Text = name
-            itemLabel.TextColor3 = Color3.new(1,1,1)
-            itemLabel.Font = Enum.Font.SourceSans
-            itemLabel.TextSize = 16
-            itemLabel.TextXAlignment = Enum.TextXAlignment.Left
-            yOffset += 30
-        end
+    -- Scan folders
+    local foldersToScan = {workspace, game:GetService("ReplicatedStorage"), game:GetService("Players")}
+    for _,folder in pairs(foldersToScan) do
+        scanFolder(folder,0)
     end
+
+    -- Search
+    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local text = searchBox.Text:lower()
+        for _,lbl in pairs(itemLabels) do
+            lbl.Visible = lbl.Text:lower():find(text) and true or false
+        end
+    end)
 end
+
 -- Tab Switch
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
