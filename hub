@@ -235,16 +235,23 @@ local function buildFindItemsTab()
     local yOffset = 50
     local foundItems = {}
 
+    -- Look in common folders
+    local possibleFolders = {"Items","Shop","BoosterPacks","Tools","Products"}
+    for _,folderName in ipairs(possibleFolders) do
+        local folder = ReplicatedStorage:FindFirstChild(folderName)
+        if folder then
+            for _,item in ipairs(folder:GetChildren()) do
+                table.insert(foundItems, item.Name)
+            end
+        end
+    end
+
+    -- Scan for RemoteFunctions / RemoteEvents with "Buy" in the name
     local function scanRemotes(parent)
         for _,child in ipairs(parent:GetChildren()) do
-            if child:IsA("RemoteFunction") then
-                local success, result = pcall(function()
-                    return child:InvokeServer("GetAllItems")
-                end)
-                if success and type(result) == "table" then
-                    for _,item in ipairs(result) do
-                        table.insert(foundItems, tostring(item))
-                    end
+            if child:IsA("RemoteFunction") or child:IsA("RemoteEvent") then
+                if child.Name:lower():find("buy") then
+                    table.insert(foundItems, child.Name .. " (Remote)")
                 end
             end
             if #child:GetChildren() > 0 then
@@ -254,20 +261,11 @@ local function buildFindItemsTab()
     end
     scanRemotes(ReplicatedStorage)
 
-    local potentialFolders = {"Items","Shop","BoosterPacks"}
-    for _,folderName in ipairs(potentialFolders) do
-        local folder = ReplicatedStorage:FindFirstChild(folderName)
-        if folder then
-            for _,item in ipairs(folder:GetChildren()) do
-                table.insert(foundItems, item.Name)
-            end
-        end
-    end
-
-    local uniqueItems = {}
+    -- Display unique items
+    local unique = {}
     for _,name in ipairs(foundItems) do
-        if not uniqueItems[name] then
-            uniqueItems[name] = true
+        if not unique[name] then
+            unique[name] = true
             local itemLabel = Instance.new("TextLabel", contentFrame)
             itemLabel.Size = UDim2.new(1,-20,0,25)
             itemLabel.Position = UDim2.new(0,10,0,yOffset)
@@ -281,7 +279,7 @@ local function buildFindItemsTab()
         end
     end
 
-    if next(uniqueItems) == nil then
+    if next(unique) == nil then
         local noneLabel = Instance.new("TextLabel", contentFrame)
         noneLabel.Size = UDim2.new(1,-20,0,30)
         noneLabel.Position = UDim2.new(0,10,0,50)
