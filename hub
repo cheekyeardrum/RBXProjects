@@ -1,4 +1,4 @@
--- Clean Hub with Buy/Sell/Teleport/Find Items Tabs + Search
+-- Clean Hub with Buy/Sell/Teleport/Find Items Tabs
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -129,7 +129,7 @@ enableDrag(contentFrame)
 local tabNames={"Buy","Sell","Teleport","Find Items"}
 local tabButtons={}
 
--- Buy Tab
+-- Buy Tab Builder
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -166,6 +166,7 @@ local function buildBuyTab()
             "Waterfall Pack","Volcano Pack"
         }
         local tools = {"BuyPSATool 6","BuyPSATool 7"}
+
         while true do
             if toggle then
                 for _,v in ipairs(packs) do
@@ -188,7 +189,7 @@ local function buildBuyTab()
     end)
 end
 
--- Sell Tab
+-- Placeholder Tabs
 local function buildSellTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -201,7 +202,6 @@ local function buildSellTab()
     label.TextSize = 18
 end
 
--- Teleport Tab
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -214,65 +214,74 @@ local function buildTeleportTab()
     label.TextSize = 18
 end
 
--- Find Items Tab with Search
+-- Find Items Tab
 local function buildFindItemsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    local header = Instance.new("TextLabel", contentFrame)
-    header.Size = UDim2.new(1,-20,0,30)
-    header.Position = UDim2.new(0,10,0,10)
-    header.BackgroundTransparency = 1
-    header.Text = "Game Explorer (Searchable)"
-    header.TextColor3 = Color3.new(1,1,1)
-    header.Font = Enum.Font.SourceSansBold
-    header.TextSize = 18
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(1, -10, 1, -10)
+    scroll.Position = UDim2.new(0, 5, 0, 5)
+    scroll.BackgroundTransparency = 1
+    scroll.ScrollBarThickness = 10
+    scroll.Parent = contentFrame
 
-    local searchBox = Instance.new("TextBox", contentFrame)
-    searchBox.Size = UDim2.new(0.5,-10,0,30)
-    searchBox.Position = UDim2.new(0,10,0,50)
-    searchBox.PlaceholderText = "Search..."
-    searchBox.Text = ""
-    searchBox.ClearTextOnFocus = false
-    round(searchBox,6)
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0,2)
+    layout.Parent = scroll
 
-    local yOffset = 90
-    local labelSpacing = 20
-    local itemLabels = {}
+    local function createTree(parentUI, obj, indent)
+        indent = indent or 0
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(1, -10, 0, 25)
+        frame.BackgroundTransparency = 1
+        frame.LayoutOrder = 1
+        frame.Parent = parentUI
 
-    local function addObjectLabel(obj, depth)
-        local label = Instance.new("TextLabel", contentFrame)
-        label.Size = UDim2.new(1,-20,0,labelSpacing)
-        label.Position = UDim2.new(0, 10 + depth*15, 0, yOffset)
+        local label = Instance.new("TextButton")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.Position = UDim2.new(0, 0, 0, 0)
         label.BackgroundTransparency = 1
-        label.Text = obj.Name.." ("..obj.ClassName..")"
-        label.TextColor3 = Color3.new(1,1,1)
-        label.Font = Enum.Font.SourceSans
-        label.TextSize = 16
         label.TextXAlignment = Enum.TextXAlignment.Left
-        yOffset += labelSpacing
-        table.insert(itemLabels, label)
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 18
+        label.TextColor3 = Color3.fromRGB(255,255,255)
+        label.Text = string.rep("    ", indent)..obj.Name.." ["..obj.ClassName.."]"
+        label.Parent = frame
+
+        local expanded = false
+        local childrenFrame = nil
+        label.MouseButton1Click:Connect(function()
+            if not expanded then
+                expanded = true
+                childrenFrame = Instance.new("Frame")
+                childrenFrame.Size = UDim2.new(1, 0, 0, 0)
+                childrenFrame.BackgroundTransparency = 1
+                childrenFrame.LayoutOrder = 1
+                childrenFrame.Parent = parentUI
+
+                local layout = Instance.new("UIListLayout")
+                layout.SortOrder = Enum.SortOrder.LayoutOrder
+                layout.Padding = UDim.new(0,2)
+                layout.Parent = childrenFrame
+
+                for _,child in ipairs(obj:GetChildren()) do
+                    createTree(childrenFrame, child, indent+1)
+                end
+            else
+                expanded = false
+                if childrenFrame then
+                    childrenFrame:Destroy()
+                    childrenFrame = nil
+                end
+            end
+        end)
     end
 
-    local function scanFolder(folder, depth)
-        addObjectLabel(folder, depth)
-        for _,obj in pairs(folder:GetChildren()) do
-            scanFolder(obj, depth+1)
-        end
+    local topObjects = {workspace, game:GetService("ReplicatedStorage"), game.Players}
+    for _,obj in ipairs(topObjects) do
+        createTree(scroll, obj, 0)
     end
-
-    -- Scan folders
-    local foldersToScan = {workspace, game:GetService("ReplicatedStorage"), game:GetService("Players")}
-    for _,folder in pairs(foldersToScan) do
-        scanFolder(folder,0)
-    end
-
-    -- Search
-    searchBox:GetPropertyChangedSignal("Text"):Connect(function()
-        local text = searchBox.Text:lower()
-        for _,lbl in pairs(itemLabels) do
-            lbl.Visible = lbl.Text:lower():find(text) and true or false
-        end
-    end)
 end
 
 -- Tab Switch
@@ -281,15 +290,10 @@ local function selectTab(idx)
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
     end
 
-    if idx == 1 then
-        buildBuyTab()
-    elseif idx == 2 then
-        buildSellTab()
-    elseif idx == 3 then
-        buildTeleportTab()
-    elseif idx == 4 then
-        buildFindItemsTab()
-    end
+    if idx == 1 then buildBuyTab()
+    elseif idx == 2 then buildSellTab()
+    elseif idx == 3 then buildTeleportTab()
+    elseif idx == 4 then buildFindItemsTab() end
 end
 
 -- Create Tab Buttons
