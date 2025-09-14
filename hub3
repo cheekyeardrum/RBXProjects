@@ -1,14 +1,15 @@
--- Clean Hub with Multiple Tabs
+-- Clean Hub with Mining, Wheel, Rewards, Teleport, Eggs
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
 
--- Remote references
+-- Remotes
 local GameHandler = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GameHandler")
 local WheelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Wheel")
 local PlaytimeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Playtime")
@@ -55,8 +56,8 @@ UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            startPos.X.Scale, startPos.X.Offset+delta.X,
+            startPos.Y.Scale, startPos.Y.Offset+delta.Y
         )
     end
 end)
@@ -82,62 +83,60 @@ local function enableDrag(target)
 end
 
 -- Top Bar
-local bar = Instance.new("Frame", frame)
-bar.Size = UDim2.new(1,0,0,40)
-bar.Position = UDim2.new(0,0,0,0)
-bar.BackgroundColor3 = Color3.fromRGB(40,40,40)
-bar.Active = true
+local bar=Instance.new("Frame",frame)
+bar.Size=UDim2.new(1,0,0,40)
+bar.Position=UDim2.new(0,0,0,0)
+bar.BackgroundColor3=Color3.fromRGB(40,40,40)
+bar.Active=true
 round(bar,10)
 enableDrag(bar)
 
-local title = Instance.new("TextLabel", bar)
-title.Size = UDim2.new(1,-120,1,0)
-title.Position = UDim2.new(0,10,0,0)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 24
-title.Text = "Clean Hub"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextXAlignment = Enum.TextXAlignment.Left
+local title=Instance.new("TextLabel",bar)
+title.Size=UDim2.new(1,-120,1,0)
+title.Position=UDim2.new(0,10,0,0)
+title.BackgroundTransparency=1
+title.Font=Enum.Font.SourceSansBold
+title.TextSize=24
+title.Text="Clean Hub"
+title.TextColor3=Color3.new(1,1,1)
+title.TextXAlignment=Enum.TextXAlignment.Left
 
-local closeBtn = Instance.new("TextButton", bar)
-closeBtn.Size = UDim2.new(0,30,0,30)
-closeBtn.Position = UDim2.new(1,-40,0,5)
-closeBtn.Text = "X"
-closeBtn.Font = Enum.Font.SourceSansBold
-closeBtn.TextSize = 18
-closeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-closeBtn.TextColor3 = Color3.new(1,1,1)
+local closeBtn=Instance.new("TextButton",bar)
+closeBtn.Size=UDim2.new(0,30,0,30)
+closeBtn.Position=UDim2.new(1,-40,0,5)
+closeBtn.Text="X"
+closeBtn.Font=Enum.Font.SourceSansBold
+closeBtn.TextSize=18
+closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
+closeBtn.TextColor3=Color3.new(1,1,1)
 round(closeBtn,4)
 
-local minBtn = Instance.new("TextButton", bar)
-minBtn.Size = UDim2.new(0,30,0,30)
-minBtn.Position = UDim2.new(1,-80,0,5)
-minBtn.Text = "-"
-minBtn.Font = Enum.Font.SourceSansBold
-minBtn.TextSize = 22
-minBtn.BackgroundColor3 = Color3.fromRGB(100,100,100)
-minBtn.TextColor3 = Color3.new(1,1,1)
+local minBtn=Instance.new("TextButton",bar)
+minBtn.Size=UDim2.new(0,30,0,30)
+minBtn.Position=UDim2.new(1,-80,0,5)
+minBtn.Text="-"
+minBtn.Font=Enum.Font.SourceSansBold
+minBtn.TextSize=22
+minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
+minBtn.TextColor3=Color3.new(1,1,1)
 round(minBtn,4)
 
 -- Tabs + Content
-local tabsFrame = Instance.new("Frame", frame)
-tabsFrame.Size = UDim2.new(0,140,1,-60)
-tabsFrame.Position = UDim2.new(0,0,0,50)
-tabsFrame.BackgroundTransparency = 1
+local tabsFrame=Instance.new("Frame",frame)
+tabsFrame.Size=UDim2.new(0,140,1,-60)
+tabsFrame.Position=UDim2.new(0,0,0,50)
+tabsFrame.BackgroundTransparency=1
 
-local contentFrame = Instance.new("Frame", frame)
-contentFrame.Size = UDim2.new(1,-140,1,-60)
-contentFrame.Position = UDim2.new(0,140,0,50)
-contentFrame.BackgroundTransparency = 1
+local contentFrame=Instance.new("Frame",frame)
+contentFrame.Size=UDim2.new(1,-140,1,-60)
+contentFrame.Position=UDim2.new(0,140,0,50)
+contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
-local tabNames = {"Mine","Spin Wheel","Auto Rewards","Eggs","Auto Win","Teleport"}
-local tabButtons = {}
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs"}
+local tabButtons={}
 
--- =========================
--- Mining Tab
--- =========================
+-- ================= Mine Tab =================
 local function buildMineTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -162,12 +161,13 @@ local function buildMineTab()
     round(mineBtn,6)
 
     local mining = false
+    local mineArgs = {{Info="Mine"}}
     local interval = 0.1
 
     local function startMining()
         while mining do
             pcall(function()
-                GameHandler:FireServer({{Info="Mine"}})
+                GameHandler:FireServer(unpack(mineArgs))
             end)
             task.wait(interval)
         end
@@ -181,106 +181,146 @@ local function buildMineTab()
     end)
 end
 
--- =========================
--- Spin Wheel Tab
--- =========================
-local function buildSpinWheelTab()
+-- ================= Wheel Tab =================
+local function buildWheelTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Spin Wheel"
+    label.Text = "Auto-Spin Wheel"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local spinBtn = Instance.new("TextButton", contentFrame)
-    spinBtn.Size = UDim2.new(0.35,0,0,30)
-    spinBtn.Position = UDim2.new(0.65,0,0,10)
-    spinBtn.Text = "OFF"
-    spinBtn.Font = Enum.Font.SourceSansBold
-    spinBtn.TextSize = 18
-    spinBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    spinBtn.TextColor3 = Color3.new(1,1,1)
-    round(spinBtn,6)
+    local wheelBtn = Instance.new("TextButton", contentFrame)
+    wheelBtn.Size = UDim2.new(0.35,0,0,30)
+    wheelBtn.Position = UDim2.new(0.65,0,0,10)
+    wheelBtn.Text = "OFF"
+    wheelBtn.Font = Enum.Font.SourceSansBold
+    wheelBtn.TextSize = 18
+    wheelBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+    wheelBtn.TextColor3 = Color3.new(1,1,1)
+    round(wheelBtn,6)
 
     local spinning = false
-    local interval = 1
-
-    local function startSpinning()
+    local function startWheel()
         while spinning do
-            pcall(function()
-                WheelRemote:InvokeServer()
-            end)
-            task.wait(interval)
+            pcall(function() WheelRemote:InvokeServer() end)
+            task.wait(0.5)
         end
     end
 
-    spinBtn.MouseButton1Click:Connect(function()
+    wheelBtn.MouseButton1Click:Connect(function()
         spinning = not spinning
-        spinBtn.Text = spinning and "ON" or "OFF"
-        spinBtn.BackgroundColor3 = spinning and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-        if spinning then task.spawn(startSpinning) end
+        wheelBtn.Text = spinning and "ON" or "OFF"
+        wheelBtn.BackgroundColor3 = spinning and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
+        if spinning then task.spawn(startWheel) end
     end)
 end
 
--- =========================
--- Auto Rewards Tab
--- =========================
+-- ================= Rewards Tab =================
 local function buildRewardsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Claim Rewards"
+    label.Text = "Auto-Collect Rewards"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local rewardBtn = Instance.new("TextButton", contentFrame)
-    rewardBtn.Size = UDim2.new(0.35,0,0,30)
-    rewardBtn.Position = UDim2.new(0.65,0,0,10)
-    rewardBtn.Text = "OFF"
-    rewardBtn.Font = Enum.Font.SourceSansBold
-    rewardBtn.TextSize = 18
-    rewardBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    rewardBtn.TextColor3 = Color3.new(1,1,1)
-    round(rewardBtn,6)
+    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
+    scrollFrame.Size = UDim2.new(1,-20,1,-50)
+    scrollFrame.Position = UDim2.new(0,10,0,50)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+    scrollFrame.ScrollBarThickness = 10
+    scrollFrame.BackgroundTransparency = 0.8
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    round(scrollFrame, 8)
+    local uiList = Instance.new("UIListLayout", scrollFrame)
+    uiList.SortOrder = Enum.SortOrder.LayoutOrder
+    uiList.Padding = UDim.new(0,5)
 
-    local claiming = false
-    local interval = 0.5
+    for i=1,9 do
+        local btn = Instance.new("TextButton", scrollFrame)
+        btn.Size = UDim2.new(1,0,0,30)
+        btn.Text = "OFF - Reward "..i
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 16
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+        round(btn,6)
 
-    local function startClaiming()
-        while claiming do
-            for i=1,9 do
-                pcall(function()
-                    PlaytimeRemote:FireServer({{Info="ClaimReward",Reward=i}})
+        local collecting = false
+        btn.MouseButton1Click:Connect(function()
+            collecting = not collecting
+            btn.Text = (collecting and "ON - " or "OFF - ").."Reward "..i
+            btn.BackgroundColor3 = collecting and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
+
+            if collecting then
+                task.spawn(function()
+                    while collecting do
+                        local args = {{Info="ClaimReward", Reward=i}}
+                        pcall(function() PlaytimeRemote:FireServer(unpack(args)) end)
+                        task.wait(0.2)
+                    end
                 end)
             end
-            task.wait(interval)
-        end
+        end)
     end
-
-    rewardBtn.MouseButton1Click:Connect(function()
-        claiming = not claiming
-        rewardBtn.Text = claiming and "ON" or "OFF"
-        rewardBtn.BackgroundColor3 = claiming and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-        if claiming then task.spawn(startClaiming) end
-    end)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
--- =========================
--- Eggs Tab
--- =========================
--- Auto-Buy Eggs Tab
-
-    local function buildEggsTab()
+-- ================= Teleport Tab =================
+local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(0.6,-10,0,30)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Teleport Worlds"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
 
+    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
+    scrollFrame.Size = UDim2.new(1,-20,1,-50)
+    scrollFrame.Position = UDim2.new(0,10,0,50)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+    scrollFrame.ScrollBarThickness = 10
+    scrollFrame.BackgroundTransparency = 0.8
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    round(scrollFrame, 8)
+    local uiList = Instance.new("UIListLayout", scrollFrame)
+    uiList.SortOrder = Enum.SortOrder.LayoutOrder
+    uiList.Padding = UDim.new(0,5)
+
+    for i=1,5 do
+        local btn = Instance.new("TextButton", scrollFrame)
+        btn.Size = UDim2.new(1,0,0,30)
+        btn.Text = "World "..i
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 16
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+        round(btn,6)
+
+        btn.MouseButton1Click:Connect(function()
+            local args = {{Info="SwitchWorld", World=i}}
+            pcall(function() GameHandler:FireServer(unpack(args)) end)
+        end)
+    end
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
+end
+
+-- ================= Eggs Tab =================
+local function buildEggsTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
@@ -291,7 +331,6 @@ end
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- ScrollingFrame
     local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
     scrollFrame.Size = UDim2.new(1,-20,1,-50)
     scrollFrame.Position = UDim2.new(0,10,0,50)
@@ -300,12 +339,10 @@ end
     scrollFrame.BackgroundTransparency = 0.8
     scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
     round(scrollFrame, 8)
-
     local uiList = Instance.new("UIListLayout", scrollFrame)
     uiList.SortOrder = Enum.SortOrder.LayoutOrder
     uiList.Padding = UDim.new(0,5)
 
-    -- Colors per world
     local worldColors = {
         Color3.fromRGB(255,100,100),   -- World 1
         Color3.fromRGB(100,255,100),   -- World 2
@@ -314,7 +351,6 @@ end
         Color3.fromRGB(255,100,255),   -- World 5
     }
 
-    -- Create 15 buttons, 3 eggs per world
     for world = 1,5 do
         for egg = 1,3 do
             local eggName = "World "..world.." Egg "..egg
@@ -337,9 +373,7 @@ end
                     task.spawn(function()
                         while buying do
                             local args = {{Info="PurchaseEgg", Egg=eggName}}
-                            pcall(function()
-                                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Eggs"):InvokeServer(unpack(args))
-                            end)
+                            pcall(function() EggsRemote:InvokeServer(unpack(args)) end)
                             task.wait(0.15)
                         end
                     end)
@@ -347,86 +381,19 @@ end
             end)
         end
     end
-
-    -- Update canvas size
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
-
--- =========================
--- Teleport Tab
--- =========================
-local function buildTeleportTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Teleport Worlds"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local worlds = {1,2,3,4,5}
-    local teleportDropdown = Instance.new("TextButton", contentFrame)
-    teleportDropdown.Size = UDim2.new(0.35,0,0,30)
-    teleportDropdown.Position = UDim2.new(0.65,0,0,10)
-    teleportDropdown.Text = "Select World"
-    teleportDropdown.Font = Enum.Font.SourceSansBold
-    teleportDropdown.TextSize = 18
-    teleportDropdown.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    teleportDropdown.TextColor3 = Color3.new(1,1,1)
-    round(teleportDropdown,6)
-
-    local selectedWorld = worlds[1]
-    local dropdownOpen = false
-    local dropdownFrame = Instance.new("Frame", contentFrame)
-    dropdownFrame.Size = UDim2.new(0.35,0,0,0)
-    dropdownFrame.Position = UDim2.new(0.65,0,0,40)
-    dropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(dropdownFrame,6)
-    dropdownFrame.ClipsDescendants = true
-
-    for i,world in ipairs(worlds) do
-        local b = Instance.new("TextButton", dropdownFrame)
-        b.Size = UDim2.new(1,0,0,30)
-        b.Position = UDim2.new(0,0,0,(i-1)*30)
-        b.Text = "World "..world
-        b.Font = Enum.Font.SourceSans
-        b.TextSize = 16
-        b.BackgroundColor3 = Color3.fromRGB(50,50,50)
-        b.TextColor3 = Color3.new(1,1,1)
-        round(b,4)
-        b.MouseButton1Click:Connect(function()
-            selectedWorld = world
-            teleportDropdown.Text = "World "..world
-            dropdownFrame.Size = UDim2.new(0.35,0,0,0)
-            dropdownOpen = false
-            GameHandler:FireServer({{Info="SwitchWorld",World=selectedWorld}})
-        end)
-    end
-
-    teleportDropdown.MouseButton1Click:Connect(function()
-        dropdownOpen = not dropdownOpen
-        dropdownFrame.Size = dropdownOpen and UDim2.new(0.35,0,0,#worlds*30) or UDim2.new(0.35,0,0,0)
-    end)
-end
-
--- =========================
--- Tab Switch
--- =========================
+-- ================= Tab Switch =================
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
     end
     if idx == 1 then buildMineTab()
-    elseif idx == 2 then buildSpinWheelTab()
+    elseif idx == 2 then buildWheelTab()
     elseif idx == 3 then buildRewardsTab()
-    elseif idx == 4 then buildEggsTab()
-    elseif idx == 5 then buildAutoWinTab()
-    elseif idx == 6 then buildTeleportTab()
-    end
+    elseif idx == 4 then buildTeleportTab()
+    elseif idx == 5 then buildEggsTab() end
 end
 
 -- Create Tab Buttons
