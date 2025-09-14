@@ -276,96 +276,59 @@ end
 -- =========================
 -- Eggs Tab
 -- =========================
+-- Eggs Auto-Buy Tab (Simpler Version)
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Buy Egg"
+    label.Text = "Auto Buy Eggs"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local eggDropdown = Instance.new("TextButton", contentFrame)
-    eggDropdown.Size = UDim2.new(0.35,0,0,30)
-    eggDropdown.Position = UDim2.new(0.65,0,0,10)
-    eggDropdown.Text = "Select Egg"
-    eggDropdown.Font = Enum.Font.SourceSansBold
-    eggDropdown.TextSize = 18
-    eggDropdown.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    eggDropdown.TextColor3 = Color3.new(1,1,1)
-    round(eggDropdown,6)
+    local eggs = {"Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6"} -- add more if needed
+    local toggles = {}
 
-    local eggs = {}
-    for i=1,20 do table.insert(eggs,"Egg "..i) end
+    for i,eggName in ipairs(eggs) do
+        local btn = Instance.new("TextButton", contentFrame)
+        btn.Size = UDim2.new(0.35,0,0,30)
+        btn.Position = UDim2.new(0.65,0,0,(i-1)*35)
+        btn.Text = eggName.." OFF"
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 16
+        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+        btn.TextColor3 = Color3.new(1,1,1)
+        round(btn,6)
 
-    local selectedEgg = eggs[1]
-    local dropdownOpen = false
-    local dropdownFrame = Instance.new("Frame", contentFrame)
-    dropdownFrame.Size = UDim2.new(0.35,0,0,0)
-    dropdownFrame.Position = UDim2.new(0.65,0,0,40)
-    dropdownFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(dropdownFrame,6)
-    dropdownFrame.ClipsDescendants = true
-
-    local eggButtons = {}
-    for i,egg in ipairs(eggs) do
-        local b = Instance.new("TextButton", dropdownFrame)
-        b.Size = UDim2.new(1,0,0,30)
-        b.Position = UDim2.new(0,0,0,(i-1)*30)
-        b.Text = egg
-        b.Font = Enum.Font.SourceSans
-        b.TextSize = 16
-        b.BackgroundColor3 = Color3.fromRGB(50,50,50)
-        b.TextColor3 = Color3.new(1,1,1)
-        round(b,4)
-        b.MouseButton1Click:Connect(function()
-            selectedEgg = egg
-            eggDropdown.Text = egg
-            dropdownFrame.Size = UDim2.new(0.35,0,0,0)
-            dropdownOpen = false
+        local active = false
+        btn.MouseButton1Click:Connect(function()
+            active = not active
+            btn.Text = eggName..(active and " ON" or " OFF")
+            btn.BackgroundColor3 = active and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
+            toggles[i] = active
         end)
-        table.insert(eggButtons,b)
+        toggles[i] = false
     end
 
-    eggDropdown.MouseButton1Click:Connect(function()
-        dropdownOpen = not dropdownOpen
-        dropdownFrame.Size = dropdownOpen and UDim2.new(0.35,0,0,#eggs*30) or UDim2.new(0.35,0,0,0)
-    end)
-
-    local buyEggs = false
-    local buyBtn = Instance.new("TextButton", contentFrame)
-    buyBtn.Size = UDim2.new(0.35,0,0,30)
-    buyBtn.Position = UDim2.new(0.65,0,0,200)
-    buyBtn.Text = "OFF"
-    buyBtn.Font = Enum.Font.SourceSansBold
-    buyBtn.TextSize = 18
-    buyBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    buyBtn.TextColor3 = Color3.new(1,1,1)
-    round(buyBtn,6)
-
-    buyBtn.MouseButton1Click:Connect(function()
-        buyEggs = not buyEggs
-        buyBtn.Text = buyEggs and "ON" or "OFF"
-        buyBtn.BackgroundColor3 = buyEggs and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-    end)
-
+    -- Loop to buy selected eggs
     task.spawn(function()
         while true do
-            if buyEggs then
-                pcall(function()
-                    EggsRemote:InvokeServer({{Info="PurchaseEgg",Egg=selectedEgg}})
-                end)
-                task.wait(0.2)
-            else
-                task.wait(0.5)
+            for i,eggName in ipairs(eggs) do
+                if toggles[i] then
+                    pcall(function()
+                        EggsRemote:InvokeServer({{Info="PurchaseEgg",Egg=eggName}})
+                    end)
+                    task.wait(0.2)
+                end
             end
+            task.wait(0.5)
         end
     end)
 end
-
 -- =========================
 -- Auto Win Tab
 -- =========================
