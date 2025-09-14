@@ -132,6 +132,8 @@ local tabButtons={}
 -- Buy Tab Builder
 local function buildBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    -- Label
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6, -10, 0, 30)
     label.Position = UDim2.new(0, 10, 0, 10)
@@ -142,6 +144,7 @@ local function buildBuyTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
+    -- Toggle Button
     local buyBtn = Instance.new("TextButton", contentFrame)
     buyBtn.Size = UDim2.new(0.35, 0, 0, 30)
     buyBtn.Position = UDim2.new(0.65, 0, 0, 10)
@@ -158,8 +161,10 @@ local function buildBuyTab()
         buyBtn.Text = toggle and "ON" or "OFF"
     end)
 
+    -- Auto-buy Loop
     task.spawn(function()
         local brks = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("InfoFunction")
+
         local packs = {
             "Starter Pack","Electric Pack","Twins Pack","Blood Pack",
             "Toxic Pack","Circuit Pack","Grass Pack","Rock Pack",
@@ -218,11 +223,13 @@ end
 local function buildFindItemsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
+    -- ScrollFrame
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -10, 1, -10)
-    scroll.Position = UDim2.new(0, 5, 0, 5)
-    scroll.BackgroundTransparency = 1
+    scroll.Size = UDim2.new(1,0,1,0)
+    scroll.Position = UDim2.new(0,0,0,0)
+    scroll.CanvasSize = UDim2.new(0,0,0,0)
     scroll.ScrollBarThickness = 10
+    scroll.BackgroundTransparency = 1
     scroll.Parent = contentFrame
 
     local layout = Instance.new("UIListLayout")
@@ -230,74 +237,63 @@ local function buildFindItemsTab()
     layout.Padding = UDim.new(0,2)
     layout.Parent = scroll
 
-  local function createTree(parentUI, obj, indent)
-    indent = indent or 0
+    -- Recursive tree function
+    local function createTree(parentUI, obj, indent)
+        indent = indent or 0
 
-    -- Container frame for this object and its children
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, -10, 0, 25)
-    container.BackgroundTransparency = 1
-    container.LayoutOrder = 1
-    container.Parent = parentUI
+        local container = Instance.new("Frame")
+        container.BackgroundTransparency = 1
+        container.AutomaticSize = Enum.AutomaticSize.Y
+        container.Parent = parentUI
 
-    -- Label for the object
-    local label = Instance.new("TextButton")
-    label.Size = UDim2.new(1, 0, 0, 25)
-    label.Position = UDim2.new(0, indent * 15, 0, 0)
-    label.BackgroundTransparency = 1
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 18
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Text = obj.Name.." ["..obj.ClassName.."] [+]"
-    label.Parent = container
+        local label = Instance.new("TextButton")
+        label.Size = UDim2.new(1,0,0,25)
+        label.Position = UDim2.new(0, indent*15, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Font = Enum.Font.SourceSans
+        label.TextSize = 18
+        label.TextColor3 = Color3.new(1,1,1)
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Text = obj.Name.." ["..obj.ClassName.."] [+]"
+        label.Parent = container
 
-    local expanded = false
-    local childrenFrame = nil
+        local expanded = false
+        local childrenFrame
 
-    label.MouseButton1Click:Connect(function()
-        if not expanded then
-            expanded = true
-            label.Text = obj.Name.." ["..obj.ClassName.."] [-]"
+        label.MouseButton1Click:Connect(function()
+            if not expanded then
+                expanded = true
+                label.Text = obj.Name.." ["..obj.ClassName.."] [-]"
 
-            -- Frame for children
-            childrenFrame = Instance.new("Frame")
-            childrenFrame.Size = UDim2.new(1, 0, 0, 0)
-            childrenFrame.BackgroundTransparency = 1
-            childrenFrame.LayoutOrder = 1
-            childrenFrame.Parent = container
+                childrenFrame = Instance.new("Frame")
+                childrenFrame.BackgroundTransparency = 1
+                childrenFrame.AutomaticSize = Enum.AutomaticSize.Y
+                childrenFrame.Parent = container
 
-            local layout = Instance.new("UIListLayout")
-            layout.SortOrder = Enum.SortOrder.LayoutOrder
-            layout.Padding = UDim.new(0,2)
-            layout.Parent = childrenFrame
+                local childLayout = Instance.new("UIListLayout")
+                childLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                childLayout.Padding = UDim.new(0,2)
+                childLayout.Parent = childrenFrame
 
-            for _, child in ipairs(obj:GetChildren()) do
-                createTree(childrenFrame, child, indent + 1)
+                for _, child in ipairs(obj:GetChildren()) do
+                    createTree(childrenFrame, child, indent+1)
+                end
+            else
+                expanded = false
+                label.Text = obj.Name.." ["..obj.ClassName.."] [+]"
+                if childrenFrame then
+                    childrenFrame:Destroy()
+                    childrenFrame = nil
+                end
             end
+        end)
+    end
 
-            -- Update container size to fit children
-            childrenFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-                container.Size = UDim2.new(1, 0, 0, 25 + childrenFrame.AbsoluteSize.Y)
-            end)
-        else
-            expanded = false
-            label.Text = obj.Name.." ["..obj.ClassName.."] [+]"
-            if childrenFrame then
-                childrenFrame:Destroy()
-                childrenFrame = nil
-                container.Size = UDim2.new(1, 0, 0, 25)
-            end
-        end
-    end)
-end
-
-    local topObjects = {workspace, game:GetService("ReplicatedStorage"), game.Players}
-    for _,obj in ipairs(topObjects) do
-        createTree(scroll, obj, 0)
+    -- Start tree with workspace
+    for _, obj in ipairs(workspace:GetChildren()) do
+        createTree(scroll, obj)
     end
 end
-
 
 -- Tab Switch
 local function selectTab(idx)
@@ -305,10 +301,15 @@ local function selectTab(idx)
         btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
     end
 
-    if idx == 1 then buildBuyTab()
-    elseif idx == 2 then buildSellTab()
-    elseif idx == 3 then buildTeleportTab()
-    elseif idx == 4 then buildFindItemsTab() end
+    if idx == 1 then
+        buildBuyTab()
+    elseif idx == 2 then
+        buildSellTab()
+    elseif idx == 3 then
+        buildTeleportTab()
+    elseif idx == 4 then
+        buildFindItemsTab()
+    end
 end
 
 -- Create Tab Buttons
