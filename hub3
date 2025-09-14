@@ -1,476 +1,4 @@
--- Clean Hub with Mining, Wheel, Rewards, Teleport, Eggs, Auto-Win, Emergency, Auto-Delete Pets
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
-
-local player = Players.LocalPlayer
-local guiParent = CoreGui
-
--- Remotes
-local GameHandler = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GameHandler")
-local WheelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Wheel")
-local PlaytimeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Playtime")
-local EggsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Eggs")
-local PetsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Pets")
-
--- Sizes
-local CLOSED_SZ = UDim2.new(0,1,0,1)
-local HUB_SZ = UDim2.new(0,700,0,450)
-local MINIMIZED_SZ = UDim2.new(0,200,0,40)
-
--- Tween helper
-local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local function tween(obj, props)
-    local tw = TweenService:Create(obj, tweenInfo, props)
-    tw:Play()
-    return tw
-end
-
-local function round(ui, radius)
-    local c = Instance.new("UICorner", ui)
-    c.CornerRadius = UDim.new(0, radius or 8)
-end
-
--- ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CleanHubGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = guiParent
-
--- Main Frame
-local frame = Instance.new("Frame", screenGui)
-frame.Name = "MainFrame"
-frame.Size = HUB_SZ
-frame.Position = UDim2.new(0.5,0,0.5,0)
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Active = true
-frame.BorderSizePixel = 0
-round(frame,10)
-
--- Dragging
-local dragging, dragInput, dragStart, startPos
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset+delta.X,
-            startPos.Y.Scale, startPos.Y.Offset+delta.Y
-        )
-    end
-end)
-
-local function enableDrag(target)
-    target.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = i.Position
-            startPos = frame.Position
-            i.Changed:Connect(function()
-                if i.UserInputState==Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    target.InputChanged:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
-            dragInput = i
-        end
-    end)
-end
-
--- Top Bar
-local bar=Instance.new("Frame",frame)
-bar.Size=UDim2.new(1,0,0,40)
-bar.Position=UDim2.new(0,0,0,0)
-bar.BackgroundColor3=Color3.fromRGB(40,40,40)
-bar.Active=true
-round(bar,10)
-enableDrag(bar)
-
-local title=Instance.new("TextLabel",bar)
-title.Size=UDim2.new(1,-120,1,0)
-title.Position=UDim2.new(0,10,0,0)
-title.BackgroundTransparency=1
-title.Font=Enum.Font.SourceSansBold
-title.TextSize=24
-title.Text="Clean Hub"
-title.TextColor3=Color3.new(1,1,1)
-title.TextXAlignment=Enum.TextXAlignment.Left
-
-local closeBtn=Instance.new("TextButton",bar)
-closeBtn.Size=UDim2.new(0,30,0,30)
-closeBtn.Position=UDim2.new(1,-40,0,5)
-closeBtn.Text="X"
-closeBtn.Font=Enum.Font.SourceSansBold
-closeBtn.TextSize=18
-closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
-closeBtn.TextColor3=Color3.new(1,1,1)
-round(closeBtn,4)
-
-local minBtn=Instance.new("TextButton",bar)
-minBtn.Size=UDim2.new(0,30,0,30)
-minBtn.Position=UDim2.new(1,-80,0,5)
-minBtn.Text="-"
-minBtn.Font=Enum.Font.SourceSansBold
-minBtn.TextSize=22
-minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
-minBtn.TextColor3=Color3.new(1,1,1)
-round(minBtn,4)
-
--- Tabs + Content
-local tabsFrame=Instance.new("Frame",frame)
-tabsFrame.Size=UDim2.new(0,140,1,-60)
-tabsFrame.Position=UDim2.new(0,0,0,50)
-tabsFrame.BackgroundTransparency=1
-
-local contentFrame=Instance.new("Frame",frame)
-contentFrame.Size=UDim2.new(1,-140,1,-60)
-contentFrame.Position=UDim2.new(0,140,0,50)
-contentFrame.BackgroundTransparency=1
-enableDrag(contentFrame)
-
-local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs", "Auto-Win", "Emergency", "Auto-Delete Pets"}
-local tabButtons={}
-
--- Global state
-local mining = false
-local spinning = false
-local autoWin = false
-local autoDelete = false
-local targetPetType = ""
-local eggButtons = {}
-local rewardButtons = {}
-
--- ================= Mine Tab =================
-local function buildMineTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Mine"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local mineBtn = Instance.new("TextButton", contentFrame)
-    mineBtn.Size = UDim2.new(0.35,0,0,30)
-    mineBtn.Position = UDim2.new(0.65,0,0,10)
-    mineBtn.Text = "OFF"
-    mineBtn.Font = Enum.Font.SourceSansBold
-    mineBtn.TextSize = 18
-    mineBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    mineBtn.TextColor3 = Color3.new(1,1,1)
-    round(mineBtn,6)
-
-    local mineArgs = {{Info="Mine"}}
-    local interval = 0.1
-
-    local function startMining()
-        while mining do
-            pcall(function() GameHandler:FireServer(unpack(mineArgs)) end)
-            task.wait(interval)
-        end
-    end
-
-    mineBtn.MouseButton1Click:Connect(function()
-        mining = not mining
-        mineBtn.Text = mining and "ON" or "OFF"
-        mineBtn.BackgroundColor3 = mining and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-        if mining then task.spawn(startMining) end
-    end)
-end
-
--- ================= Wheel Tab =================
-local function buildWheelTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Spin Wheel"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local wheelBtn = Instance.new("TextButton", contentFrame)
-    wheelBtn.Size = UDim2.new(0.35,0,0,30)
-    wheelBtn.Position = UDim2.new(0.65,0,0,10)
-    wheelBtn.Text = "OFF"
-    wheelBtn.Font = Enum.Font.SourceSansBold
-    wheelBtn.TextSize = 18
-    wheelBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    wheelBtn.TextColor3 = Color3.new(1,1,1)
-    round(wheelBtn,6)
-
-    wheelBtn.MouseButton1Click:Connect(function()
-        spinning = not spinning
-        wheelBtn.Text = spinning and "ON" or "OFF"
-        wheelBtn.BackgroundColor3 = spinning and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-        if spinning then
-            task.spawn(function()
-                while spinning do
-                    pcall(function() WheelRemote:InvokeServer() end)
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end)
-end
-
--- ================= Rewards Tab =================
-local function buildRewardsTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Collect Rewards"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
-    scrollFrame.Size = UDim2.new(1,-20,1,-50)
-    scrollFrame.Position = UDim2.new(0,10,0,50)
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
-    scrollFrame.ScrollBarThickness = 10
-    scrollFrame.BackgroundTransparency = 0.8
-    scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(scrollFrame, 8)
-    local uiList = Instance.new("UIListLayout", scrollFrame)
-    uiList.SortOrder = Enum.SortOrder.LayoutOrder
-    uiList.Padding = UDim.new(0,5)
-
-    rewardButtons = {}
-
-    for i=1,9 do
-        local btn = Instance.new("TextButton", scrollFrame)
-        btn.Size = UDim2.new(1,0,0,30)
-        btn.Text = "OFF - Reward "..i
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 16
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-        round(btn,6)
-
-        local collecting = false
-        btn.MouseButton1Click:Connect(function()
-            collecting = not collecting
-            btn.Text = (collecting and "ON - " or "OFF - ").."Reward "..i
-            btn.BackgroundColor3 = collecting and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-
-            if collecting then
-                task.spawn(function()
-                    while collecting do
-                        local args = {{Info="ClaimReward", Reward=i}}
-                        pcall(function() PlaytimeRemote:FireServer(unpack(args)) end)
-                        task.wait(0.2)
-                    end
-                end)
-            end
-        end)
-
-        table.insert(rewardButtons, btn)
-    end
-
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
-end
-
--- ================= Teleport Tab =================
-local function buildTeleportTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Teleport Worlds"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
-    scrollFrame.Size = UDim2.new(1,-20,1,-50)
-    scrollFrame.Position = UDim2.new(0,10,0,50)
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
-    scrollFrame.ScrollBarThickness = 10
-    scrollFrame.BackgroundTransparency = 0.8
-    scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(scrollFrame, 8)
-    local uiList = Instance.new("UIListLayout", scrollFrame)
-    uiList.SortOrder = Enum.SortOrder.LayoutOrder
-    uiList.Padding = UDim.new(0,5)
-
-    for i=1,5 do
-        local btn = Instance.new("TextButton", scrollFrame)
-        btn.Size = UDim2.new(1,0,0,30)
-        btn.Text = "World "..i
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 16
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-        round(btn,6)
-
-        btn.MouseButton1Click:Connect(function()
-            local args = {{Info="SwitchWorld", World=i}}
-            pcall(function() GameHandler:FireServer(unpack(args)) end)
-        end)
-    end
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
-end
-
--- ================= Auto-Buy Eggs Tab =================
-local function buildEggsTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Buy Eggs"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local eggs = {
-        "Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9",
-        "Egg 10","Egg 11","Egg 12","Egg 13","Egg 14","Egg 15"
-    }
-
-    local columns = 3
-    local spacingX = 10
-    local spacingY = 40
-    local buttonWidth = (contentFrame.AbsoluteSize.X - 40) / columns
-    local buttonHeight = 30
-
-    eggButtons = {}
-
-    for i, eggName in ipairs(eggs) do
-        local col = (i-1) % columns
-        local row = math.floor((i-1)/columns)
-        local btn = Instance.new("TextButton", contentFrame)
-        btn.Size = UDim2.new(0, buttonWidth, 0, buttonHeight)
-        btn.Position = UDim2.new(0, 10 + col*(buttonWidth + spacingX), 0, 50 + row*(buttonHeight + spacingY))
-        btn.Text = "OFF"
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 16
-        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-        btn.TextColor3 = Color3.new(1,1,1)
-        round(btn,6)
-
-        local buying = false
-        btn.MouseButton1Click:Connect(function()
-            buying = not buying
-            btn.Text = buying and "ON" or "OFF"
-            btn.BackgroundColor3 = buying and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-
-            if buying then
-                task.spawn(function()
-                    while buying do
-                        local args = {{Info="PurchaseEgg", Egg=eggName}}
-                        pcall(function() EggsRemote:InvokeServer(unpack(args)) end)
-                        task.wait(0.15)
-                    end
-                end)
-            end
-        end)
-
-        table.insert(eggButtons, btn)
-    end
-end
-
--- ================= Auto-Win Tab =================
-local function buildAutoWinTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6, -10, 0, 30)
-    label.Position = UDim2.new(0, 10, 0, 10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Win"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local winBtn = Instance.new("TextButton", contentFrame)
-    winBtn.Size = UDim2.new(0.35, 0, 0, 30)
-    winBtn.Position = UDim2.new(0.65, 0, 0, 10)
-    winBtn.Text = "OFF"
-    winBtn.Font = Enum.Font.SourceSansBold
-    winBtn.TextSize = 16
-    winBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    winBtn.TextColor3 = Color3.new(1,1,1)
-    round(winBtn, 6)
-
-    winBtn.MouseButton1Click:Connect(function()
-        autoWin = not autoWin
-        winBtn.Text = autoWin and "ON" or "OFF"
-        winBtn.BackgroundColor3 = autoWin and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-
-        if autoWin then
-            task.spawn(function()
-                while autoWin do
-                    local args = {{Info="CollectWin"}}
-                    pcall(function() GameHandler:FireServer(unpack(args)) end)
-                    task.wait(5)
-                end
-            end)
-        end
-    end)
-end
-
--- ================= Emergency Stop Tab =================
-local function buildEmergencyTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "EMERGENCY STOP"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 24
-    label.TextXAlignment = Enum.TextXAlignment.Center
-
-    local stopBtn = Instance.new("TextButton", contentFrame)
-    stopBtn.Size = UDim2.new(0.5,0,0,50)
-    stopBtn.Position = UDim2.new(0.25,0,0.5,0)
-    stopBtn.Text = "STOP ALL"
-    stopBtn.Font = Enum.Font.SourceSansBold
-    stopBtn.TextSize = 24
-    stopBtn.BackgroundColor3 = Color3.fromRGB(255,50,50)
-    stopBtn.TextColor3 = Color3.new(1,1,1)
-    round(stopBtn, 10)
-
-    stopBtn.MouseButton1Click:Connect(function()
-        mining = false
-        spinning = false
-        autoWin = false
-        autoDelete = false
-        targetPetType = ""
-
-        for _, btn in ipairs(eggButtons) do
-            btn.Text = "OFF"
-            btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-        end
-        for _, btn in ipairs(rewardButtons) do
-            btn.Text = btn.Text:gsub("ON","OFF")
-            btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-        end
-        warn("Emergency stop activated! All automation halted.")
-    end)
-end
-
--- Replace existing Auto-Delete Pets tab with this improved version
+-- ================= Auto-Delete Pets Tab =================
 local function buildAutoDeleteTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -488,7 +16,7 @@ local function buildAutoDeleteTab()
     typeBox.Size = UDim2.new(0.6,0,0,30)
     typeBox.Position = UDim2.new(0,10,0,50)
     typeBox.PlaceholderText = "Enter Pet Type (e.g. Sigma Boy)"
-    typeBox.Text = targetPetType or ""
+    typeBox.Text = ""
     typeBox.Font = Enum.Font.SourceSans
     typeBox.TextSize = 16
     typeBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
@@ -498,120 +26,46 @@ local function buildAutoDeleteTab()
     local deleteBtn = Instance.new("TextButton", contentFrame)
     deleteBtn.Size = UDim2.new(0.35,0,0,30)
     deleteBtn.Position = UDim2.new(0.65,0,0,50)
-    deleteBtn.Text = autoDelete and "ON" or "OFF"
+    deleteBtn.Text = "OFF"
     deleteBtn.Font = Enum.Font.SourceSansBold
     deleteBtn.TextSize = 16
-    deleteBtn.BackgroundColor3 = autoDelete and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
+    deleteBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
     deleteBtn.TextColor3 = Color3.new(1,1,1)
     round(deleteBtn,6)
 
-    -- safe attribute/child value reader
-    local function readValue(inst, name)
-        -- try attribute first (roblox attributes)
-        if inst and type(inst.GetAttribute) == "function" then
-            local ok, val = pcall(function() return inst:GetAttribute(name) end)
-            if ok and val ~= nil then return val end
-        end
-        -- then try child StringValue / Value instances
-        if inst then
-            local child = inst:FindFirstChild(name)
-            if child and child:IsA("StringValue") or child and (child:IsA("IntValue") or child:IsA("NumberValue")) then
-                return child.Value
-            end
-        end
-        return nil
-    end
-
-    local function getPetType(pet)
-        -- try common attribute/child names, fallback to instance name
-        local t = readValue(pet, "PetName") or readValue(pet, "Name") or readValue(pet, "Type") or pet.Name
-        return tostring(t or "")
-    end
-
-    local function getPetId(pet)
-        -- try attribute or child value named PetId / Id
-        local id = readValue(pet, "PetId") or readValue(pet, "Id")
-        if id then return tostring(id) end
-        -- fallback: sometimes PetId is stored in a child value named "UUID" or similar — try common ones
-        id = readValue(pet, "UUID") or readValue(pet, "UniqueId")
-        if id then return tostring(id) end
-        return nil
-    end
-
-    local function collectCandidatePets()
-        local list = {}
-        local petsFolder = player:FindFirstChild("Pets") or player:FindFirstChild("Inventory") or player:FindFirstChild("PetInventory")
-        if petsFolder then
-            for _,c in ipairs(petsFolder:GetChildren()) do table.insert(list, c) end
+    -- Fetch all pets via the Pets remote
+    local function fetchAllPets()
+        local args = {{Info="GetPets"}}
+        local success, pets = pcall(function()
+            return PetsRemote:InvokeServer(unpack(args))
+        end)
+        if success and type(pets) == "table" then
+            return pets
         else
-            -- fallback: search player's descendants for things that look like pets
-            for _,desc in ipairs(player:GetDescendants()) do
-                -- prefer Models / Folders as pet containers
-                if desc:IsA("Model") or desc:IsA("Folder") then
-                    if readValue(desc, "PetName") or readValue(desc, "PetId") or desc:FindFirstChild("PetId") or desc:FindFirstChild("PetName") then
-                        table.insert(list, desc)
-                    end
-                end
-            end
-        end
-        return list
-    end
-
-    local function deletePetsOfType(petType)
-        if not petType or petType:match("^%s*$") then
-            warn("AutoDelete: target pet type is empty; type a name in the box (e.g. Sigma Boy).")
-            return
-        end
-        local targetLower = petType:lower()
-        local candidates = collectCandidatePets()
-        if #candidates == 0 then
-            warn("AutoDelete: no candidate pets found under player. Check where pets are stored in Explorer.")
-            return
-        end
-
-        local deleted = 0
-        for _,pet in ipairs(candidates) do
-            local pType = getPetType(pet) or ""
-            local pId = getPetId(pet)
-            if pType:lower() == targetLower then
-                if pId then
-                    local args = {
-                        {
-                            Info = "DeletePet",
-                            PetId = pId
-                        }
-                    }
-                    local ok, err = pcall(function() PetsRemote:FireServer(unpack(args)) end)
-                    if ok then
-                        deleted = deleted + 1
-                        warn(("AutoDelete: Requested delete of pet '%s' (PetId=%s)"):format(pType, tostring(pId)))
-                    else
-                        warn("AutoDelete: remote error deleting pet:", err)
-                    end
-                else
-                    warn(("AutoDelete: matched pet '%s' but no PetId found (instance: %s)"):format(pType, pet:GetFullName()))
-                end
-            end
-        end
-
-        if deleted == 0 then
-            warn(("AutoDelete: no pets of type '%s' found (checked %d candidates)."):format(petType, #candidates))
-        else
-            warn(("AutoDelete: delete requests sent for %d pet(s) of type '%s'."):format(deleted, petType))
+            warn("AutoDelete: Failed to fetch pets from server.")
+            return {}
         end
     end
 
-    -- update targetPetType as the user types or on focus lost
-    typeBox:GetPropertyChangedSignal("Text"):Connect(function()
-        targetPetType = typeBox.Text
-    end)
-    typeBox.FocusLost:Connect(function(enter)
-        targetPetType = typeBox.Text
-        if autoDelete and targetPetType ~= "" then
-            -- immediate pass: run once to pick up the new value
-            task.spawn(function() deletePetsOfType(targetPetType) end)
+    -- Delete pets by type
+    local function deletePetsByType(petType)
+        if not petType or petType:match("^%s*$") then return end
+        local pets = fetchAllPets()
+        local deletedCount = 0
+        for _,pet in ipairs(pets) do
+            local name = pet.PetName or pet.Type or pet.Name
+            local id = pet.PetId
+            if name and id and name:lower() == petType:lower() then
+                local args = {{Info="DeletePet", PetId=id}}
+                pcall(function() PetsRemote:FireServer(unpack(args)) end)
+                deletedCount = deletedCount + 1
+                warn(("AutoDelete: Requested deletion of '%s' (PetId=%s)"):format(name,id))
+            end
         end
-    end)
+        if deletedCount == 0 then
+            warn("AutoDelete: No pets matched type:", petType)
+        end
+    end
 
     deleteBtn.MouseButton1Click:Connect(function()
         autoDelete = not autoDelete
@@ -622,8 +76,8 @@ local function buildAutoDeleteTab()
         if autoDelete and targetPetType ~= "" then
             task.spawn(function()
                 while autoDelete do
-                    deletePetsOfType(targetPetType)
-                    task.wait(1) -- throttle to avoid spamming the server
+                    deletePetsByType(targetPetType)
+                    task.wait(1) -- adjust delay as needed
                 end
             end)
         elseif autoDelete and (not targetPetType or targetPetType == "") then
@@ -634,51 +88,3 @@ local function buildAutoDeleteTab()
         end
     end)
 end
-
--- ================= Tab Switch =================
-local function selectTab(idx)
-    for i,btn in ipairs(tabButtons) do
-        btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
-    end
-    if idx == 1 then buildMineTab()
-    elseif idx == 2 then buildWheelTab()
-    elseif idx == 3 then buildRewardsTab()
-    elseif idx == 4 then buildTeleportTab()
-    elseif idx == 5 then buildEggsTab() 
-    elseif idx == 6 then buildAutoWinTab() 
-    elseif idx == 7 then buildEmergencyTab()
-    elseif idx == 8 then buildAutoDeleteTab() end
-end
-
--- Create Tab Buttons
-for i,name in ipairs(tabNames) do
-    local btn = Instance.new("TextButton", tabsFrame)
-    btn.Size = UDim2.new(1,0,0,40)
-    btn.Position = UDim2.new(0,0,0,(i-1)*45)
-    btn.Text = name
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 20
-    round(btn,6)
-    btn.BackgroundColor3 = (i==1 and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50))
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.MouseButton1Click:Connect(function() selectTab(i) end)
-    table.insert(tabButtons, btn)
-end
-
--- Select first tab
-selectTab(1)
-
--- Minimize + Close
-local minimized = false
-minBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then tween(frame, { Size = MINIMIZED_SZ })
-    else tween(frame, { Size = HUB_SZ }) end
-    tabsFrame.Visible = not minimized
-    contentFrame.Visible = not minimized
-end)
-
-closeBtn.MouseButton1Click:Connect(function()
-    tween(frame, { Size = CLOSED_SZ }).Completed:Wait()
-    screenGui:Destroy()
-end)
