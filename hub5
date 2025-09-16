@@ -1,0 +1,161 @@
+-- Robust Auto World Switcher + Event-driven Auto-Collect
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+
+-- CONFIG
+local worlds = {4, 5}            -- Worlds to loop between
+local switchCooldown = 6          -- seconds to wait before next switch if no items detected
+local magnetRange = 5             -- distance items snap to
+local maxRespawnWait = 12         -- max wait per world for items
+
+-- STATE
+local autoSwitch = false
+local magnetConnections = {}
+
+-- SAFE FOLDER GET
+local function safeGetItemsFolder()
+    local ok, folder = pcall(function()
+        local g = Workspace:FindFirstChild("Game")
+        if not g then return nil end
+        return g:FindFirstChild("MapItems")
+    end)
+    return ok and folder or nil
+end
+
+-- MAGNETIZE SINGLE ITEM
+local function magnetize(item)
+    local part = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+    if part then
+        local conn
+        conn = RunService.RenderStepped:Connect(function()
+            pcall(function()
+                part.CFrame = hrp.CFrame * CFrame.new(0, 0, -magnetRange)
+            end)
+        end)
+        table.insert(magnetConnections, conn)
+    end
+end
+
+-- CLEANUP MAGNET CONNECTIONS
+local function clearMagnets()
+    for _, conn in ipairs(magnetConnections) do
+        if conn.Connected then
+            conn:Disconnect()
+        end
+    end
+    magnetConnections = {}
+end
+
+-- SWITCH WORLD
+local function switchWorld(worldId)
+    local ok, err = pcall(function()
+        local args = {{Info = "SwitchWorld", World = worldId}}
+        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GameHandler"):FireServer(unpack(args))
+    end)
+    if not ok then
+        warn("[AutoSwitcher] FireServer failed:", err)
+    else
+        print("[AutoSwitcher] Requested switch to", worldId)
+    end
+end
+
+-- AUTO WORLD SWITCH LOOP
+local function startAutoSwitch()
+    if autoSwitch then return end
+    autoSwitch = true
+    task.spawn(function()
+        local index = 1
+        while autoSwitch do
+            local itemsFolder = safeGetItemsFolder()
+            local beforeCount = (itemsFolder and #itemsFolder:GetChildren()) or 0
+
+            switchWorld(worlds[index])
+
+            -- wait for respawn or timeout
+            local t0 = tick()
+            local respawned = false
+            while tick() - t0 < maxRespawnWait and autoSwitch do
+                local folder = safeGetItemsFolder()
+                local newCount = (folder and #folder:GetChildren()) or 0
+                if newCount ~= beforeCount and newCount > 0 then
+                    respawned = true
+                    break
+                end
+                task.wait(0.25)
+            end
+
+            if not respawned then
+                local t1 = tick()
+                while tick() - t1 < switchCooldown and autoSwitch do task.wait(0.25) end
+            end
+
+            index = (index % #worlds) + 1
+        end
+    end)
+end
+
+local function stopAutoSwitch()
+    autoSwitch = false
+end
+
+-- EVENT-DRIVEN AUTO-COLLECT
+local function setupMagnet()
+    local GameHandler = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GameHandler")
+    GameHandler.OnClientEvent:Connect(function(data)
+        -- MapItems generated in world
+        if data.Info == "GenerateWorld" then
+            local folder = safeGetItemsFolder()
+            if folder then
+                for _, item in ipairs(folder:GetChildren()) do
+                    magnetize(item)
+                end
+            end
+        end
+
+        -- Cages claimed (coins/gems)
+        if data.Info == "CageClaimed" then
+            local folder = safeGetItemsFolder()
+            local cage = folder and folder:FindFirstChild(data.CageInfo.Id)
+            if cage then
+                magnetize(cage)
+            end
+        end
+
+        -- Mined items cloned to workspace.Debris
+        if data.Info == "MinePopup" then
+            local debris = Workspace:FindFirstChild("Debris")
+            if debris then
+                for _, clone in ipairs(debris:GetChildren()) do
+                    if clone:IsA("Model") then
+                        magnetize(clone)
+                    end
+                end
+            end
+        end
+    end)
+end
+
+-- TOGGLE AUTO SWITCH & MAGNET
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.Z then
+        if autoSwitch then
+            stopAutoSwitch()
+            clearMagnets()
+            print("🌍 Auto World Switcher OFF")
+        else
+            startAutoSwitch()
+            setupMagnet()
+            print("🌍 Auto World Switcher ON + Magnet Auto-Collect")
+        end
+    end
+end)
+
+print("Auto World Switcher + Magnet Auto-Collect ready. Press Z to toggle.")
