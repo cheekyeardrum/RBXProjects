@@ -502,12 +502,17 @@ for i,name in ipairs(tabNames) do
     btn.TextColor3 = Color3.new(1,1,1)
     btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
     round(btn,6)
-    local idx = i
-    btn.MouseButton1Click:Connect(function()
-        buildFunctions[idx]()
-    end)
+
+    -- Properly capture index
+    btn.MouseButton1Click:Connect((function(idx)
+        return function()
+            buildFunctions[idx]()
+        end
+    end)(i))
+
     table.insert(tabButtons, btn)
 end
+
 
 -- Buttons
 closeBtn.MouseButton1Click:Connect(function() frame.Visible=false end)
