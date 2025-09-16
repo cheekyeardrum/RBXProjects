@@ -136,7 +136,8 @@ contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
 -- Tab Names
-local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win","Emergency","Auto-Delete","Auto-Collect"} -- will add World/Magnet later
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win","Emergency","Auto-Delete","Auto-Collect","World/Magnet"}
+
 local tabButtons={}
 
 -- Global state
