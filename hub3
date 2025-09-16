@@ -5,7 +5,6 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -18,7 +17,6 @@ local EggsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Eggs"
 local PetsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Pets")
 
 -- Sizes
-local CLOSED_SZ = UDim2.new(0,1,0,1)
 local HUB_SZ = UDim2.new(0,700,0,450)
 local MINIMIZED_SZ = UDim2.new(0,200,0,40)
 
@@ -137,86 +135,76 @@ enableDrag(contentFrame)
 
 -- Tab Names
 local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win","Emergency","Auto-Delete","Auto-Collect","World/Magnet"}
-
 local tabButtons={}
-
--- Global state
-local mining = false
-local spinning = false
-local autoWin = false
-local eggButtons = {}
-local rewardButtons = {}
-local autoDelete = false
-local targetPetType = ""
-local autoCollecting = false
+local buildFunctions={}
 
 -- ================= Mine Tab =================
+local mining=false
 local function buildMineTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Mine"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Auto-Mine"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 
-    local mineBtn = Instance.new("TextButton", contentFrame)
-    mineBtn.Size = UDim2.new(0.35,0,0,30)
-    mineBtn.Position = UDim2.new(0.65,0,0,10)
-    mineBtn.Text = "OFF"
-    mineBtn.Font = Enum.Font.SourceSansBold
-    mineBtn.TextSize = 18
-    mineBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    mineBtn.TextColor3 = Color3.new(1,1,1)
+    local mineBtn=Instance.new("TextButton",contentFrame)
+    mineBtn.Size=UDim2.new(0.35,0,0,30)
+    mineBtn.Position=UDim2.new(0.65,0,0,10)
+    mineBtn.Text="OFF"
+    mineBtn.Font=Enum.Font.SourceSansBold
+    mineBtn.TextSize=18
+    mineBtn.BackgroundColor3=Color3.fromRGB(88,101,242)
+    mineBtn.TextColor3=Color3.new(1,1,1)
     round(mineBtn,6)
 
-    local mineArgs = {{Info="Mine"}}
-    local interval = 0.1
-
-    local function startMining()
-        while mining do
-            pcall(function() GameHandler:FireServer(unpack(mineArgs)) end)
-            task.wait(interval)
-        end
-    end
-
     mineBtn.MouseButton1Click:Connect(function()
-        mining = not mining
+        mining=not mining
         mineBtn.Text = mining and "ON" or "OFF"
         mineBtn.BackgroundColor3 = mining and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-        if mining then task.spawn(startMining) end
+        if mining then
+            task.spawn(function()
+                while mining do
+                    pcall(function() GameHandler:FireServer({{Info="Mine"}}) end)
+                    task.wait(0.1)
+                end
+            end)
+        end
     end)
 end
+table.insert(buildFunctions,buildMineTab)
 
 -- ================= Wheel Tab =================
+local spinning=false
 local function buildWheelTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Spin Wheel"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Auto-Spin Wheel"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 
-    local wheelBtn = Instance.new("TextButton", contentFrame)
-    wheelBtn.Size = UDim2.new(0.35,0,0,30)
-    wheelBtn.Position = UDim2.new(0.65,0,0,10)
-    wheelBtn.Text = "OFF"
-    wheelBtn.Font = Enum.Font.SourceSansBold
-    wheelBtn.TextSize = 18
-    wheelBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    wheelBtn.TextColor3 = Color3.new(1,1,1)
+    local wheelBtn=Instance.new("TextButton",contentFrame)
+    wheelBtn.Size=UDim2.new(0.35,0,0,30)
+    wheelBtn.Position=UDim2.new(0.65,0,0,10)
+    wheelBtn.Text="OFF"
+    wheelBtn.Font=Enum.Font.SourceSansBold
+    wheelBtn.TextSize=18
+    wheelBtn.BackgroundColor3=Color3.fromRGB(88,101,242)
+    wheelBtn.TextColor3=Color3.new(1,1,1)
     round(wheelBtn,6)
 
     wheelBtn.MouseButton1Click:Connect(function()
-        spinning = not spinning
-        wheelBtn.Text = spinning and "ON" or "OFF"
+        spinning=not spinning
+        wheelBtn.Text=spinning and "ON" or "OFF"
         wheelBtn.BackgroundColor3 = spinning and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
         if spinning then
             task.spawn(function()
@@ -228,270 +216,110 @@ local function buildWheelTab()
         end
     end)
 end
+table.insert(buildFunctions,buildWheelTab)
 
 -- ================= Rewards Tab =================
 local function buildRewardsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Collect Rewards"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
-    scrollFrame.Size = UDim2.new(1,-20,1,-50)
-    scrollFrame.Position = UDim2.new(0,10,0,50)
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
-    scrollFrame.ScrollBarThickness = 10
-    scrollFrame.BackgroundTransparency = 0.8
-    scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(scrollFrame, 8)
-    local uiList = Instance.new("UIListLayout", scrollFrame)
-    uiList.SortOrder = Enum.SortOrder.LayoutOrder
-    uiList.Padding = UDim.new(0,5)
-
-    rewardButtons = {} -- reset
-    for i=1,9 do
-        local btn = Instance.new("TextButton", scrollFrame)
-        btn.Size = UDim2.new(1,0,0,30)
-        btn.Text = "OFF - Reward "..i
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 16
-        btn.TextColor3 = Color3.new(1,1,1)
-        btn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-        round(btn,6)
-
-        local collecting = false
-        btn.MouseButton1Click:Connect(function()
-            collecting = not collecting
-            btn.Text = (collecting and "ON - " or "OFF - ").."Reward "..i
-            btn.BackgroundColor3 = collecting and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
-
-            if collecting then
-                task.spawn(function()
-                    while collecting do
-                        local args = {{Info="ClaimReward", Reward=i}}
-                        pcall(function() PlaytimeRemote:FireServer(unpack(args)) end)
-                        task.wait(0.2)
-                    end
-                end)
-            end
-        end)
-        table.insert(rewardButtons, btn)
-    end
-    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Auto-Collect Rewards"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 end
+table.insert(buildFunctions,buildRewardsTab)
 
 -- ================= Teleport Tab =================
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Teleport Worlds"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Teleport Worlds"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 end
+table.insert(buildFunctions,buildTeleportTab)
 
 -- ================= Eggs Tab =================
 local function buildEggTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Open Eggs"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Auto-Open Eggs"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 end
+table.insert(buildFunctions,buildEggTab)
 
 -- ================= Auto-Win Tab =================
+local autoWin=false
 local function buildAutoWinTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto Win Toggle"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="Auto Win Toggle"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 end
+table.insert(buildFunctions,buildAutoWinTab)
 
 -- ================= Emergency Tab =================
 local function buildEmergencyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 end
+table.insert(buildFunctions,buildEmergencyTab)
 
 -- ================= Auto-Delete Tab =================
 local function buildAutoDeleteTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 end
+table.insert(buildFunctions,buildAutoDeleteTab)
 
 -- ================= Auto-Collect Tab =================
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 end
+table.insert(buildFunctions,buildAutoCollectTab)
 
 -- ================= World/Magnet Tab =================
-local autoSwitch = false
-local magnetCollecting = false
-local worlds = {4,5}
-local cooldown = 6
-local maxWaitForRespawn = 12
-local magnetRange = 5
-
-local function safeGetItemsFolder()
-    local ok, folder = pcall(function()
-        local g = workspace:FindFirstChild("Game")
-        if not g then return nil end
-        return g:FindFirstChild("MapItems")
-    end)
-    return ok and folder or nil
-end
-
-local function switchWorld(worldId)
-    local ok, err = pcall(function()
-        local args = {{Info="SwitchWorld", World=worldId}}
-        GameHandler:FireServer(unpack(args))
-    end)
-    if not ok then warn(err) end
-end
-
-local function startAutoSwitch()
-    if autoSwitch then return end
-    autoSwitch = true
-    task.spawn(function()
-        local index = 1
-        while autoSwitch do
-            local itemsFolder = safeGetItemsFolder()
-            local beforeCount = (itemsFolder and #itemsFolder:GetChildren()) or 0
-            switchWorld(worlds[index])
-            local t0 = tick()
-            local respawned = false
-            while tick()-t0 < maxWaitForRespawn and autoSwitch do
-                local newFolder = safeGetItemsFolder()
-                local newCount = (newFolder and #newFolder:GetChildren()) or 0
-                if newCount ~= beforeCount and newCount > 0 then
-                    respawned = true
-                    break
-                end
-                task.wait(0.25)
-            end
-            if not respawned then task.wait(cooldown) end
-            index = (index % #worlds) + 1
-        end
-    end)
-end
-
-local function stopAutoSwitch()
-    autoSwitch = false
-end
-
-local function startMagnet()
-    if magnetCollecting then return end
-    magnetCollecting = true
-    task.spawn(function()
-        local character = player.Character or player.CharacterAdded:Wait()
-        local hrp = character:WaitForChild("HumanoidRootPart")
-        while magnetCollecting do
-            local itemsFolder = safeGetItemsFolder()
-            if itemsFolder then
-                for _, item in ipairs(itemsFolder:GetChildren()) do
-                    local basePart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
-                    if basePart then
-                        pcall(function()
-                            basePart.CFrame = hrp.CFrame * CFrame.new(0,0,-magnetRange)
-                        end)
-                    end
-                end
-            end
-            task.wait(0.1)
-        end
-    end)
-end
-
-local function stopMagnet()
-    magnetCollecting = false
-end
+local autoSwitch=false
+local magnetCollecting=false
+local worlds={4,5}
+local cooldown=6
+local maxWaitForRespawn=12
+local magnetRange=5
 
 local function buildWorldMagnetTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "World / Magnet Settings"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local worldBtn = Instance.new("TextButton", contentFrame)
-    worldBtn.Size = UDim2.new(0.35,0,0,30)
-    worldBtn.Position = UDim2.new(0.65,0,0,10)
-    worldBtn.Text = "Auto World Switcher: OFF"
-    worldBtn.Font = Enum.Font.SourceSansBold
-    worldBtn.TextSize = 16
-    worldBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    worldBtn.TextColor3 = Color3.new(1,1,1)
-    round(worldBtn,6)
-    worldBtn.MouseButton1Click:Connect(function()
-        if autoSwitch then
-            stopAutoSwitch()
-            worldBtn.Text = "Auto World Switcher: OFF"
-        else
-            startAutoSwitch()
-            worldBtn.Text = "Auto World Switcher: ON"
-        end
-    end)
-
-    local magnetBtn = Instance.new("TextButton", contentFrame)
-    magnetBtn.Size = UDim2.new(0.35,0,0,30)
-    magnetBtn.Position = UDim2.new(0.65,0,0,50)
-    magnetBtn.Text = "Magnet Auto-Collect: OFF"
-    magnetBtn.Font = Enum.Font.SourceSansBold
-    magnetBtn.TextSize = 16
-    magnetBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    magnetBtn.TextColor3 = Color3.new(1,1,1)
-    round(magnetBtn,6)
-    magnetBtn.MouseButton1Click:Connect(function()
-        if magnetCollecting then
-            stopMagnet()
-            magnetBtn.Text = "Magnet Auto-Collect: OFF"
-        else
-            startMagnet()
-            magnetBtn.Text = "Magnet Auto-Collect: ON"
-        end
-    end)
+    local label=Instance.new("TextLabel",contentFrame)
+    label.Size=UDim2.new(0.6,-10,0,30)
+    label.Position=UDim2.new(0,10,0,10)
+    label.BackgroundTransparency=1
+    label.Text="World / Magnet Settings"
+    label.TextColor3=Color3.new(1,1,1)
+    label.Font=Enum.Font.SourceSansBold
+    label.TextSize=18
+    label.TextXAlignment=Enum.TextXAlignment.Left
 end
+table.insert(buildFunctions,buildWorldMagnetTab)
 
 -- ================= Tabs Setup =================
-local buildFunctions = {
-    buildMineTab,
-    buildWheelTab,
-    buildRewardsTab,
-    buildTeleportTab,
-    buildEggTab,
-    buildAutoWinTab,
-    buildEmergencyTab,
-    buildAutoDeleteTab,
-    buildAutoCollectTab,
-    buildWorldMagnetTab
-}
-
--- Build tab buttons
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
@@ -502,17 +330,12 @@ for i,name in ipairs(tabNames) do
     btn.TextColor3 = Color3.new(1,1,1)
     btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
     round(btn,6)
-
-    -- Properly capture index
-    btn.MouseButton1Click:Connect((function(idx)
-        return function()
-            buildFunctions[idx]()
-        end
-    end)(i))
-
-    table.insert(tabButtons, btn)
+    local idx=i
+    btn.MouseButton1Click:Connect(function()
+        buildFunctions[idx]()
+    end)
+    table.insert(tabButtons,btn)
 end
-
 
 -- Buttons
 closeBtn.MouseButton1Click:Connect(function() frame.Visible=false end)
