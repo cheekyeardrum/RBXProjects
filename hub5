@@ -29,19 +29,22 @@ local function safeGetItemsFolder()
     return ok and folder or nil
 end
 
--- MAGNETIZE SINGLE ITEM
-local function magnetize(item)
-    local part = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
-    if part then
-        local conn
-        conn = RunService.RenderStepped:Connect(function()
-            pcall(function()
-                part.CFrame = hrp.CFrame * CFrame.new(0, 0, -magnetRange)
+local function magnetizeItem(item)
+    -- Only magnet if it's not a Cage
+    if item.Name ~= "Cage" then
+        local part = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+        if part then
+            local conn
+            conn = RunService.RenderStepped:Connect(function()
+                -- magnet slowly towards player
+                local targetPos = hrp.Position + Vector3.new(0, 0, -magnetRange)
+                part.Position = part.Position:Lerp(targetPos, 0.2)
             end)
-        end)
-        table.insert(magnetConnections, conn)
+            table.insert(magnetConnections, conn)
+        end
     end
 end
+
 
 -- CLEANUP MAGNET CONNECTIONS
 local function clearMagnets()
