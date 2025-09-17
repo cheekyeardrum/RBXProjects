@@ -1,4 +1,4 @@
--- Clean Hub with Mining, Wheel, Rewards, Teleport, Eggs, Auto-Win, Auto-Delete
+-- Clean Hub with Mining, Wheel, Rewards (toggle all), Teleport, Eggs, Auto-Win
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -14,7 +14,6 @@ local GameHandler = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Game
 local WheelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Wheel")
 local PlaytimeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Playtime")
 local EggsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Eggs")
-local PetsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Pets")
 
 -- Sizes
 local CLOSED_SZ = UDim2.new(0,1,0,1)
@@ -135,11 +134,12 @@ contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
 -- Tab Names
-local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs", "Auto-Win", "Auto-Delete"}
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win"}
 local tabButtons={}
 
 -- Global states
-local mining, spinning, autoWin, autoDelete = false,false,false,false
+local mining, spinning, autoWin, collectingRewards = false,false,false,false
+local eggButtons = {}
 
 -- ================= Mine Tab =================
 local function buildMineTab()
@@ -147,20 +147,17 @@ local function buildMineTab()
     local btn=Instance.new("TextButton",contentFrame)
     btn.Size=UDim2.new(0,200,0,50)
     btn.Position=UDim2.new(0,20,0,20)
-    btn.Text="Toggle Auto-Mine"
-    btn.Font=Enum.Font.SourceSansBold
-    btn.TextSize=22
-    btn.BackgroundColor3=Color3.fromRGB(80,80,80)
+    btn.Text="Toggle Mining"
+    btn.BackgroundColor3=Color3.fromRGB(60,60,60)
     btn.TextColor3=Color3.new(1,1,1)
-    round(btn,8)
+    round(btn,6)
     btn.MouseButton1Click:Connect(function()
-        mining=not mining
-        btn.BackgroundColor3= mining and Color3.fromRGB(50,150,50) or Color3.fromRGB(80,80,80)
+        mining = not mining
         if mining then
-            task.spawn(function()
+            spawn(function()
                 while mining do
-                    GameHandler:FireServer("Mine")
-                    task.wait(0.2)
+                    GameHandler:FireServer("Click")
+                    task.wait(0.1)
                 end
             end)
         end
@@ -173,61 +170,66 @@ local function buildWheelTab()
     local btn=Instance.new("TextButton",contentFrame)
     btn.Size=UDim2.new(0,200,0,50)
     btn.Position=UDim2.new(0,20,0,20)
-    btn.Text="Toggle Auto-Spin"
-    btn.Font=Enum.Font.SourceSansBold
-    btn.TextSize=22
-    btn.BackgroundColor3=Color3.fromRGB(80,80,80)
+    btn.Text="Toggle Wheel"
+    btn.BackgroundColor3=Color3.fromRGB(60,60,60)
     btn.TextColor3=Color3.new(1,1,1)
-    round(btn,8)
+    round(btn,6)
     btn.MouseButton1Click:Connect(function()
-        spinning=not spinning
-        btn.BackgroundColor3= spinning and Color3.fromRGB(50,150,50) or Color3.fromRGB(80,80,80)
+        spinning = not spinning
         if spinning then
-            task.spawn(function()
+            spawn(function()
                 while spinning do
-                    WheelRemote:FireServer("Spin")
-                    task.wait(5)
+                    WheelRemote:FireServer()
+                    task.wait(1)
                 end
             end)
         end
     end)
 end
 
--- ================= Rewards Tab =================
+-- ================= Rewards Tab (new toggle all) =================
 local function buildRewardsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    for i=1,5 do
-        local btn=Instance.new("TextButton",contentFrame)
-        btn.Size=UDim2.new(0,200,0,40)
-        btn.Position=UDim2.new(0,20,0,(i-1)*45)
-        btn.Text="Claim Reward "..i
-        btn.Font=Enum.Font.SourceSansBold
-        btn.TextSize=20
-        btn.BackgroundColor3=Color3.fromRGB(80,80,80)
-        btn.TextColor3=Color3.new(1,1,1)
-        round(btn,6)
-        btn.MouseButton1Click:Connect(function()
-            PlaytimeRemote:FireServer("Claim",i)
-        end)
-    end
+    local btn=Instance.new("TextButton",contentFrame)
+    btn.Size=UDim2.new(0,250,0,50)
+    btn.Position=UDim2.new(0,20,0,20)
+    btn.Text="Toggle Collect All Rewards"
+    btn.BackgroundColor3=Color3.fromRGB(60,60,60)
+    btn.TextColor3=Color3.new(1,1,1)
+    round(btn,6)
+
+    btn.MouseButton1Click:Connect(function()
+        collectingRewards = not collectingRewards
+        if collectingRewards then
+            spawn(function()
+                while collectingRewards do
+                    for i=1,9 do
+                        PlaytimeRemote:FireServer("Claim", i)
+                    end
+                    task.wait(2)
+                end
+            end)
+        end
+    end)
 end
 
 -- ================= Teleport Tab =================
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local places={"Spawn","Mine","Shop","Wheel"}
-    for i,place in ipairs(places) do
+    local zones={"Zone1","Zone2","Zone3","Zone4","Zone5"}
+    for i,zone in ipairs(zones) do
         local btn=Instance.new("TextButton",contentFrame)
         btn.Size=UDim2.new(0,200,0,40)
         btn.Position=UDim2.new(0,20,0,(i-1)*45)
-        btn.Text="Teleport "..place
-        btn.Font=Enum.Font.SourceSansBold
-        btn.TextSize=20
-        btn.BackgroundColor3=Color3.fromRGB(80,80,80)
+        btn.Text="Teleport "..zone
+        btn.BackgroundColor3=Color3.fromRGB(60,60,60)
         btn.TextColor3=Color3.new(1,1,1)
         round(btn,6)
         btn.MouseButton1Click:Connect(function()
-            GameHandler:FireServer("Teleport",place)
+            local char=player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char:MoveTo(Vector3.new(i*50,5,0))
+            end
         end)
     end
 end
@@ -236,19 +238,28 @@ end
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local eggs={"Basic Egg","Rare Egg","Epic Egg"}
-    for i,egg in ipairs(eggs) do
+    eggButtons={}
+    for i,name in ipairs(eggs) do
         local btn=Instance.new("TextButton",contentFrame)
-        btn.Size=UDim2.new(0,200,0,40)
+        btn.Size=UDim2.new(0,220,0,40)
         btn.Position=UDim2.new(0,20,0,(i-1)*45)
-        btn.Text="Buy "..egg
-        btn.Font=Enum.Font.SourceSansBold
-        btn.TextSize=20
-        btn.BackgroundColor3=Color3.fromRGB(80,80,80)
+        btn.Text="Toggle "..name
+        btn.BackgroundColor3=Color3.fromRGB(60,60,60)
         btn.TextColor3=Color3.new(1,1,1)
         round(btn,6)
+        local state=false
         btn.MouseButton1Click:Connect(function()
-            EggsRemote:FireServer("Buy",egg)
+            state = not state
+            if state then
+                spawn(function()
+                    while state do
+                        EggsRemote:FireServer("Open", name, "Single")
+                        task.wait(1)
+                    end
+                end)
+            end
         end)
+        eggButtons[name]=btn
     end
 end
 
@@ -259,47 +270,16 @@ local function buildAutoWinTab()
     btn.Size=UDim2.new(0,200,0,50)
     btn.Position=UDim2.new(0,20,0,20)
     btn.Text="Toggle Auto-Win"
-    btn.Font=Enum.Font.SourceSansBold
-    btn.TextSize=22
-    btn.BackgroundColor3=Color3.fromRGB(80,80,80)
+    btn.BackgroundColor3=Color3.fromRGB(60,60,60)
     btn.TextColor3=Color3.new(1,1,1)
-    round(btn,8)
+    round(btn,6)
     btn.MouseButton1Click:Connect(function()
-        autoWin=not autoWin
-        btn.BackgroundColor3= autoWin and Color3.fromRGB(50,150,50) or Color3.fromRGB(80,80,80)
+        autoWin = not autoWin
         if autoWin then
-            task.spawn(function()
+            spawn(function()
                 while autoWin do
                     GameHandler:FireServer("Win")
                     task.wait(1)
-                end
-            end)
-        end
-    end)
-end
-
--- ================= Auto-Delete Tab =================
-local function buildAutoDeleteTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local btn=Instance.new("TextButton",contentFrame)
-    btn.Size=UDim2.new(0,200,0,50)
-    btn.Position=UDim2.new(0,20,0,20)
-    btn.Text="Toggle Auto-Delete"
-    btn.Font=Enum.Font.SourceSansBold
-    btn.TextSize=22
-    btn.BackgroundColor3=Color3.fromRGB(80,80,80)
-    btn.TextColor3=Color3.new(1,1,1)
-    round(btn,8)
-    btn.MouseButton1Click:Connect(function()
-        autoDelete=not autoDelete
-        btn.BackgroundColor3= autoDelete and Color3.fromRGB(50,150,50) or Color3.fromRGB(80,80,80)
-        if autoDelete then
-            task.spawn(function()
-                while autoDelete do
-                    for _,pet in ipairs(player.Pets:GetChildren()) do
-                        PetsRemote:FireServer("Delete", pet.Name)
-                    end
-                    task.wait(5)
                 end
             end)
         end
@@ -316,8 +296,7 @@ local function selectTab(idx)
     elseif idx == 3 then buildRewardsTab()
     elseif idx == 4 then buildTeleportTab()
     elseif idx == 5 then buildEggsTab()
-    elseif idx == 6 then buildAutoWinTab()
-    elseif idx == 7 then buildAutoDeleteTab() end
+    elseif idx == 6 then buildAutoWinTab() end
 end
 
 -- Create Tab Buttons
