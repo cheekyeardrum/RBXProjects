@@ -1,4 +1,4 @@
--- Cheeky's Hub with Mining, Wheel, Rewards, Teleport, Eggs, Auto-Win, Auto-Collect, Auto-Delete, Emergency
+-- Clean Hub with Mining, Wheel, Rewards (toggle all), Teleport, Eggs, Auto-Win, Auto-Collect, Auto-Delete
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -7,64 +7,144 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
+local guiParent = CoreGui
 
 -- Remotes
+local GameHandler = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("GameHandler")
+local WheelRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Wheel")
+local PlaytimeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Playtime")
+local EggsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Eggs")
 local PetsRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Pets")
-local mineRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Mine")
-local spinRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Spin")
-local rewardRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Rewards")
-local teleportRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Teleport")
-local eggRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Eggs")
-local autoWinRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("AutoWin")
 
--- GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CheekysHub"
-screenGui.Parent = CoreGui
+-- Sizes
+local CLOSED_SZ = UDim2.new(0,1,0,1)
+local HUB_SZ = UDim2.new(0,700,0,450)
+local MINIMIZED_SZ = UDim2.new(0,200,0,40)
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 500, 0, 350)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-mainFrame.Active = true
-mainFrame.Draggable = true
-
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-title.Text = "Cheeky's Hub"
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 20
-title.TextColor3 = Color3.new(1, 1, 1)
-
-local tabFrame = Instance.new("Frame", mainFrame)
-tabFrame.Size = UDim2.new(0, 120, 1, -40)
-tabFrame.Position = UDim2.new(0, 0, 0, 40)
-tabFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-
-local contentFrame = Instance.new("Frame", mainFrame)
-contentFrame.Size = UDim2.new(1, -120, 1, -40)
-contentFrame.Position = UDim2.new(0, 120, 0, 40)
-contentFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-
-local tabNames = {
-    "Mine", "Wheel", "Rewards", "Teleport",
-    "Eggs", "Auto-Win", "Auto-Collect", "Auto-Delete"
-}
-
-local tabButtons = {}
-
-local function round(obj, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius)
-    corner.Parent = obj
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, props)
+    local tw = TweenService:Create(obj, tweenInfo, props)
+    tw:Play()
+    return tw
 end
+
+local function round(ui, radius)
+    local c = Instance.new("UICorner", ui)
+    c.CornerRadius = UDim.new(0, radius or 8)
+end
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CleanHubGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = guiParent
+
+-- Main Frame
+local frame = Instance.new("Frame", screenGui)
+frame.Name = "MainFrame"
+frame.Size = HUB_SZ
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.BorderSizePixel = 0
+round(frame,10)
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset+delta.X,
+            startPos.Y.Scale, startPos.Y.Offset+delta.Y
+        )
+    end
+end)
+
+local function enableDrag(target)
+    target.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = i.Position
+            startPos = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState==Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    target.InputChanged:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
+            dragInput = i
+        end
+    end)
+end
+
+-- Top Bar
+local bar=Instance.new("Frame",frame)
+bar.Size=UDim2.new(1,0,0,40)
+bar.Position=UDim2.new(0,0,0,0)
+bar.BackgroundColor3=Color3.fromRGB(40,40,40)
+bar.Active=true
+round(bar,10)
+enableDrag(bar)
+
+local title=Instance.new("TextLabel",bar)
+title.Size=UDim2.new(1,-120,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency=1
+title.Font=Enum.Font.SourceSansBold
+title.TextSize=24
+title.Text="Clean Hub"
+title.TextColor3=Color3.new(1,1,1)
+title.TextXAlignment=Enum.TextXAlignment.Left
+
+local closeBtn=Instance.new("TextButton",bar)
+closeBtn.Size=UDim2.new(0,30,0,30)
+closeBtn.Position=UDim2.new(1,-40,0,5)
+closeBtn.Text="X"
+closeBtn.Font=Enum.Font.SourceSansBold
+closeBtn.TextSize=18
+closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
+closeBtn.TextColor3=Color3.new(1,1,1)
+round(closeBtn,4)
+
+local minBtn=Instance.new("TextButton",bar)
+minBtn.Size=UDim2.new(0,30,0,30)
+minBtn.Position=UDim2.new(1,-80,0,5)
+minBtn.Text="-"
+minBtn.Font=Enum.Font.SourceSansBold
+minBtn.TextSize=22
+minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
+minBtn.TextColor3=Color3.new(1,1,1)
+round(minBtn,4)
+
+-- Tabs + Content
+local tabsFrame=Instance.new("Frame",frame)
+tabsFrame.Size=UDim2.new(0,140,1,-60)
+tabsFrame.Position=UDim2.new(0,0,0,50)
+tabsFrame.BackgroundTransparency=1
+
+local contentFrame=Instance.new("Frame",frame)
+contentFrame.Size=UDim2.new(1,-140,1,-60)
+contentFrame.Position=UDim2.new(0,140,0,50)
+contentFrame.BackgroundTransparency=1
+enableDrag(contentFrame)
+
+-- Tab Names
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win","Auto-Collect","Auto-Delete"}
+local tabButtons={}
+
+-- Global states
+local mining, spinning, autoWin, collectingRewards, autoCollecting, autoDelete = false,false,false,false,false,false
+local eggButtons = {}
 
 -- ================= Mine Tab =================
 local function buildMineTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
@@ -87,7 +167,6 @@ local function buildMineTab()
 
     local mineArgs = {{Info="Mine"}}
     local interval = 0.1
-
     local function startMining()
         while mining do
             pcall(function() GameHandler:FireServer(unpack(mineArgs)) end)
@@ -141,10 +220,9 @@ local function buildWheelTab()
     end)
 end
 
--- ================= Rewards Tab (single toggle collects all) =================
+-- ================= Rewards Tab =================
 local function buildRewardsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
@@ -186,7 +264,6 @@ end
 -- ================= Teleport Tab =================
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
@@ -204,7 +281,7 @@ local function buildTeleportTab()
     scrollFrame.ScrollBarThickness = 10
     scrollFrame.BackgroundTransparency = 0.8
     scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(scrollFrame, 8)
+    round(scrollFrame,8)
 
     local uiList = Instance.new("UIListLayout", scrollFrame)
     uiList.SortOrder = Enum.SortOrder.LayoutOrder
@@ -223,28 +300,19 @@ local function buildTeleportTab()
         btn.MouseButton1Click:Connect(function()
             local args = {{Info="SwitchWorld", World=i}}
             pcall(function() GameHandler:FireServer(unpack(args)) end)
-
-            -- Wait for server to load new world
             task.wait(1)
-
             local char = player.Character or player.CharacterAdded:Wait()
             local hrp = char:WaitForChild("HumanoidRootPart")
-
-            -- Reset camera
             workspace.CurrentCamera.CameraSubject = char:FindFirstChildWhichIsA("Humanoid") or hrp
-
-            -- Update MapItems reference for other loops if needed
-            itemsFolder = workspace:WaitForChild("Game"):WaitForChild("MapItems")
         end)
     end
 
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
--- ================= Auto-Buy Eggs Tab =================
+-- ================= Eggs Tab =================
 local function buildEggsTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
@@ -255,27 +323,19 @@ local function buildEggsTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local eggs = {
-        "Egg 1","Egg 2","Egg 3",
-        "Egg 4","Egg 5","Egg 6",
-        "Egg 7","Egg 8","Egg 9",
-        "Egg 10","Egg 11","Egg 12",
-        "Egg 13","Egg 14","Egg 15"
-    }
+    local eggs = {"Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9","Egg 10","Egg 11","Egg 12","Egg 13","Egg 14","Egg 15"}
 
     local columns = 3
     local spacingX = 10
     local spacingY = 40
     local buttonWidth = (contentFrame.AbsoluteSize.X - 40) / columns
     local buttonHeight = 30
-
     eggButtons = {}
 
     for i, eggName in ipairs(eggs) do
         local col = (i-1) % columns
         local row = math.floor((i-1)/columns)
 
-        -- Add a label at the start of each world group
         if col == 0 then
             local worldNum = math.floor((i-1)/3) + 1
             local worldLabel = Instance.new("TextLabel", contentFrame)
@@ -319,7 +379,6 @@ local function buildEggsTab()
     end
 end
 
-
 -- ================= Auto-Win Tab =================
 local function buildAutoWinTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
@@ -350,74 +409,60 @@ local function buildAutoWinTab()
         if autoWin then
             task.spawn(function()
                 while autoWin do
-                    local args = {{Info="CollectWin"}}
+                    local args = {{Info="AutoWin"}}
                     pcall(function() GameHandler:FireServer(unpack(args)) end)
-                    task.wait(5)
+                    task.wait(0.3)
                 end
             end)
         end
     end)
 end
 
-
--- ================= Auto-Collect Tab (Magnet, Styled Toggle) =================
-local autoCollecting = false
-local magnetRange = 5
-local itemsFolder = workspace:WaitForChild("Game"):WaitForChild("MapItems")
-
+-- ================= Auto-Collect Tab =================
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(0.6,-10,0,30)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Auto-Collect (Magnet)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(0,250,0,50)
-    btn.Position = UDim2.new(0,20,0,20)
-    btn.Text = "Auto-Collect: OFF"
-    btn.BackgroundColor3 = Color3.fromRGB(100,0,0) -- red = off
-    btn.TextColor3 = Color3.new(1,1,1)
-    round(btn,6)
+    local collectBtn = Instance.new("TextButton", contentFrame)
+    collectBtn.Size = UDim2.new(0.35,0,0,30)
+    collectBtn.Position = UDim2.new(0.65,0,0,10)
+    collectBtn.Text = "OFF"
+    collectBtn.Font = Enum.Font.SourceSansBold
+    collectBtn.TextSize = 16
+    collectBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
+    collectBtn.TextColor3 = Color3.new(1,1,1)
+    round(collectBtn,6)
 
-    local function updateStyle()
-        if autoCollecting then
-            btn.Text = "Auto-Collect: ON"
-            btn.BackgroundColor3 = Color3.fromRGB(0,150,0) -- green = on
-        else
-            btn.Text = "Auto-Collect: OFF"
-            btn.BackgroundColor3 = Color3.fromRGB(100,0,0) -- red = off
-        end
-    end
-
-    btn.MouseButton1Click:Connect(function()
+    collectBtn.MouseButton1Click:Connect(function()
         autoCollecting = not autoCollecting
-        updateStyle()
-
+        collectBtn.Text = autoCollecting and "ON" or "OFF"
+        collectBtn.BackgroundColor3 = autoCollecting and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
         if autoCollecting then
-            print("Magnet Auto-Collect Started")
             task.spawn(function()
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hrp = char:WaitForChild("HumanoidRootPart")
                 while autoCollecting do
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    local hrp = char:WaitForChild("HumanoidRootPart")
-                    for _, item in ipairs(itemsFolder:GetChildren()) do
-                        local basePart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
-                        if basePart then
-                            pcall(function()
-                                basePart.CFrame = hrp.CFrame * CFrame.new(0,0,-magnetRange)
-                            end)
+                    for _, item in ipairs(workspace.Items:GetChildren()) do
+                        if item:IsA("BasePart") then
+                            item.CFrame = hrp.CFrame
                         end
                     end
                     task.wait(0.1)
                 end
             end)
-        else
-            print("Magnet Auto-Collect Stopped")
         end
     end)
-
-    updateStyle()
 end
 
-
 -- ================= Auto-Delete Tab =================
-local autoDelete = false
 local function buildAutoDeleteTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -452,43 +497,32 @@ local function buildAutoDeleteTab()
         autoDelete = not autoDelete
         startBtn.Text = autoDelete and "STOP" or "Start"
         startBtn.BackgroundColor3 = autoDelete and Color3.fromRGB(200,50,50) or Color3.fromRGB(88,101,242)
-
         if autoDelete then
             task.spawn(function()
                 local function collectSlots()
                     local t = {}
                     for _,c in ipairs(player.PlayerGui.Main.Center.Pets.Container.Pets:GetChildren()) do
                         if c:IsA("GuiObject") and c.Name:match("{[%w%-]+}") then
-                            table.insert(t, c)
+                            table.insert(t,c)
                         end
                     end
                     return t
                 end
-
-                local function getPetId(slot)
-                    return slot.Name
-                end
-
+                local function getPetId(slot) return slot.Name end
                 local keepTop = tonumber(keepTxt.Text) or 50
-
                 while autoDelete do
                     local slots = collectSlots()
                     if #slots > keepTop then
-                        table.sort(slots, function(a,b)
+                        table.sort(slots,function(a,b)
                             local ay = a.AbsolutePosition.Y
                             local by = b.AbsolutePosition.Y
-                            if math.abs(ay - by) <= 4 then
-                                return a.AbsolutePosition.X < b.AbsolutePosition.X
-                            end
+                            if math.abs(ay - by) <= 4 then return a.AbsolutePosition.X < b.AbsolutePosition.X end
                             return ay < by
                         end)
-
                         for i = keepTop + 1, #slots do
                             local id = getPetId(slots[i])
-                            if id then
-                                PetsRemote:FireServer({ Info = "DeletePet", PetId = id })
-                                task.wait(0.14)
-                            end
+                            if id then PetsRemote:FireServer({ Info="DeletePet", PetId=id }) end
+                            task.wait(0.14)
                         end
                     end
                     task.wait(1)
@@ -498,39 +532,32 @@ local function buildAutoDeleteTab()
     end)
 end
 
--- ================= Tab Switching =================
-local function selectTab(idx)
-    for i,btn in ipairs(tabButtons) do
-        btn.BackgroundColor3 = (i==idx) and Color3.fromRGB(80,80,80) or Color3.fromRGB(50,50,50)
-    end
-    if idx == 1 then buildMineTab()
-    elseif idx == 2 then buildWheelTab()
-    elseif idx == 3 then buildRewardsTab()
-    elseif idx == 4 then buildTeleportTab()
-    elseif idx == 5 then buildEggsTab()
-    elseif idx == 6 then buildAutoWinTab()
-    elseif idx == 7 then buildAutoCollectTab()
-    elseif idx == 8 then buildAutoDeleteTab() end
-end
-
--- ================= Build Tabs =================
+-- Tab Buttons
+local tabFuncs = {buildMineTab,buildWheelTab,buildRewardsTab,buildTeleportTab,buildEggsTab,buildAutoWinTab,buildAutoCollectTab,buildAutoDeleteTab}
 for i,name in ipairs(tabNames) do
-    local btn = Instance.new("TextButton", tabFrame)
-    btn.Size = UDim2.new(1,0,0,30)
-    btn.Position = UDim2.new(0,0,0,(i-1)*35)
+    local btn = Instance.new("TextButton", tabsFrame)
+    btn.Size = UDim2.new(1,0,0,40)
+    btn.Position = UDim2.new(0,0,0,(i-1)*45)
     btn.Text = name
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 16
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.TextColor3 = Color3.new(1,1,1)
     round(btn,6)
-
-    btn.MouseButton1Click:Connect(function()
-        selectTab(i)
-    end)
-
+    local func = tabFuncs[i]
+    btn.MouseButton1Click:Connect(func)
     table.insert(tabButtons, btn)
 end
 
+-- Close/Minimize
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+minBtn.MouseButton1Click:Connect(function()
+    if frame.Size==HUB_SZ then
+        tween(frame,{Size=MINIMIZED_SZ})
+    else
+        tween(frame,{Size=HUB_SZ})
+    end
+end)
+
 -- Default tab
-selectTab(1)
+buildMineTab()
