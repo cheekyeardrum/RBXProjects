@@ -473,10 +473,11 @@ local function buildAutoCollectTab()
                                 _G.iy:FireProximityPrompt(prompt)
                             else
                                 -- Fallback in case firepp isn't available
-                                pcall(function()
-                                    prompt:InputHoldBegin()
-                                    prompt:InputHoldEnd()
-                                end)
+                              pcall(function()
+                                  prompt:InputHoldBegin()
+                                  task.wait(prompt.HoldDuration or 1)  -- wait for the required hold time
+                                  prompt:InputHoldEnd()
+                              end)
                             end
                         end
                     end
