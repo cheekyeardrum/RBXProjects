@@ -426,8 +426,10 @@ local function buildAutoWinTab()
 end
 
 
--- ================= Auto-Collect Tab =================
+-- ================= Auto-Collect Tab (Magnet) =================
 local autoCollecting = false
+local magnetRange = 5
+local itemsFolder = workspace:WaitForChild("Game"):WaitForChild("MapItems")
 
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
@@ -435,7 +437,7 @@ local function buildAutoCollectTab()
     local btn = Instance.new("TextButton", contentFrame)
     btn.Size = UDim2.new(0,250,0,50)
     btn.Position = UDim2.new(0,20,0,20)
-    btn.Text = "Toggle Auto-Collect Items"
+    btn.Text = "Toggle Magnet Auto-Collect"
     btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
     btn.TextColor3 = Color3.new(1,1,1)
     round(btn,6)
@@ -443,22 +445,24 @@ local function buildAutoCollectTab()
     btn.MouseButton1Click:Connect(function()
         autoCollecting = not autoCollecting
         if autoCollecting then
+            print("Magnet Auto-Collect Started")
             task.spawn(function()
                 while autoCollecting do
-                    local char = player.Character
-                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        for _, item in pairs(workspace.Game.MapItems:GetChildren()) do
-                            if item:IsA("BasePart") then
-                                item.CFrame = hrp.CFrame
-                            elseif item:IsA("Model") and item.PrimaryPart then
-                                item:SetPrimaryPartCFrame(hrp.CFrame)
-                            end
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local hrp = char:WaitForChild("HumanoidRootPart")
+                    for _, item in ipairs(itemsFolder:GetChildren()) do
+                        local basePart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+                        if basePart then
+                            pcall(function()
+                                basePart.CFrame = hrp.CFrame * CFrame.new(0,0,-magnetRange)
+                            end)
                         end
                     end
-                    task.wait(1)
+                    task.wait(0.1)
                 end
             end)
+        else
+            print("Magnet Auto-Collect Stopped")
         end
     end)
 end
