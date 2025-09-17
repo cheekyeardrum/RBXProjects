@@ -426,7 +426,7 @@ local function buildAutoWinTab()
 end
 
 
--- ================= Auto-Collect Tab (Magnet) =================
+-- ================= Auto-Collect Tab (Magnet, Styled Toggle) =================
 local autoCollecting = false
 local magnetRange = 5
 local itemsFolder = workspace:WaitForChild("Game"):WaitForChild("MapItems")
@@ -437,13 +437,25 @@ local function buildAutoCollectTab()
     local btn = Instance.new("TextButton", contentFrame)
     btn.Size = UDim2.new(0,250,0,50)
     btn.Position = UDim2.new(0,20,0,20)
-    btn.Text = "Toggle Magnet Auto-Collect"
-    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    btn.Text = "Auto-Collect: OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(100,0,0) -- red = off
     btn.TextColor3 = Color3.new(1,1,1)
     round(btn,6)
 
+    local function updateStyle()
+        if autoCollecting then
+            btn.Text = "Auto-Collect: ON"
+            btn.BackgroundColor3 = Color3.fromRGB(0,150,0) -- green = on
+        else
+            btn.Text = "Auto-Collect: OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(100,0,0) -- red = off
+        end
+    end
+
     btn.MouseButton1Click:Connect(function()
         autoCollecting = not autoCollecting
+        updateStyle()
+
         if autoCollecting then
             print("Magnet Auto-Collect Started")
             task.spawn(function()
@@ -465,7 +477,10 @@ local function buildAutoCollectTab()
             print("Magnet Auto-Collect Stopped")
         end
     end)
+
+    updateStyle()
 end
+
 
 
 -- ================= Tab Switch =================
