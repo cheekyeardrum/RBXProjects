@@ -267,6 +267,7 @@ end
 -- ================= Teleport Tab =================
 local function buildTeleportTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(0.6,-10,0,30)
     label.Position = UDim2.new(0,10,0,10)
@@ -285,11 +286,12 @@ local function buildTeleportTab()
     scrollFrame.BackgroundTransparency = 0.8
     scrollFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
     round(scrollFrame, 8)
+
     local uiList = Instance.new("UIListLayout", scrollFrame)
     uiList.SortOrder = Enum.SortOrder.LayoutOrder
     uiList.Padding = UDim.new(0,5)
 
-    for i=1,5 do
+    for i = 1, 5 do
         local btn = Instance.new("TextButton", scrollFrame)
         btn.Size = UDim2.new(1,0,0,30)
         btn.Text = "World "..i
@@ -302,8 +304,21 @@ local function buildTeleportTab()
         btn.MouseButton1Click:Connect(function()
             local args = {{Info="SwitchWorld", World=i}}
             pcall(function() GameHandler:FireServer(unpack(args)) end)
+
+            -- Wait for server to load new world
+            task.wait(1)
+
+            local char = player.Character or player.CharacterAdded:Wait()
+            local hrp = char:WaitForChild("HumanoidRootPart")
+
+            -- Reset camera
+            workspace.CurrentCamera.CameraSubject = char:FindFirstChildWhichIsA("Humanoid") or hrp
+
+            -- Update MapItems reference for other loops if needed
+            itemsFolder = workspace:WaitForChild("Game"):WaitForChild("MapItems")
         end)
     end
+
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiList.AbsoluteContentSize.Y + 10)
 end
 
