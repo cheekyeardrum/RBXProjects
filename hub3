@@ -419,57 +419,55 @@ local function buildAutoWinTab()
 end
 
 -- ================= Auto-Collect Tab =================
+local autoCollecting = false
+local magnetRange = 5
+local itemsFolder = workspace:WaitForChild("Game"):WaitForChild("MapItems")
+
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(0.6,-10,0,30)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto-Collect (Magnet)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local collectBtn = Instance.new("TextButton", contentFrame)
-    collectBtn.Size = UDim2.new(0.35,0,0,30)
-    collectBtn.Position = UDim2.new(0.65,0,0,10)
-    collectBtn.Text = "OFF"
-    collectBtn.Font = Enum.Font.SourceSansBold
-    collectBtn.TextSize = 16
-    collectBtn.BackgroundColor3 = Color3.fromRGB(88,101,242)
-    collectBtn.TextColor3 = Color3.new(1,1,1)
-    round(collectBtn,6)
+    local btn = Instance.new("TextButton", contentFrame)
+    btn.Size = UDim2.new(0,250,0,50)
+    btn.Position = UDim2.new(0,20,0,20)
+    btn.Text = "Auto-Collect: OFF"
+    btn.BackgroundColor3 = Color3.fromRGB(100,0,0)
+    btn.TextColor3 = Color3.new(1,1,1)
+    round(btn,6)
 
-    local collectingThread
-    collectBtn.MouseButton1Click:Connect(function()
+    local function updateStyle()
+        if autoCollecting then
+            btn.Text = "Auto-Collect: ON"
+            btn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+        else
+            btn.Text = "Auto-Collect: OFF"
+            btn.BackgroundColor3 = Color3.fromRGB(100,0,0)
+        end
+    end
+
+    btn.MouseButton1Click:Connect(function()
         autoCollecting = not autoCollecting
-        collectBtn.Text = autoCollecting and "ON" or "OFF"
-        collectBtn.BackgroundColor3 = autoCollecting and Color3.fromRGB(0,170,0) or Color3.fromRGB(88,101,242)
+        updateStyle()
 
         if autoCollecting then
-            collectingThread = task.spawn(function()
-                local char = player.Character or player.CharacterAdded:Wait()
-                local hrp = char:WaitForChild("HumanoidRootPart")
+            task.spawn(function()
                 while autoCollecting do
-                    if workspace:FindFirstChild("Items") then
-                        for _, item in ipairs(workspace.Items:GetChildren()) do
-                            if not autoCollecting then break end
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local hrp = char:WaitForChild("HumanoidRootPart")
+                    for _, item in ipairs(itemsFolder:GetChildren()) do
+                        local basePart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
+                        if basePart then
                             pcall(function()
-                                if item:IsA("BasePart") and item.Parent then
-                                    item.CFrame = hrp.CFrame
-                                end
+                                basePart.CFrame = hrp.CFrame * CFrame.new(0,0,-magnetRange)
                             end)
                         end
                     end
                     task.wait(0.1)
                 end
             end)
-        else
-            -- This stops the thread safely by ending the loop
-            collectingThread = nil
         end
     end)
+
+    updateStyle()
 end
 
 
