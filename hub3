@@ -450,9 +450,12 @@ local function buildAutoCollectTab()
 
         if autoCollecting then
             task.spawn(function()
+                local player = game.Players.LocalPlayer
                 while autoCollecting do
                     local char = player.Character or player.CharacterAdded:Wait()
                     local hrp = char:WaitForChild("HumanoidRootPart")
+
+                    -- ======= Magnet-style auto-collect for walk-over items =======
                     for _, item in ipairs(itemsFolder:GetChildren()) do
                         local basePart = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart")
                         if basePart then
@@ -461,6 +464,23 @@ local function buildAutoCollectTab()
                             end)
                         end
                     end
+
+                    -- ======= Fire all Proximity Prompts (hold E items) =======
+                    for _, prompt in pairs(workspace:GetDescendants()) do
+                        if prompt:IsA("ProximityPrompt") then
+                            -- Use Infinite Yield's internal firepp if available
+                            if _G.iy and _G.iy.FireProximityPrompt then
+                                _G.iy:FireProximityPrompt(prompt)
+                            else
+                                -- Fallback in case firepp isn't available
+                                pcall(function()
+                                    prompt:InputHoldBegin()
+                                    prompt:InputHoldEnd()
+                                end)
+                            end
+                        end
+                    end
+
                     task.wait(0.1)
                 end
             end)
@@ -469,7 +489,6 @@ local function buildAutoCollectTab()
 
     updateStyle()
 end
-
 
 -- ================= Auto-Delete Tab =================
 local function buildAutoDeleteTab()
