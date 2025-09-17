@@ -135,7 +135,7 @@ contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
 -- Tab Names
-local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win"}
+local tabNames={"Mine","Wheel","Rewards","Teleport","Eggs","Auto-Win","Auto-Collect"}
 local tabButtons={}
 
 -- Global states
@@ -425,6 +425,45 @@ local function buildAutoWinTab()
     end)
 end
 
+
+-- ================= Auto-Collect Tab =================
+local autoCollecting = false
+
+local function buildAutoCollectTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local btn = Instance.new("TextButton", contentFrame)
+    btn.Size = UDim2.new(0,250,0,50)
+    btn.Position = UDim2.new(0,20,0,20)
+    btn.Text = "Toggle Auto-Collect Items"
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    btn.TextColor3 = Color3.new(1,1,1)
+    round(btn,6)
+
+    btn.MouseButton1Click:Connect(function()
+        autoCollecting = not autoCollecting
+        if autoCollecting then
+            task.spawn(function()
+                while autoCollecting do
+                    local char = player.Character
+                    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        for _, item in pairs(workspace.Game.MapItems:GetChildren()) do
+                            if item:IsA("BasePart") then
+                                item.CFrame = hrp.CFrame
+                            elseif item:IsA("Model") and item.PrimaryPart then
+                                item:SetPrimaryPartCFrame(hrp.CFrame)
+                            end
+                        end
+                    end
+                    task.wait(1)
+                end
+            end)
+        end
+    end)
+end
+
+
 -- ================= Tab Switch =================
 local function selectTab(idx)
     for i,btn in ipairs(tabButtons) do
@@ -435,7 +474,8 @@ local function selectTab(idx)
     elseif idx == 3 then buildRewardsTab()
     elseif idx == 4 then buildTeleportTab()
     elseif idx == 5 then buildEggsTab()
-    elseif idx == 6 then buildAutoWinTab() end
+    elseif idx == 6 then buildAutoWinTab()
+    elseif idx == 7 then buildAutoCollectTab() end
 end
 
 -- Create Tab Buttons
