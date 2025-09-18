@@ -1,8 +1,9 @@
--- Clean Hub (GUI Framework Only)
+-- Clean Hub (GUI Framework + Grass Upgrade Tab)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
@@ -125,11 +126,11 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
--- Tab Names (edit this list for your new game)
-local tabNames={"Tab1","Tab2","Tab3"}
+-- Tab Names
+local tabNames={"Tab1","Tab2","Tab3","Grass Upgrade"}
 local tabButtons={}
 
--- Empty Tab Functions
+-- Empty Tabs
 local function buildTab1()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
     local label = Instance.new("TextLabel", contentFrame)
@@ -166,8 +167,70 @@ local function buildTab3()
     label.TextSize = 20
 end
 
--- Tab Buttons
-local tabFuncs = {buildTab1,buildTab2,buildTab3}
+-- Grass Upgrade Tab
+local upgrading = false
+local connection
+
+local function fireGrassUpgrades()
+    -- Upgrade 1
+    local args1 = {
+        buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005")
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
+
+    -- Upgrade 2
+    local args2 = {
+        buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002")
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
+
+    -- Upgrade 3
+    local args3 = {
+        buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003")
+    }
+    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args3))
+end
+
+local function buildGrassUpgradeTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Grass Upgrades"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
+
+    toggle.MouseButton1Click:Connect(function()
+        upgrading = not upgrading
+        toggle.Text = upgrading and "ON" or "OFF"
+        toggle.BackgroundColor3 = upgrading and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if upgrading then
+            connection = RunService.RenderStepped:Connect(fireGrassUpgrades)
+        else
+            if connection then
+                connection:Disconnect()
+                connection = nil
+            end
+        end
+    end)
+end
+
+-- Tab Functions
+local tabFuncs = {buildTab1,buildTab2,buildTab3,buildGrassUpgradeTab}
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
