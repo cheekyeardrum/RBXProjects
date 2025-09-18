@@ -1,67 +1,175 @@
---// Clean GUI Base with Cut Grass Tab
+-- Clean Hub (GUI Framework + Cut Grass Tab)
+
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
--- Main ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CleanHub"
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-screenGui.ResetOnSpawn = false
+local player = Players.LocalPlayer
+local guiParent = CoreGui
 
--- Main Frame
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 500, 0, 350)
-mainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-mainFrame.BorderSizePixel = 0
+-- Sizes
+local HUB_SZ = UDim2.new(0,700,0,450)
+local MINIMIZED_SZ = UDim2.new(0,200,0,40)
 
--- Tab Buttons Holder
-local tabFrame = Instance.new("Frame", mainFrame)
-tabFrame.Size = UDim2.new(0, 120, 1, 0)
-tabFrame.Position = UDim2.new(0, 0, 0, 0)
-tabFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-tabFrame.BorderSizePixel = 0
-
--- Content Frame
-local contentFrame = Instance.new("Frame", mainFrame)
-contentFrame.Size = UDim2.new(1, -120, 1, 0)
-contentFrame.Position = UDim2.new(0, 120, 0, 0)
-contentFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-contentFrame.BorderSizePixel = 0
-
--- UIList for tab buttons
-local tabList = Instance.new("UIListLayout", tabFrame)
-tabList.SortOrder = Enum.SortOrder.LayoutOrder
-tabList.Padding = UDim.new(0, 5)
-
--- Function to clear content
-local function clearContent()
-    for _, v in pairs(contentFrame:GetChildren()) do
-        if not v:IsA("UIListLayout") then
-            v:Destroy()
-        end
-    end
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, props)
+    local tw = TweenService:Create(obj, tweenInfo, props)
+    tw:Play()
+    return tw
 end
 
--- Function to add tab button
-local function addTab(name, callback)
-    local button = Instance.new("TextButton", tabFrame)
-    button.Size = UDim2.new(1, -10, 0, 40)
-    button.Position = UDim2.new(0, 5, 0, 0)
-    button.Text = name
-    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    button.TextColor3 = Color3.fromRGB(255, 255, 255)
-    button.Font = Enum.Font.SourceSansBold
-    button.TextSize = 16
-    button.AutoButtonColor = true
+local function round(ui, radius)
+    local c = Instance.new("UICorner", ui)
+    c.CornerRadius = UDim.new(0, radius or 8)
+end
 
-    button.MouseButton1Click:Connect(function()
-        clearContent()
-        callback()
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CleanHubGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = guiParent
+
+-- Main Frame
+local frame = Instance.new("Frame", screenGui)
+frame.Name = "MainFrame"
+frame.Size = HUB_SZ
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.BorderSizePixel = 0
+round(frame,10)
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset+delta.X,
+            startPos.Y.Scale, startPos.Y.Offset+delta.Y
+        )
+    end
+end)
+
+local function enableDrag(target)
+    target.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = i.Position
+            startPos = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState==Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    target.InputChanged:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
+            dragInput = i
+        end
     end)
 end
 
--- ================= Cut Grass Tab =================
+-- Top Bar
+local bar=Instance.new("Frame",frame)
+bar.Size=UDim2.new(1,0,0,40)
+bar.Position=UDim2.new(0,0,0,0)
+bar.BackgroundColor3=Color3.fromRGB(40,40,40)
+bar.Active=true
+round(bar,10)
+enableDrag(bar)
+
+local title=Instance.new("TextLabel",bar)
+title.Size=UDim2.new(1,-120,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency=1
+title.Font=Enum.Font.SourceSansBold
+title.TextSize=24
+title.Text="Clean Hub"
+title.TextColor3=Color3.new(1,1,1)
+title.TextXAlignment=Enum.TextXAlignment.Left
+
+local closeBtn=Instance.new("TextButton",bar)
+closeBtn.Size=UDim2.new(0,30,0,30)
+closeBtn.Position=UDim2.new(1,-40,0,5)
+closeBtn.Text="X"
+closeBtn.Font=Enum.Font.SourceSansBold
+closeBtn.TextSize=18
+closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
+closeBtn.TextColor3=Color3.new(1,1,1)
+round(closeBtn,4)
+
+local minBtn=Instance.new("TextButton",bar)
+minBtn.Size=UDim2.new(0,30,0,30)
+minBtn.Position=UDim2.new(1,-80,0,5)
+minBtn.Text="-"
+minBtn.Font=Enum.Font.SourceSansBold
+minBtn.TextSize=22
+minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
+minBtn.TextColor3=Color3.new(1,1,1)
+round(minBtn,4)
+
+-- Tabs + Content
+local tabsFrame=Instance.new("Frame",frame)
+tabsFrame.Size=UDim2.new(0,140,1,-60)
+tabsFrame.Position=UDim2.new(0,0,0,50)
+tabsFrame.BackgroundTransparency=1
+
+local contentFrame=Instance.new("Frame",frame)
+contentFrame.Size=UDim2.new(1,-140,1,-60)
+contentFrame.Position=UDim2.new(0,140,0,50)
+contentFrame.BackgroundTransparency=1
+enableDrag(contentFrame)
+
+-- Clear content helper
+local function clearContent()
+    for _,v in pairs(contentFrame:GetChildren()) do
+        v:Destroy()
+    end
+end
+
+-- Tab Functions
+local function buildTab1()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,1,-20)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "This is Tab 1 (empty)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
+end
+
+local function buildTab2()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,1,-20)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "This is Tab 2 (empty)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
+end
+
+local function buildTab3()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,1,-20)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "This is Tab 3 (empty)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
+end
+
+-- NEW: Cut Grass Tab
 local function buildCutGrassTab()
     clearContent()
 
@@ -107,5 +215,36 @@ local function buildCutGrassTab()
     end)
 end
 
--- Add the Cut Grass tab
-addTab("Cut Grass", buildCutGrassTab)
+-- Tab Names + Functions
+local tabNames={"Tab1","Tab2","Tab3","Cut Grass"}
+local tabFuncs={buildTab1,buildTab2,buildTab3,buildCutGrassTab}
+local tabButtons={}
+
+-- Tab Buttons
+for i,name in ipairs(tabNames) do
+    local btn = Instance.new("TextButton", tabsFrame)
+    btn.Size = UDim2.new(1,0,0,40)
+    btn.Position = UDim2.new(0,0,0,(i-1)*45)
+    btn.Text = name
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 16
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.TextColor3 = Color3.new(1,1,1)
+    round(btn,6)
+    local func = tabFuncs[i]
+    btn.MouseButton1Click:Connect(func)
+    table.insert(tabButtons, btn)
+end
+
+-- Close/Minimize
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+minBtn.MouseButton1Click:Connect(function()
+    if frame.Size==HUB_SZ then
+        tween(frame,{Size=MINIMIZED_SZ})
+    else
+        tween(frame,{Size=HUB_SZ})
+    end
+end)
+
+-- Default tab
+buildTab1()
