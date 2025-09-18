@@ -1,4 +1,4 @@
--- Clean Hub (GUI Framework + Cut Grass Tab)
+-- Clean Hub (GUI Framework with Tabs)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -115,126 +115,179 @@ round(minBtn,4)
 
 -- Tabs + Content
 local tabsFrame=Instance.new("Frame",frame)
-tabsFrame.Size=UDim2.new(0,140,1,-60)
+tabsFrame.Size=UDim2.new(0,160,1,-60)
 tabsFrame.Position=UDim2.new(0,0,0,50)
 tabsFrame.BackgroundTransparency=1
 
 local contentFrame=Instance.new("Frame",frame)
-contentFrame.Size=UDim2.new(1,-140,1,-60)
-contentFrame.Position=UDim2.new(0,140,0,50)
+contentFrame.Size=UDim2.new(1,-160,1,-60)
+contentFrame.Position=UDim2.new(0,160,0,50)
 contentFrame.BackgroundTransparency=1
-enableDrag(contentFrame)
 
--- Clear content helper
+-- Helper: clear content
 local function clearContent()
-    for _,v in pairs(contentFrame:GetChildren()) do
-        v:Destroy()
-    end
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 end
 
--- Tab Functions
-local function buildTab1()
-    clearContent()
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 1 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
-local function buildTab2()
-    clearContent()
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 2 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
-local function buildTab3()
-    clearContent()
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 3 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
--- NEW: Cut Grass Tab
-local function buildCutGrassTab()
-    clearContent()
-
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1, 0, 0, 30)
-    label.Text = "Cut Grass"
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 18
-
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0, 150, 0, 40)
-    toggle.Position = UDim2.new(0, 10, 0, 50)
-    toggle.Text = "Toggle OFF"
-    toggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    toggle.Font = Enum.Font.SourceSans
-    toggle.TextSize = 16
-    toggle.AutoButtonColor = true
-
-    local toggled = false
-    local loop
-
-    toggle.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        toggle.Text = toggled and "Toggle ON" or "Toggle OFF"
-        toggle.BackgroundColor3 = toggled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(60, 60, 60)
-
-        if toggled then
-            loop = game:GetService("RunService").Heartbeat:Connect(function()
-                local args = {
-                    buffer.fromstring("\014\006\000Silver\003\000140")
-                }
-                game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args))
-            end)
-        else
-            if loop then
-                loop:Disconnect()
-                loop = nil
-            end
-        end
-    end)
-end
-
--- Tab Names + Functions
-local tabNames={"Tab1","Tab2","Tab3","Cut Grass"}
-local tabFuncs={buildTab1,buildTab2,buildTab3,buildCutGrassTab}
-local tabButtons={}
-
--- Tab Buttons
-for i,name in ipairs(tabNames) do
+-- Helper: add tab
+local function addTab(name, callback, order)
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
-    btn.Position = UDim2.new(0,0,0,(i-1)*45)
+    btn.Position = UDim2.new(0,0,0,(order-1)*45)
     btn.Text = name
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 16
     btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
     btn.TextColor3 = Color3.new(1,1,1)
     round(btn,6)
-    local func = tabFuncs[i]
-    btn.MouseButton1Click:Connect(func)
-    table.insert(tabButtons, btn)
+    btn.MouseButton1Click:Connect(callback)
 end
+
+-- =============== Tabs ===============
+
+-- Cut Grass (updated to Golden)
+local function buildCutGrassTab()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,0,0,30)
+    label.Text = "Cut Grass"
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,150,0,40)
+    toggle.Position = UDim2.new(0,10,0,50)
+    toggle.Text = "Toggle OFF"
+    toggle.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    toggle.TextColor3 = Color3.fromRGB(255,255,255)
+    local toggled, loop = false, nil
+
+    toggle.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        toggle.Text = toggled and "Toggle ON" or "Toggle OFF"
+        toggle.BackgroundColor3 = toggled and Color3.fromRGB(0,170,0) or Color3.fromRGB(60,60,60)
+        if toggled then
+            loop = game:GetService("RunService").Heartbeat:Connect(function()
+                local args = { buffer.fromstring("\014\006\000Golden\004\0009600") }
+                game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args))
+            end)
+        elseif loop then loop:Disconnect() loop=nil end
+    end)
+end
+
+-- Grass Upgrade
+local function buildGrassUpgradeTab()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,0,0,30)
+    label.Text = "Grass Upgrade"
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,180,0,40)
+    toggle.Position = UDim2.new(0,10,0,50)
+    toggle.Text = "Toggle OFF"
+    toggle.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    toggle.TextColor3 = Color3.fromRGB(255,255,255)
+    local toggled, loop = false, nil
+
+    toggle.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        toggle.Text = toggled and "Toggle ON" or "Toggle OFF"
+        toggle.BackgroundColor3 = toggled and Color3.fromRGB(0,170,0) or Color3.fromRGB(60,60,60)
+        if toggled then
+            loop = game:GetService("RunService").Heartbeat:Connect(function()
+                local args1 = { buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005") }
+                local args2 = { buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002") }
+                local args3 = { buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003") }
+                local remote = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
+                remote:FireServer(unpack(args1))
+                remote:FireServer(unpack(args2))
+                remote:FireServer(unpack(args3))
+            end)
+        elseif loop then loop:Disconnect() loop=nil end
+    end)
+end
+
+-- Rebirth Upgrades
+local function buildRebirthUpgradesTab()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,0,0,30)
+    label.Text = "Rebirth Upgrades"
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,40)
+    toggle.Position = UDim2.new(0,10,0,50)
+    toggle.Text = "Toggle OFF"
+    toggle.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    toggle.TextColor3 = Color3.fromRGB(255,255,255)
+    local toggled, loop = false, nil
+
+    toggle.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        toggle.Text = toggled and "Toggle ON" or "Toggle OFF"
+        toggle.BackgroundColor3 = toggled and Color3.fromRGB(0,170,0) or Color3.fromRGB(60,60,60)
+        if toggled then
+            loop = game:GetService("RunService").Heartbeat:Connect(function()
+                local args1 = { buffer.fromstring("\002\n\000SpawnRate2\000\001\0001\001\0008\a\000Rebirth\001\0003") }
+                local args2 = { buffer.fromstring("\002\v\000BladeRadius\000\001\0001\001\0005\a\000Rebirth\001\0002") }
+                local args3 = { buffer.fromstring("\002\v\000GrassValue2\000\001\0001\001\0006\a\000Rebirth\003\000256") }
+                local remote = game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable")
+                remote:FireServer(unpack(args1))
+                remote:FireServer(unpack(args2))
+                remote:FireServer(unpack(args3))
+            end)
+        elseif loop then loop:Disconnect() loop=nil end
+    end)
+end
+
+-- Rebirth
+local function buildRebirthTab()
+    clearContent()
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,0,0,30)
+    label.Text = "Rebirth"
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 18
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,150,0,40)
+    toggle.Position = UDim2.new(0,10,0,50)
+    toggle.Text = "Toggle OFF"
+    toggle.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    toggle.TextColor3 = Color3.fromRGB(255,255,255)
+    local toggled, loop = false, nil
+
+    toggle.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        toggle.Text = toggled and "Toggle ON" or "Toggle OFF"
+        toggle.BackgroundColor3 = toggled and Color3.fromRGB(0,170,0) or Color3.fromRGB(60,60,60)
+        if toggled then
+            loop = game:GetService("RunService").Heartbeat:Connect(function()
+                local args = { buffer.fromstring("\t") }
+                game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args))
+            end)
+        elseif loop then loop:Disconnect() loop=nil end
+    end)
+end
+
+-- Add Tabs
+addTab("Cut Grass", buildCutGrassTab, 1)
+addTab("Grass Upgrade", buildGrassUpgradeTab, 2)
+addTab("Rebirth Upgrades", buildRebirthUpgradesTab, 3)
+addTab("Rebirth", buildRebirthTab, 4)
 
 -- Close/Minimize
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
@@ -247,4 +300,4 @@ minBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Default tab
-buildTab1()
+buildCutGrassTab()
