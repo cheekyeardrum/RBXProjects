@@ -1,4 +1,4 @@
--- Clean Hub (GUI Framework + Break Blocks + AutoBuy + Boxes)
+-- Clean Hub (Full Integrated Version)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -128,47 +128,120 @@ contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
 -- Tab Names
-local tabNames={"Tab1","Tab2","Tab3","Break Blocks","AutoBuy","Boxes"}
+local tabNames={"AutoBuy","AutoCollect","Break Blocks"}
 local tabButtons={}
 
--- Empty Tabs
-local function buildTab1()
+-- ================= AutoBuy Tab =================
+local function buildAutoBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
     local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
+    label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "This is Tab 1 (empty)"
+    label.Text = "Auto Buy Items"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
+    label.TextSize = 22
+
+    -- Tungstenio Button
+    local tungstenBtn = Instance.new("TextButton", contentFrame)
+    tungstenBtn.Size = UDim2.new(0,200,0,50)
+    tungstenBtn.Position = UDim2.new(0,20,0,60)
+    tungstenBtn.Text = "Buy Tungstenio"
+    tungstenBtn.Font = Enum.Font.SourceSansBold
+    tungstenBtn.TextSize = 20
+    tungstenBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    tungstenBtn.TextColor3 = Color3.new(1,1,1)
+    round(tungstenBtn,8)
+
+    tungstenBtn.MouseButton1Click:Connect(function()
+        local args = { { "Tungstenio", "\017" } }
+        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    end)
+
+    -- God Button
+    local godBtn = Instance.new("TextButton", contentFrame)
+    godBtn.Size = UDim2.new(0,200,0,50)
+    godBtn.Position = UDim2.new(0,20,0,130)
+    godBtn.Text = "Buy God"
+    godBtn.Font = Enum.Font.SourceSansBold
+    godBtn.TextSize = 20
+    godBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    godBtn.TextColor3 = Color3.new(1,1,1)
+    round(godBtn,8)
+
+    godBtn.MouseButton1Click:Connect(function()
+        local args = { { "God", "\017" } }
+        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    end)
 end
 
-local function buildTab2()
+-- ================= AutoCollect Tab =================
+local collecting = false
+local collectConnection
+
+local plots = {
+    {Plot="1", UID="06713d06-929c-49f2-a9da-62e047cc9b39"},
+    {Plot="2", UID="9af530bd-a573-456b-bf5a-b5fc94475c40"},
+    {Plot="3", UID="3a2f8904-9de0-46c8-833e-c95dfeb6316d"},
+    {Plot="4", UID="5331e1c0-defe-4561-b093-f39345226ab5"},
+    {Plot="5", UID="a40c2b86-b3fa-47dc-9f75-43bb545495f5"},
+    {Plot="6", UID="75f35d93-91af-4c44-b1f3-6fa657714a69"},
+    {Plot="7", UID="74e77b45-efcd-4873-a672-1a18e36ae395"},
+    {Plot="8", UID="4baa1dd0-a767-499d-8b69-4b36a4bdccb3"},
+    {Plot="9", UID="95235596-3712-4af4-87d4-9d1621da4ccc"},
+    {Plot="10", UID="1d850962-89d9-45ad-8f2a-13de8f671b01"},
+    {Plot="11", UID="fa949549-0bf6-484f-ad26-b20de41dad19"},
+    {Plot="12", UID="2eda760b-4337-43c2-84e2-d62359667eba"}
+}
+
+local function fireCollectMoney()
+    for _, plot in pairs(plots) do
+        local args = { {plot, "\014"} }
+        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    end
+end
+
+local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
     local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
+    label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "This is Tab 2 (empty)"
+    label.Text = "Auto Collect Money (Plots 1–12)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
+    label.TextSize = 22
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
+
+    toggle.MouseButton1Click:Connect(function()
+        collecting = not collecting
+        toggle.Text = collecting and "ON" or "OFF"
+        toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if collecting then
+            collectConnection = RunService.RenderStepped:Connect(fireCollectMoney)
+        else
+            if collectConnection then
+                collectConnection:Disconnect()
+                collectConnection = nil
+            end
+        end
+    end)
 end
 
-local function buildTab3()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 3 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
--- Break Blocks Tab
+-- ================= Break Blocks Tab =================
 local breaking = false
 local breakConnection
 
@@ -215,75 +288,8 @@ local function buildBreakBlocksTab()
     end)
 end
 
--- AutoBuy Tab
-local function buildAutoBuyTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto Buy"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    local buyButton = Instance.new("TextButton", contentFrame)
-    buyButton.Size = UDim2.new(0,200,0,50)
-    buyButton.Position = UDim2.new(0,20,0,60)
-    buyButton.Text = "Buy Tungstenio"
-    buyButton.Font = Enum.Font.SourceSansBold
-    buyButton.TextSize = 20
-    buyButton.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    buyButton.TextColor3 = Color3.new(1,1,1)
-    round(buyButton,8)
-
-    buyButton.MouseButton1Click:Connect(function()
-        local args = {{"Tungstenio","\017"}}
-        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-    end)
-end
-
--- Boxes Tab
-local function buildBoxesTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Boxes"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    local boxList = {
-        "Disintegration","Future","Galaxium","God","Robust",
-        "Scrapper","ServerBox","Simple","Tungstenio","Warning"
-    }
-
-    for i,boxName in ipairs(boxList) do
-        local btn = Instance.new("TextButton", contentFrame)
-        btn.Size = UDim2.new(0,200,0,40)
-        btn.Position = UDim2.new(0,20,0,60 + (i-1)*45)
-        btn.Text = "Buy "..boxName
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 18
-        btn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-        btn.TextColor3 = Color3.new(1,1,1)
-        round(btn,6)
-
-        btn.MouseButton1Click:Connect(function()
-            local box = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Box"):WaitForChild(boxName)
-            local args = {box}
-            ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-        end)
-    end
-end
-
 -- Tab Functions
-local tabFuncs = {buildTab1, buildTab2, buildTab3, buildBreakBlocksTab, buildAutoBuyTab, buildBoxesTab}
-
+local tabFuncs = {buildAutoBuyTab, buildAutoCollectTab, buildBreakBlocksTab}
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
@@ -310,4 +316,4 @@ minBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Default tab
-buildTab1()
+buildAutoBuyTab()
