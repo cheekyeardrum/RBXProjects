@@ -327,15 +327,14 @@ local function buildEggsTab()
     local eggs = {
         "Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9",
         "Egg 10","Egg 11","Egg 12","Egg 13","Egg 14","Egg 15",
-        "Egg 16","Egg 17","Egg 18",
-        "Galaxy Egg","Ocean Egg","Test Egg"
+        "Egg 16","Egg 17","Egg 18"
     }
 
-    local columns = 4       -- increase columns to fit more buttons per row
-    local spacingX = 8       -- horizontal spacing
-    local spacingY = 30      -- vertical spacing
+    local columns = 3       -- 3 eggs per row (per world)
+    local spacingX = 10     -- horizontal spacing
+    local spacingY = 40     -- vertical spacing
     local buttonWidth = (contentFrame.AbsoluteSize.X - (columns + 1) * spacingX) / columns
-    local buttonHeight = 25  -- slightly shorter buttons
+    local buttonHeight = 30
     eggButtons = {}
 
     for i, eggName in ipairs(eggs) do
