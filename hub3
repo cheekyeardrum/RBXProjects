@@ -409,8 +409,16 @@ local function buildAutoWinTab()
         if autoWin then
             task.spawn(function()
                 while autoWin do
-                    local args = {{Info="AutoWin"}}
-                    pcall(function() GameHandler:FireServer(unpack(args)) end)
+                    -- Fire AutoWin
+                    pcall(function()
+                        GameHandler:FireServer({ Info="AutoWin" })
+                    end)
+
+                    -- Fire CollectWin right after
+                    pcall(function()
+                        GameHandler:FireServer({ Info="CollectWin" })
+                    end)
+
                     task.wait(0.3)
                 end
             end)
