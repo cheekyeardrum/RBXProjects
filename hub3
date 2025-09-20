@@ -323,7 +323,11 @@ local function buildEggsTab()
     label.TextSize = 18
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    local eggs = {"Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9","Egg 10","Egg 11","Egg 12","Egg 13","Egg 14","Egg 15"}
+    local eggs = {
+    "Egg 1","Egg 2","Egg 3","Egg 4","Egg 5","Egg 6","Egg 7","Egg 8","Egg 9",
+    "Egg 10","Egg 11","Egg 12","Egg 13","Egg 14","Egg 15",
+    "Egg 16","Egg 17","Egg 18" -- new eggs
+}
 
     local columns = 3
     local spacingX = 10
