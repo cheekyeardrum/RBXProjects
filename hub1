@@ -1,10 +1,11 @@
--- Clean Hub (GUI Framework with all tabs)
+-- Clean Hub (GUI Framework + Grass Upgrade Tab + Break Blocks)
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -127,189 +128,157 @@ contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
 -- Tab Names
-local tabNames={"Cut Grass","Grass Upgrades","Rebirth Upgrades","Rebirth","Popping"}
+local tabNames={"Tab1","Tab2","Tab3","Grass Upgrade","Break Blocks"}
 local tabButtons={}
 
--- ================= Toggle States =================
-local cutGrassActive, cutGrassLoop = false, nil
-local grassUpActive, grassUpLoop = false, nil
-local rebirthUpActive, rebirthUpLoop = false, nil
-local rebirthActive, rebirthLoop = false, nil
-local poppingActive, poppingLoop = false, nil
-
--- ================= Cut Grass Tab =================
-local function buildCutGrassTab()
+-- Empty Tabs
+local function buildTab1()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(0,250,0,50)
-    btn.Position = UDim2.new(0,20,0,20)
-    round(btn,6)
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,1,-20)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "This is Tab 1 (empty)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
+end
 
-    local function updateStyle()
-        btn.Text = "Cut Grass: "..(cutGrassActive and "ON" or "OFF")
-        btn.BackgroundColor3 = cutGrassActive and Color3.fromRGB(0,150,0) or Color3.fromRGB(100,0,0)
-    end
+local function buildTab2()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,1,-20)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "This is Tab 2 (empty)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
+end
 
-    updateStyle()
+local function buildTab3()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,1,-20)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "This is Tab 3 (empty)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
+end
 
-    btn.MouseButton1Click:Connect(function()
-        cutGrassActive = not cutGrassActive
-        updateStyle()
+-- Grass Upgrade Tab
+local upgrading = false
+local grassConnection
 
-        if cutGrassActive and not cutGrassLoop then
-            cutGrassLoop = RunService.Heartbeat:Connect(function()
-                local args = { buffer.fromstring("\014\006\000Golden\004\0009600") }
-                ReplicatedStorage:WaitForChild("ByteNetReliable"):FireServer(unpack(args))
-            end)
-        elseif not cutGrassActive and cutGrassLoop then
-            cutGrassLoop:Disconnect()
-            cutGrassLoop = nil
+local function fireGrassUpgrades()
+    -- Upgrade 1
+    local args1 = {
+        buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005")
+    }
+    ReplicatedStorage:WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
+
+    -- Upgrade 2
+    local args2 = {
+        buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002")
+    }
+    ReplicatedStorage:WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
+
+    -- Upgrade 3
+    local args3 = {
+        buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003")
+    }
+    ReplicatedStorage:WaitForChild("ByteNetReliable"):FireServer(unpack(args3))
+end
+
+local function buildGrassUpgradeTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Grass Upgrades"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
+
+    toggle.MouseButton1Click:Connect(function()
+        upgrading = not upgrading
+        toggle.Text = upgrading and "ON" or "OFF"
+        toggle.BackgroundColor3 = upgrading and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if upgrading then
+            grassConnection = RunService.RenderStepped:Connect(fireGrassUpgrades)
+        else
+            if grassConnection then
+                grassConnection:Disconnect()
+                grassConnection = nil
+            end
         end
     end)
 end
 
--- ================= Grass Upgrades Tab =================
-local function buildGrassUpgradesTab()
+-- Break Blocks Tab
+local breaking = false
+local breakConnection
+
+local function fireBreakBlocks()
+    local args = {"20"}
+    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
+end
+
+local function buildBreakBlocksTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(0,250,0,50)
-    btn.Position = UDim2.new(0,20,0,20)
-    round(btn,6)
 
-    local function updateStyle()
-        btn.Text = "Grass Upgrades: "..(grassUpActive and "ON" or "OFF")
-        btn.BackgroundColor3 = grassUpActive and Color3.fromRGB(0,150,0) or Color3.fromRGB(100,0,0)
-    end
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Break Blocks"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
 
-    updateStyle()
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
 
-    btn.MouseButton1Click:Connect(function()
-        grassUpActive = not grassUpActive
-        updateStyle()
+    toggle.MouseButton1Click:Connect(function()
+        breaking = not breaking
+        toggle.Text = breaking and "ON" or "OFF"
+        toggle.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if grassUpActive and not grassUpLoop then
-            grassUpLoop = RunService.Heartbeat:Connect(function()
-                local args1 = { buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005") }
-                local args2 = { buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002") }
-                local args3 = { buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003") }
-                local net = ReplicatedStorage:WaitForChild("ByteNetReliable")
-                net:FireServer(unpack(args1))
-                net:FireServer(unpack(args2))
-                net:FireServer(unpack(args3))
-            end)
-        elseif not grassUpActive and grassUpLoop then
-            grassUpLoop:Disconnect()
-            grassUpLoop = nil
+        if breaking then
+            breakConnection = RunService.RenderStepped:Connect(fireBreakBlocks)
+        else
+            if breakConnection then
+                breakConnection:Disconnect()
+                breakConnection = nil
+            end
         end
     end)
 end
 
--- ================= Rebirth Upgrades Tab =================
-local function buildRebirthUpgradesTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(0,250,0,50)
-    btn.Position = UDim2.new(0,20,0,20)
-    round(btn,6)
-
-    local function updateStyle()
-        btn.Text = "Rebirth Upgrades: "..(rebirthUpActive and "ON" or "OFF")
-        btn.BackgroundColor3 = rebirthUpActive and Color3.fromRGB(0,150,0) or Color3.fromRGB(100,0,0)
-    end
-
-    updateStyle()
-
-    btn.MouseButton1Click:Connect(function()
-        rebirthUpActive = not rebirthUpActive
-        updateStyle()
-
-        if rebirthUpActive and not rebirthUpLoop then
-            rebirthUpLoop = RunService.Heartbeat:Connect(function()
-                local args1 = { buffer.fromstring("\002\n\000SpawnRate2\000\001\0001\001\0008\a\000Rebirth\001\0003") }
-                local args2 = { buffer.fromstring("\002\v\000BladeRadius\000\001\0001\001\0005\a\000Rebirth\001\0002") }
-                local args3 = { buffer.fromstring("\002\v\000GrassValue2\000\001\0001\001\0006\a\000Rebirth\003\000256") }
-                local net = ReplicatedStorage:WaitForChild("ByteNetReliable")
-                net:FireServer(unpack(args1))
-                net:FireServer(unpack(args2))
-                net:FireServer(unpack(args3))
-            end)
-        elseif not rebirthUpActive and rebirthUpLoop then
-            rebirthUpLoop:Disconnect()
-            rebirthUpLoop = nil
-        end
-    end)
-end
-
--- ================= Rebirth Tab =================
-local function buildRebirthTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(0,250,0,50)
-    btn.Position = UDim2.new(0,20,0,20)
-    round(btn,6)
-
-    local function updateStyle()
-        btn.Text = "Rebirth: "..(rebirthActive and "ON" or "OFF")
-        btn.BackgroundColor3 = rebirthActive and Color3.fromRGB(0,150,0) or Color3.fromRGB(100,0,0)
-    end
-
-    updateStyle()
-
-    btn.MouseButton1Click:Connect(function()
-        rebirthActive = not rebirthActive
-        updateStyle()
-
-        if rebirthActive and not rebirthLoop then
-            rebirthLoop = RunService.Heartbeat:Connect(function()
-                local args = { buffer.fromstring("\t") }
-                ReplicatedStorage:WaitForChild("ByteNetReliable"):FireServer(unpack(args))
-            end)
-        elseif not rebirthActive and rebirthLoop then
-            rebirthLoop:Disconnect()
-            rebirthLoop = nil
-        end
-    end)
-end
-
--- ================= Popping Tab =================
-local function buildPoppingTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local btn = Instance.new("TextButton", contentFrame)
-    btn.Size = UDim2.new(0,250,0,50)
-    btn.Position = UDim2.new(0,20,0,20)
-    round(btn,6)
-
-    local function updateStyle()
-        btn.Text = "Popping: "..(poppingActive and "ON" or "OFF")
-        btn.BackgroundColor3 = poppingActive and Color3.fromRGB(0,150,0) or Color3.fromRGB(100,0,0)
-    end
-
-    updateStyle()
-
-    btn.MouseButton1Click:Connect(function()
-        poppingActive = not poppingActive
-        updateStyle()
-
-        if poppingActive and not poppingLoop then
-            poppingLoop = RunService.Heartbeat:Connect(function()
-                local args = { buffer.fromstring("\f\001\000") }
-                ReplicatedStorage:WaitForChild("ByteNetReliable"):FireServer(unpack(args))
-            end)
-        elseif not poppingActive and poppingLoop then
-            poppingLoop:Disconnect()
-            poppingLoop = nil
-        end
-    end)
-end
-
--- ================= Tab Buttons =================
-local tabFuncs = {
-    buildCutGrassTab,
-    buildGrassUpgradesTab,
-    buildRebirthUpgradesTab,
-    buildRebirthTab,
-    buildPoppingTab
-}
+-- Tab Functions
+local tabFuncs = {buildTab1, buildTab2, buildTab3, buildGrassUpgradeTab, buildBreakBlocksTab}
 
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
@@ -337,4 +306,4 @@ minBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Default tab
-buildCutGrassTab()
+buildTab1()
