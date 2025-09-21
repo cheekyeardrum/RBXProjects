@@ -180,6 +180,9 @@ end
 local collecting = false
 
 local function fireAllTycoons()
+    local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
 
@@ -194,8 +197,10 @@ local function fireAllTycoons()
                     local touchModel = slotModel:FindFirstChild("Touch")
                     if touchModel then
                         local touchPart = touchModel:FindFirstChild("Part")
-                        if touchPart then
+                        if touchPart and touchPart:IsA("BasePart") then
+                            -- simulate touch properly
                             firetouchinterest(hrp, touchPart, 0)
+                            task.wait() -- small delay so it registers
                             firetouchinterest(hrp, touchPart, 1)
                         end
                     end
