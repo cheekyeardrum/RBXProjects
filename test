@@ -128,7 +128,7 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
--- ================= AutoBuy Tab (Buy 1 or 10) =================
+-- ================= AutoBuy Tab (Buy 1 or 10 with Prices, no Robux boxes) =================
 local function buildAutoBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -154,7 +154,7 @@ local function buildAutoBuyTab()
     uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     uiListLayout.Padding = UDim.new(0,10)
 
-    -- Define boxes
+    -- Define boxes (no Robux items)
     local Boxes = {
         {Name="Simple", Item=game:GetService("ReplicatedStorage").Shared.Box.Simple, Price=3500},
         {Name="Scrapper", Item=game:GetService("ReplicatedStorage").Shared.Box.Scrapper, Price=15000},
@@ -164,15 +164,11 @@ local function buildAutoBuyTab()
         {Name="Future", Item=game:GetService("ReplicatedStorage").Shared.Box.Future, Price=1500000},
         {Name="Tungstenio", Item=game:GetService("ReplicatedStorage").Shared.Box.Tungstenio, Price=4000000},
         {Name="God", Item=game:GetService("ReplicatedStorage").Shared.Box.God, Price=10000000},
-        {Name="Galaxium", Item=game:GetService("ReplicatedStorage").Shared.Box.Galaxium, Price=nil},
-        {Name="ServerBox", Item=game:GetService("ReplicatedStorage").Shared.Box.ServerBox, Price=nil},
     }
 
     -- Sort by price
     table.sort(Boxes, function(a,b)
-        if not a.Price then return false end
-        if not b.Price then return true end
-        return a.Price < b.Price
+        return (a.Price or math.huge) < (b.Price or math.huge)
     end)
 
     -- Generate buttons
@@ -185,7 +181,7 @@ local function buildAutoBuyTab()
         local buy1 = Instance.new("TextButton", container)
         buy1.Size = UDim2.new(0.48,0,1,0)
         buy1.Position = UDim2.new(0,0,0,0)
-        buy1.Text = "Buy 1 "..box.Name
+        buy1.Text = "Buy 1 "..box.Name..(box.Price and (" ($".. tostring(box.Price)..")") or "")
         buy1.Font = Enum.Font.SourceSansBold
         buy1.TextSize = 18
         buy1.BackgroundColor3 = Color3.fromRGB(50,150,50)
@@ -201,7 +197,7 @@ local function buildAutoBuyTab()
         local buy10 = Instance.new("TextButton", container)
         buy10.Size = UDim2.new(0.48,0,1,0)
         buy10.Position = UDim2.new(0.52,0,0,0)
-        buy10.Text = "Buy 10 "..box.Name
+        buy10.Text = "Buy 10 "..box.Name..(box.Price and (" ($".. tostring((box.Price or 0)*10)..")") or "")
         buy10.Font = Enum.Font.SourceSansBold
         buy10.TextSize = 18
         buy10.BackgroundColor3 = Color3.fromRGB(50,100,200)
@@ -212,7 +208,7 @@ local function buildAutoBuyTab()
             for i=1,10 do
                 local args = { {box.Name, "\017"} }
                 game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-                task.wait(0.05) -- slight delay between purchases
+                task.wait(0.05)
             end
         end)
     end
@@ -220,6 +216,7 @@ local function buildAutoBuyTab()
     task.wait(0.1)
     scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
 end
+
 
 ---------------------------------------------------
 -- ================= AutoCollect Tab =================
