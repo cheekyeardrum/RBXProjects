@@ -1,4 +1,4 @@
--- Clean Hub (Improved Version with Working AutoCollect)
+-- Clean Hub (Full Integrated Version, Fixed)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -128,29 +128,61 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
--- Tab Names
-local tabNames={"AutoBuy","AutoCollect","Break Blocks"}
-local tabButtons={}
+---------------------------------------------------
+-- AutoBuy Tab
+---------------------------------------------------
+local function buildAutoBuyTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
--- Persistent toggle storage
-local toggles = {
-    AutoCollect = {State=false, Connection=nil},
-    BreakBlocks = {State=false, Connection=nil}
-}
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Auto Buy Items"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
 
--- AutoCollect Tab (fires all tycoons every 5s)
+    local tungstenBtn = Instance.new("TextButton", contentFrame)
+    tungstenBtn.Size = UDim2.new(0,200,0,50)
+    tungstenBtn.Position = UDim2.new(0,20,0,60)
+    tungstenBtn.Text = "Buy Tungstenio"
+    tungstenBtn.Font = Enum.Font.SourceSansBold
+    tungstenBtn.TextSize = 20
+    tungstenBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    tungstenBtn.TextColor3 = Color3.new(1,1,1)
+    round(tungstenBtn,8)
 
-local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
+    tungstenBtn.MouseButton1Click:Connect(function()
+        local args = { { "Tungstenio", "\017" } }
+        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    end)
 
+    local godBtn = Instance.new("TextButton", contentFrame)
+    godBtn.Size = UDim2.new(0,200,0,50)
+    godBtn.Position = UDim2.new(0,20,0,130)
+    godBtn.Text = "Buy God"
+    godBtn.Font = Enum.Font.SourceSansBold
+    godBtn.TextSize = 20
+    godBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    godBtn.TextColor3 = Color3.new(1,1,1)
+    round(godBtn,8)
+
+    godBtn.MouseButton1Click:Connect(function()
+        local args = { { "God", "\017" } }
+        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    end)
+end
+
+---------------------------------------------------
+-- AutoCollect Tab
+---------------------------------------------------
 local collecting = false
-local collectConnection
 
--- Function: fire all tycoon slots
 local function fireAllTycoons()
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
     local tycoonsFolder = Workspace:WaitForChild("Tycoons")
 
     for i = 1, 6 do
@@ -173,36 +205,6 @@ local function fireAllTycoons()
     end
 end
 
--- Toggle handler
-local function setCollecting(state)
-    if state and not collectConnection then
-        collecting = true
-        collectConnection = task.spawn(function()
-            while collecting do
-                fireAllTycoons()
-                task.wait(5) -- wait 5s between collections
-            end
-        end)
-    else
-        collecting = false
-        collectConnection = nil
-    end
-end
-
--- Add to your hub UI
-local autoCollectTab = Window:CreateTab("AutoCollect", 4483362458) -- icon is placeholder
-
-autoCollectTab:CreateToggle({
-    Name = "Auto Collect",
-    CurrentValue = false,
-    Flag = "AutoCollectToggle",
-    Callback = function(Value)
-        setCollecting(Value)
-    end,
-})
-
-
--- ================= AutoCollect Tab =================
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -210,7 +212,7 @@ local function buildAutoCollectTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Collect Money (Your Tycoon)"
+    label.Text = "Auto Collect Money (All Tycoons)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -218,66 +220,38 @@ local function buildAutoCollectTab()
     local toggle = Instance.new("TextButton", contentFrame)
     toggle.Size = UDim2.new(0,200,0,50)
     toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = toggles.AutoCollect.State and "ON" or "OFF"
+    toggle.Text = "OFF"
     toggle.Font = Enum.Font.SourceSansBold
     toggle.TextSize = 20
-    toggle.BackgroundColor3 = toggles.AutoCollect.State and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
     toggle.TextColor3 = Color3.new(1,1,1)
     round(toggle,8)
 
-    -- Find your tycoon dynamically
-    local function getMyTycoon()
-        while true do
-            for i = 1, 6 do
-                local tycoon = Workspace:FindFirstChild("Tycoons") and Workspace.Tycoons:FindFirstChild("Tycoon_"..i)
-                if tycoon and tycoon:FindFirstChild("Tycoon") and tycoon.Tycoon:FindFirstChild("Owner") then
-                    if tycoon.Tycoon.Owner.Value == player then
-                        return tycoon.Tycoon
-                    end
-                end
-            end
-            task.wait(1)
-        end
-    end
-
-    local function fireTycoonSlots(myTycoon)
-        local slots = myTycoon:FindFirstChild("Slots")
-        if slots then
-            for _, slotModel in pairs(slots:GetChildren()) do
-                local touchModel = slotModel:FindFirstChild("Touch")
-                if touchModel then
-                    local touchPart = touchModel:FindFirstChild("Part")
-                    if touchPart then
-                        firetouchinterest(player.Character.HumanoidRootPart, touchPart, 0)
-                        firetouchinterest(player.Character.HumanoidRootPart, touchPart, 1)
-                    end
-                end
-            end
-        end
-    end
-
     toggle.MouseButton1Click:Connect(function()
-        toggles.AutoCollect.State = not toggles.AutoCollect.State
-        toggle.Text = toggles.AutoCollect.State and "ON" or "OFF"
-        toggle.BackgroundColor3 = toggles.AutoCollect.State and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        collecting = not collecting
+        toggle.Text = collecting and "ON" or "OFF"
+        toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if toggles.AutoCollect.State and not toggles.AutoCollect.Connection then
-            toggles.AutoCollect.Connection = task.spawn(function()
-                local myTycoon = getMyTycoon()
-                while toggles.AutoCollect.State do
-                    fireTycoonSlots(myTycoon)
-                    task.wait(5)
+        if collecting then
+            task.spawn(function()
+                while collecting do
+                    fireAllTycoons()
+                    task.wait(5) -- every 5 seconds
                 end
             end)
-        elseif not toggles.AutoCollect.State and toggles.AutoCollect.Connection then
-            toggles.AutoCollect.Connection = nil
         end
     end)
 end
 
--- ================= Break Blocks Tab =================
+---------------------------------------------------
+-- Break Blocks Tab
+---------------------------------------------------
+local breaking = false
+local breakConnection
+
 local function fireBreakBlocks()
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer("20")
+    local args = {"20"}
+    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
 end
 
 local function buildBreakBlocksTab()
@@ -295,32 +269,36 @@ local function buildBreakBlocksTab()
     local toggle = Instance.new("TextButton", contentFrame)
     toggle.Size = UDim2.new(0,200,0,50)
     toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = toggles.BreakBlocks.State and "ON" or "OFF"
+    toggle.Text = "OFF"
     toggle.Font = Enum.Font.SourceSansBold
     toggle.TextSize = 20
-    toggle.BackgroundColor3 = toggles.BreakBlocks.State and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
     toggle.TextColor3 = Color3.new(1,1,1)
     round(toggle,8)
 
     toggle.MouseButton1Click:Connect(function()
-        toggles.BreakBlocks.State = not toggles.BreakBlocks.State
-        toggle.Text = toggles.BreakBlocks.State and "ON" or "OFF"
-        toggle.BackgroundColor3 = toggles.BreakBlocks.State and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        breaking = not breaking
+        toggle.Text = breaking and "ON" or "OFF"
+        toggle.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if toggles.BreakBlocks.State and not toggles.BreakBlocks.Connection then
-            toggles.BreakBlocks.Connection = RunService.Heartbeat:Connect(function()
-                fireBreakBlocks()
-                task.wait(0.3)
-            end)
-        elseif not toggles.BreakBlocks.State and toggles.BreakBlocks.Connection then
-            toggles.BreakBlocks.Connection:Disconnect()
-            toggles.BreakBlocks.Connection = nil
+        if breaking then
+            breakConnection = RunService.RenderStepped:Connect(fireBreakBlocks)
+        else
+            if breakConnection then
+                breakConnection:Disconnect()
+                breakConnection = nil
+            end
         end
     end)
 end
 
--- Tab Functions
-local tabFuncs = {buildAutoBuyTab, buildAutoCollectTab, buildBreakBlocksTab}
+---------------------------------------------------
+-- Tabs
+---------------------------------------------------
+local tabNames={"AutoBuy","AutoCollect","Break Blocks"}
+local tabFuncs={buildAutoBuyTab,buildAutoCollectTab,buildBreakBlocksTab}
+local tabButtons={}
+
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
@@ -332,9 +310,7 @@ for i,name in ipairs(tabNames) do
     btn.TextColor3 = Color3.new(1,1,1)
     round(btn,6)
     local func = tabFuncs[i]
-    btn.MouseButton1Click:Connect(function()
-        func() -- rebuild UI, leave toggles running
-    end)
+    btn.MouseButton1Click:Connect(func)
     table.insert(tabButtons, btn)
 end
 
@@ -343,12 +319,8 @@ closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 minBtn.MouseButton1Click:Connect(function()
     if frame.Size==HUB_SZ then
         tween(frame,{Size=MINIMIZED_SZ})
-        contentFrame.Visible = false
-        tabsFrame.Visible = false
     else
         tween(frame,{Size=HUB_SZ})
-        contentFrame.Visible = true
-        tabsFrame.Visible = true
     end
 end)
 
