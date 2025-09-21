@@ -323,17 +323,7 @@ local function buildAutoCollectTab()
     end)
 end
 
----------------------------------------------------
--- Break Blocks Tab
----------------------------------------------------
-local breaking = false
-local breakConnection
-
-local function fireBreakBlocks()
-    local args = {"20"}
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
-end
-
+-- ================= Break Blocks Tab =================
 local function buildBreakBlocksTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -346,31 +336,63 @@ local function buildBreakBlocksTab()
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
+    -- Plot Box
+    local plotBtn = Instance.new("TextButton", contentFrame)
+    plotBtn.Size = UDim2.new(0,200,0,50)
+    plotBtn.Position = UDim2.new(0,20,0,60)
+    plotBtn.Text = "Plot Box"
+    plotBtn.Font = Enum.Font.SourceSansBold
+    plotBtn.TextSize = 20
+    plotBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+    plotBtn.TextColor3 = Color3.new(1,1,1)
+    round(plotBtn,8)
 
-    toggle.MouseButton1Click:Connect(function()
-        breaking = not breaking
-        toggle.Text = breaking and "ON" or "OFF"
-        toggle.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if breaking then
-            breakConnection = RunService.RenderStepped:Connect(fireBreakBlocks)
+    local plotLoop
+    plotBtn.MouseButton1Click:Connect(function()
+        if plotLoop then
+            plotLoop:Disconnect()
+            plotLoop = nil
+            plotBtn.Text = "Plot Box"
+            plotBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
         else
-            if breakConnection then
-                breakConnection:Disconnect()
-                breakConnection = nil
-            end
+            plotBtn.Text = "Plot Box (ON)"
+            plotBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+            plotLoop = RunService.RenderStepped:Connect(function()
+                firePlotBox()
+                task.wait(1) -- 1 second delay between hits
+            end)
+        end
+    end)
+
+    -- Server Box
+    local serverBtn = Instance.new("TextButton", contentFrame)
+    serverBtn.Size = UDim2.new(0,200,0,50)
+    serverBtn.Position = UDim2.new(0,20,0,130)
+    serverBtn.Text = "Server Box"
+    serverBtn.Font = Enum.Font.SourceSansBold
+    serverBtn.TextSize = 20
+    serverBtn.BackgroundColor3 = Color3.fromRGB(50,100,200)
+    serverBtn.TextColor3 = Color3.new(1,1,1)
+    round(serverBtn,8)
+
+    local serverLoop
+    serverBtn.MouseButton1Click:Connect(function()
+        if serverLoop then
+            serverLoop:Disconnect()
+            serverLoop = nil
+            serverBtn.Text = "Server Box"
+            serverBtn.BackgroundColor3 = Color3.fromRGB(50,100,200)
+        else
+            serverBtn.Text = "Server Box (ON)"
+            serverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+            serverLoop = RunService.RenderStepped:Connect(function()
+                fireServerBox()
+                task.wait(1) -- 1 second delay between hits
+            end)
         end
     end)
 end
+
 
 ---------------------------------------------------
 -- Tabs
