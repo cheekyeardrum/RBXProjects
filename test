@@ -175,56 +175,68 @@ local function buildAutoBuyTab()
 end
 
 ---------------------------------------------------
--- AutoCollect Tab
----------------------------------------------------
+-- ================= AutoCollect Tab =================
 local collecting = false
+local collectThread
 
-local function fireAllTycoons()
+local function getMyTycoon()
     local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local tycoonsFolder = Workspace:WaitForChild("Tycoons")
+
+    for i = 1, 6 do
+        local tycoonModel = tycoonsFolder:FindFirstChild("Tycoon_"..i)
+        if tycoonModel then
+            local playerSign = tycoonModel:FindFirstChild("Player_Sign")
+            if playerSign then
+                local playerInfo = playerSign:FindFirstChild("PlayerInfo")
+                if playerInfo then
+                    local baseInfo = playerInfo:FindFirstChild("BaseInfo")
+                    if baseInfo then
+                        local playerNameBox = baseInfo:FindFirstChild("PlayerName")
+                        if playerNameBox and playerNameBox:IsA("TextLabel") then
+                            if playerNameBox.Text == player.Name then
+                                return tycoonModel
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil -- not found yet
+end
+
+local function collectFromMyTycoon()
+    local myTycoon = getMyTycoon()
+    if not myTycoon or not myTycoon:FindFirstChild("Tycoon") then return end
+
     local Players = game:GetService("Players")
     local player = Players.LocalPlayer
     local character = player.Character or player.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
 
-    local tycoonsFolder = Workspace:WaitForChild("Tycoons")
-
-    for i = 1, 6 do
-        local tycoonModel = tycoonsFolder:FindFirstChild("Tycoon_"..i)
-        if tycoonModel and tycoonModel:FindFirstChild("Tycoon") then
-            local slots = tycoonModel.Tycoon:FindFirstChild("Slots")
-            if slots then
-                -- cycle all 12 plots one by one
-                for slotNum = 1, 12 do
-                    local slotModel = slots:FindFirstChild(tostring(slotNum))
-                    if slotModel then
-                        local touchModel = slotModel:FindFirstChild("Touch")
-                        if touchModel then
-                            local touchPart = touchModel:FindFirstChild("Part")
-                            if touchPart and touchPart:IsA("BasePart") then
-                                firetouchinterest(hrp, touchPart, 0)
-                                task.wait(0.1) -- press down
-                                firetouchinterest(hrp, touchPart, 1)
-                            end
-                        end
+    local slots = myTycoon.Tycoon:FindFirstChild("Slots")
+    if slots then
+        for slotNum = 1, 12 do
+            local slotModel = slots:FindFirstChild(tostring(slotNum))
+            if slotModel then
+                local touchModel = slotModel:FindFirstChild("Touch")
+                if touchModel then
+                    local touchPart = touchModel:FindFirstChild("Part")
+                    if touchPart and touchPart:IsA("BasePart") then
+                        firetouchinterest(hrp, touchPart, 0)
+                        task.wait(0.1)
+                        firetouchinterest(hrp, touchPart, 1)
                     end
-                    task.wait(2) -- wait 2 seconds before moving to the next plot
                 end
             end
+            task.wait(2) -- wait before moving to the next plot
         end
     end
 end
 
-local function setCollecting(state)
-    collecting = state
-    if collecting then
-        task.spawn(function()
-            while collecting do
-                fireAllTycoons()
-                -- no global 5s delay anymore, each plot has its own 2s delay
-            end
-        end)
-    end
-end
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -232,7 +244,7 @@ local function buildAutoCollectTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Collect Money (All Tycoons)"
+    label.Text = "Auto Collect Money (Your Tycoon Only)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -253,12 +265,16 @@ local function buildAutoCollectTab()
         toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
         if collecting then
-            task.spawn(function()
+            collectThread = task.spawn(function()
                 while collecting do
-                    fireAllTycoons()
-                    task.wait(5) -- every 5 seconds
+                    collectFromMyTycoon()
                 end
             end)
+        else
+            if collectThread then
+                task.cancel(collectThread)
+                collectThread = nil
+            end
         end
     end)
 end
