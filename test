@@ -138,40 +138,69 @@ local toggles = {
     BreakBlocks = {State=false, Connection=nil}
 }
 
--- ================= AutoBuy Tab =================
-local function buildAutoBuyTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+-- AutoCollect Tab (fires all tycoons every 5s)
 
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto Buy Items"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
-    local buyItems = {
-        {Name="Tungstenio", Code="\017"},
-        {Name="God", Code="\017"}
-    }
+local collecting = false
+local collectConnection
 
-    for i, item in ipairs(buyItems) do
-        local btn = Instance.new("TextButton", contentFrame)
-        btn.Size = UDim2.new(0,200,0,50)
-        btn.Position = UDim2.new(0,20,0,60 + (i-1)*70)
-        btn.Text = "Buy "..item.Name
-        btn.Font = Enum.Font.SourceSansBold
-        btn.TextSize = 20
-        btn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-        btn.TextColor3 = Color3.new(1,1,1)
-        round(btn,8)
+-- Function: fire all tycoon slots
+local function fireAllTycoons()
+    local tycoonsFolder = Workspace:WaitForChild("Tycoons")
 
-        btn.MouseButton1Click:Connect(function()
-            ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer({item.Name, item.Code})
-        end)
+    for i = 1, 6 do
+        local tycoonModel = tycoonsFolder:FindFirstChild("Tycoon_"..i)
+        if tycoonModel and tycoonModel:FindFirstChild("Tycoon") then
+            local slots = tycoonModel.Tycoon:FindFirstChild("Slots")
+            if slots then
+                for _, slotModel in pairs(slots:GetChildren()) do
+                    local touchModel = slotModel:FindFirstChild("Touch")
+                    if touchModel then
+                        local touchPart = touchModel:FindFirstChild("Part")
+                        if touchPart then
+                            firetouchinterest(hrp, touchPart, 0)
+                            firetouchinterest(hrp, touchPart, 1)
+                        end
+                    end
+                end
+            end
+        end
     end
 end
+
+-- Toggle handler
+local function setCollecting(state)
+    if state and not collectConnection then
+        collecting = true
+        collectConnection = task.spawn(function()
+            while collecting do
+                fireAllTycoons()
+                task.wait(5) -- wait 5s between collections
+            end
+        end)
+    else
+        collecting = false
+        collectConnection = nil
+    end
+end
+
+-- Add to your hub UI
+local autoCollectTab = Window:CreateTab("AutoCollect", 4483362458) -- icon is placeholder
+
+autoCollectTab:CreateToggle({
+    Name = "Auto Collect",
+    CurrentValue = false,
+    Flag = "AutoCollectToggle",
+    Callback = function(Value)
+        setCollecting(Value)
+    end,
+})
+
 
 -- ================= AutoCollect Tab =================
 local function buildAutoCollectTab()
