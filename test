@@ -174,32 +174,6 @@ local function buildAutoBuyTab()
 end
 
 -- ================= AutoCollect Tab =================
-local function getMyTycoon()
-    while true do
-        for i=1,6 do
-            local tycoon = Workspace:FindFirstChild("Tycoons") and Workspace.Tycoons:FindFirstChild("Tycoon_"..i)
-            if tycoon and tycoon:FindFirstChild("Tycoon") and tycoon.Tycoon:FindFirstChild("Owner") then
-                if tycoon.Tycoon.Owner.Value == player then
-                    return tycoon.Tycoon
-                end
-            end
-        end
-        task.wait(1) -- wait until assigned
-    end
-end
-
-local function fireCollectMoney()
-    local myTycoon = getMyTycoon()
-    if not myTycoon then return end
-    for _, slot in pairs(myTycoon.Slots:GetChildren()) do
-        local part = slot:FindFirstChild("Part")
-        if part then
-            firetouchinterest(player.Character.HumanoidRootPart, part, 0)
-            firetouchinterest(player.Character.HumanoidRootPart, part, 1)
-        end
-    end
-end
-
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -207,7 +181,7 @@ local function buildAutoCollectTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Collect Money (Your Tycoon Slots)"
+    label.Text = "Auto Collect Money (Your Tycoon)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -222,18 +196,51 @@ local function buildAutoCollectTab()
     toggle.TextColor3 = Color3.new(1,1,1)
     round(toggle,8)
 
+    -- Find your tycoon dynamically
+    local function getMyTycoon()
+        while true do
+            for i = 1, 6 do
+                local tycoon = Workspace:FindFirstChild("Tycoons") and Workspace.Tycoons:FindFirstChild("Tycoon_"..i)
+                if tycoon and tycoon:FindFirstChild("Tycoon") and tycoon.Tycoon:FindFirstChild("Owner") then
+                    if tycoon.Tycoon.Owner.Value == player then
+                        return tycoon.Tycoon
+                    end
+                end
+            end
+            task.wait(1)
+        end
+    end
+
+    local function fireTycoonSlots(myTycoon)
+        local slots = myTycoon:FindFirstChild("Slots")
+        if slots then
+            for _, slotModel in pairs(slots:GetChildren()) do
+                local touchModel = slotModel:FindFirstChild("Touch")
+                if touchModel then
+                    local touchPart = touchModel:FindFirstChild("Part")
+                    if touchPart then
+                        firetouchinterest(player.Character.HumanoidRootPart, touchPart, 0)
+                        firetouchinterest(player.Character.HumanoidRootPart, touchPart, 1)
+                    end
+                end
+            end
+        end
+    end
+
     toggle.MouseButton1Click:Connect(function()
         toggles.AutoCollect.State = not toggles.AutoCollect.State
         toggle.Text = toggles.AutoCollect.State and "ON" or "OFF"
         toggle.BackgroundColor3 = toggles.AutoCollect.State and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
         if toggles.AutoCollect.State and not toggles.AutoCollect.Connection then
-            toggles.AutoCollect.Connection = RunService.Heartbeat:Connect(function()
-                fireCollectMoney()
-                task.wait(0.3)
+            toggles.AutoCollect.Connection = task.spawn(function()
+                local myTycoon = getMyTycoon()
+                while toggles.AutoCollect.State do
+                    fireTycoonSlots(myTycoon)
+                    task.wait(5)
+                end
             end)
         elseif not toggles.AutoCollect.State and toggles.AutoCollect.Connection then
-            toggles.AutoCollect.Connection:Disconnect()
             toggles.AutoCollect.Connection = nil
         end
     end)
