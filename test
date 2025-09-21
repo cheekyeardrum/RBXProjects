@@ -1,4 +1,4 @@
--- Clean Hub (Improved Version with Persistent Toggles)
+-- Clean Hub (Improved Version with Working AutoCollect)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -174,20 +174,22 @@ local function buildAutoBuyTab()
 end
 
 -- ================= AutoCollect Tab =================
-local function getMyTycoonSlot()
-    for i=1,6 do
-        local tycoon = Workspace:FindFirstChild("Tycoons") and Workspace.Tycoons:FindFirstChild("Tycoon_"..i)
-        if tycoon and tycoon:FindFirstChild("Tycoon") and tycoon.Tycoon:FindFirstChild("Owner") then
-            if tycoon.Tycoon.Owner.Value == player then
-                return tycoon.Tycoon
+local function getMyTycoon()
+    while true do
+        for i=1,6 do
+            local tycoon = Workspace:FindFirstChild("Tycoons") and Workspace.Tycoons:FindFirstChild("Tycoon_"..i)
+            if tycoon and tycoon:FindFirstChild("Tycoon") and tycoon.Tycoon:FindFirstChild("Owner") then
+                if tycoon.Tycoon.Owner.Value == player then
+                    return tycoon.Tycoon
+                end
             end
         end
+        task.wait(1) -- wait until assigned
     end
-    return nil
 end
 
 local function fireCollectMoney()
-    local myTycoon = getMyTycoonSlot()
+    local myTycoon = getMyTycoon()
     if not myTycoon then return end
     for _, slot in pairs(myTycoon.Slots:GetChildren()) do
         local part = slot:FindFirstChild("Part")
@@ -228,7 +230,7 @@ local function buildAutoCollectTab()
         if toggles.AutoCollect.State and not toggles.AutoCollect.Connection then
             toggles.AutoCollect.Connection = RunService.Heartbeat:Connect(function()
                 fireCollectMoney()
-                task.wait(0.2)
+                task.wait(0.3)
             end)
         elseif not toggles.AutoCollect.State and toggles.AutoCollect.Connection then
             toggles.AutoCollect.Connection:Disconnect()
@@ -272,7 +274,7 @@ local function buildBreakBlocksTab()
         if toggles.BreakBlocks.State and not toggles.BreakBlocks.Connection then
             toggles.BreakBlocks.Connection = RunService.Heartbeat:Connect(function()
                 fireBreakBlocks()
-                task.wait(0.2)
+                task.wait(0.3)
             end)
         elseif not toggles.BreakBlocks.State and toggles.BreakBlocks.Connection then
             toggles.BreakBlocks.Connection:Disconnect()
@@ -295,7 +297,7 @@ for i,name in ipairs(tabNames) do
     round(btn,6)
     local func = tabFuncs[i]
     btn.MouseButton1Click:Connect(function()
-        func() -- just rebuild tab UI, leave toggles running
+        func() -- rebuild UI, leave toggles running
     end)
     table.insert(tabButtons, btn)
 end
