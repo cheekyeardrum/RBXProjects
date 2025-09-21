@@ -128,9 +128,7 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
----------------------------------------------------
--- AutoBuy Tab
----------------------------------------------------
+-- ================= AutoBuy Tab (Scrollable) =================
 local function buildAutoBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -143,35 +141,60 @@ local function buildAutoBuyTab()
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    local tungstenBtn = Instance.new("TextButton", contentFrame)
-    tungstenBtn.Size = UDim2.new(0,200,0,50)
-    tungstenBtn.Position = UDim2.new(0,20,0,60)
-    tungstenBtn.Text = "Buy Tungstenio"
-    tungstenBtn.Font = Enum.Font.SourceSansBold
-    tungstenBtn.TextSize = 20
-    tungstenBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    tungstenBtn.TextColor3 = Color3.new(1,1,1)
-    round(tungstenBtn,8)
+    -- Scrollable frame
+    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
+    scrollFrame.Size = UDim2.new(1,-20,1,-60)
+    scrollFrame.Position = UDim2.new(0,10,0,60)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,0) -- will update after buttons
+    scrollFrame.ScrollBarThickness = 10
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
 
-    tungstenBtn.MouseButton1Click:Connect(function()
-        local args = { { "Tungstenio", "\017" } }
-        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    local uiListLayout = Instance.new("UIListLayout", scrollFrame)
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    uiListLayout.Padding = UDim.new(0,10)
+
+    -- Define boxes
+    local Boxes = {
+        {Name="Simple", Item=game:GetService("ReplicatedStorage").Shared.Box.Simple, Price=3500},
+        {Name="Scrapper", Item=game:GetService("ReplicatedStorage").Shared.Box.Scrapper, Price=15000},
+        {Name="Robust", Item=game:GetService("ReplicatedStorage").Shared.Box.Robust, Price=45000},
+        {Name="Warning", Item=game:GetService("ReplicatedStorage").Shared.Box.Warning, Price=120000},
+        {Name="Disintegration", Item=game:GetService("ReplicatedStorage").Shared.Box.Disintegration, Price=300000},
+        {Name="Tungstenio", Item=game:GetService("ReplicatedStorage").Shared.Box.Tungstenio, Price=4000000},
+        {Name="Future", Item=game:GetService("ReplicatedStorage").Shared.Box.Future, Price=1500000},
+        {Name="God", Item=game:GetService("ReplicatedStorage").Shared.Box.God, Price=10000000},
+        {Name="Galaxium", Item=game:GetService("ReplicatedStorage").Shared.Box.Galaxium, Price=nil},
+        {Name="ServerBox", Item=game:GetService("ReplicatedStorage").Shared.Box.ServerBox, Price=nil},
+    }
+
+    -- Sort by price
+    table.sort(Boxes, function(a,b)
+        if not a.Price then return false end
+        if not b.Price then return true end
+        return a.Price < b.Price
     end)
 
-    local godBtn = Instance.new("TextButton", contentFrame)
-    godBtn.Size = UDim2.new(0,200,0,50)
-    godBtn.Position = UDim2.new(0,20,0,130)
-    godBtn.Text = "Buy God"
-    godBtn.Font = Enum.Font.SourceSansBold
-    godBtn.TextSize = 20
-    godBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    godBtn.TextColor3 = Color3.new(1,1,1)
-    round(godBtn,8)
+    -- Create buttons
+    for _,box in ipairs(Boxes) do
+        local btn = Instance.new("TextButton", scrollFrame)
+        btn.Size = UDim2.new(1,0,0,50)
+        btn.Text = box.Name .. (box.Price and (" ($".. tostring(box.Price)..")") or "")
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 20
+        btn.BackgroundColor3 = Color3.fromRGB(50,150,50)
+        btn.TextColor3 = Color3.new(1,1,1)
+        round(btn,8)
 
-    godBtn.MouseButton1Click:Connect(function()
-        local args = { { "God", "\017" } }
-        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-    end)
+        btn.MouseButton1Click:Connect(function()
+            local args = { {box.Name, "\017"} }
+            game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+        end)
+    end
+
+    -- Update canvas size after buttons are created
+    task.wait(0.1)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
 end
 
 ---------------------------------------------------
