@@ -324,7 +324,7 @@ local function buildAutoCollectTab()
 end
 
 ---------------------------------------------------
--- Break Blocks Tab with Skip Animation
+-- Break Blocks Tab with True Skip Animation
 ---------------------------------------------------
 local breaking = false
 local breakConnection
@@ -334,29 +334,21 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Disable box animation
-local function disableBoxAnimation()
-    local events = ReplicatedStorage:WaitForChild("Events")
-    local animationEvent = events:FindFirstChild("Animation")
-    if animationEvent then
-        for _, connection in ipairs(getconnections(animationEvent.OnClientEvent)) do
-            connection:Disconnect()
-        end
-    end
+-- === Disconnect all animation events ===
+local events = ReplicatedStorage:WaitForChild("Events")
+local animationEvent = events:WaitForChild("Animation")
+for _, connection in ipairs(getconnections(animationEvent.OnClientEvent)) do
+    connection:Disconnect()
 end
-
-disableBoxAnimation() -- run once on load
 
 -- Fire Plot Box instantly
 local function firePlotBox()
-    local args = {"20"} -- Plot Box
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
+    events.Touch:FireServer("20") -- plot box args
 end
 
 -- Fire Server Box instantly
 local function fireServerBox()
-    local args = {"21", true} -- Server Box
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer(unpack(args))
+    events.ServerBox:FireServer("21", true) -- server box args
 end
 
 local function buildBreakBlocksTab()
@@ -456,6 +448,7 @@ local function buildBreakBlocksTab()
         end
     end)
 end
+
 
 ---------------------------------------------------
 -- Tabs
