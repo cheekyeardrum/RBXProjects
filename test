@@ -323,83 +323,56 @@ local function buildAutoCollectTab()
     end)
 end
 
----------------------------------------------------
 -- Break Blocks Tab
 ---------------------------------------------------
 local breaking = false
 local breakConnection
 local serverActive = false
 
-local function fireBreakBlocks()
-    local args = {"20"} -- Plot Box
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
+-- Debounce flags
+local plotDebounce = true
+local serverDebounce = true
+
+local function firePlotBox()
+    if not plotDebounce then return end
+    plotDebounce = false
+    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer("20")
+    task.wait(0.15)  -- cooldown before next break
+    plotDebounce = true
 end
 
 local function fireServerBox()
-    local args = {"21", true} -- Server Box
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer(unpack(args))
+    if not serverDebounce then return end
+    serverDebounce = false
+    ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer("21", true)
+    task.wait(0.15)  -- cooldown
+    serverDebounce = true
 end
 
-local function buildBreakBlocksTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+-- Plot Box button
+plotBtn.MouseButton1Click:Connect(function()
+    breaking = not breaking
+    plotBtn.Text = breaking and "Plot Box (ON)" or "Plot Box"
+    plotBtn.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Break Blocks"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    -- Plot Box button (original logic)
-    local plotBtn = Instance.new("TextButton", contentFrame)
-    plotBtn.Size = UDim2.new(0,200,0,50)
-    plotBtn.Position = UDim2.new(0,20,0,60)
-    plotBtn.Text = "Plot Box"
-    plotBtn.Font = Enum.Font.SourceSansBold
-    plotBtn.TextSize = 20
-    plotBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    plotBtn.TextColor3 = Color3.new(1,1,1)
-    round(plotBtn,8)
-
-    plotBtn.MouseButton1Click:Connect(function()
-        breaking = not breaking
-        plotBtn.Text = breaking and "Plot Box (ON)" or "Plot Box"
-        plotBtn.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if breaking then
-            breakConnection = RunService.RenderStepped:Connect(fireBreakBlocks)
-        else
-            if breakConnection then
-                breakConnection:Disconnect()
-                breakConnection = nil
-            end
+    if breaking then
+        breakConnection = RunService.RenderStepped:Connect(firePlotBox)
+    else
+        if breakConnection then
+            breakConnection:Disconnect()
+            breakConnection = nil
         end
-    end)
+    end
+end)
 
-    -- Server Box button (same logic as Plot Box but different remote)
-local serverBtn = Instance.new("TextButton", contentFrame)
-serverBtn.Size = UDim2.new(0,200,0,50)
-serverBtn.Position = UDim2.new(0,20,0,130)
-serverBtn.Text = "Server Box"
-serverBtn.Font = Enum.Font.SourceSansBold
-serverBtn.TextSize = 20
-serverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50) -- same OFF color
-serverBtn.TextColor3 = Color3.new(1,1,1)
-round(serverBtn,8)
-
-local serverConnection
+-- Server Box button
 serverBtn.MouseButton1Click:Connect(function()
     serverActive = not serverActive
     serverBtn.Text = serverActive and "Server Box (ON)" or "Server Box"
     serverBtn.BackgroundColor3 = serverActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
     if serverActive then
-        serverConnection = RunService.RenderStepped:Connect(function()
-            local args = {"21", true}
-            ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer(unpack(args))
-        end)
+        serverConnection = RunService.RenderStepped:Connect(fireServerBox)
     else
         if serverConnection then
             serverConnection:Disconnect()
@@ -407,6 +380,7 @@ serverBtn.MouseButton1Click:Connect(function()
         end
     end
 end)
+
 ---------------------------------------------------
 -- Tabs
 ---------------------------------------------------
