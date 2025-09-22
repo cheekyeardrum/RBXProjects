@@ -324,7 +324,7 @@ local function buildAutoCollectTab()
 end
 
 ---------------------------------------------------
--- Break Blocks Tab (Robust Version)
+-- Break Blocks Tab with Skip Animation
 ---------------------------------------------------
 local breaking = false
 local breakConnection
@@ -334,16 +334,29 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local function firePlotBox()
-    local args = {"20"} -- Plot Box
+-- Disable box animation
+local function disableBoxAnimation()
     local events = ReplicatedStorage:WaitForChild("Events")
-    events:WaitForChild("Touch"):FireServer(unpack(args))
+    local animationEvent = events:FindFirstChild("Animation")
+    if animationEvent then
+        for _, connection in ipairs(getconnections(animationEvent.OnClientEvent)) do
+            connection:Disconnect()
+        end
+    end
 end
 
+disableBoxAnimation() -- run once on load
+
+-- Fire Plot Box instantly
+local function firePlotBox()
+    local args = {"20"} -- Plot Box
+    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
+end
+
+-- Fire Server Box instantly
 local function fireServerBox()
     local args = {"21", true} -- Server Box
-    local events = ReplicatedStorage:WaitForChild("Events")
-    events:WaitForChild("ServerBox"):FireServer(unpack(args))
+    ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer(unpack(args))
 end
 
 local function buildBreakBlocksTab()
@@ -356,7 +369,7 @@ local function buildBreakBlocksTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Break Blocks"
+    label.Text = "Break Blocks (Animation Skipped)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -372,7 +385,6 @@ local function buildBreakBlocksTab()
     plotBtn.TextColor3 = Color3.new(1,1,1)
     round(plotBtn,8)
 
-    -- Safe click connection
     local plotDebounce = false
     plotBtn.MouseButton1Click:Connect(function()
         if plotDebounce then return end
@@ -391,15 +403,15 @@ local function buildBreakBlocksTab()
             end
         end
 
-        task.wait(0.2) -- small debounce
+        task.wait(0.2)
         plotDebounce = false
     end)
 
-    -- Hotkey toggle (P)
+    -- Hotkey toggle P
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.P then
-            plotBtn.MouseButton1Click:Fire() -- simulate button click
+            plotBtn.MouseButton1Click:Fire()
         end
     end)
 
@@ -432,11 +444,11 @@ local function buildBreakBlocksTab()
             end
         end
 
-        task.wait(0.2) -- debounce
+        task.wait(0.2)
         serverDebounce = false
     end)
 
-    -- Hotkey toggle (O)
+    -- Hotkey toggle O
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Enum.KeyCode.O then
