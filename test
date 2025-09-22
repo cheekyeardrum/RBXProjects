@@ -378,33 +378,35 @@ local function buildBreakBlocksTab()
         end
     end)
 
-    -- Server Box button (same colors as Plot Box)
-    local serverBtn = Instance.new("TextButton", contentFrame)
-    serverBtn.Size = UDim2.new(0,200,0,50)
-    serverBtn.Position = UDim2.new(0,20,0,130)
-    serverBtn.Text = "Server Box"
-    serverBtn.Font = Enum.Font.SourceSansBold
-    serverBtn.TextSize = 20
-    serverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50) -- same OFF color
-    serverBtn.TextColor3 = Color3.new(1,1,1)
-    round(serverBtn,8)
+    -- Server Box button (same logic as Plot Box but different remote)
+local serverBtn = Instance.new("TextButton", contentFrame)
+serverBtn.Size = UDim2.new(0,200,0,50)
+serverBtn.Position = UDim2.new(0,20,0,130)
+serverBtn.Text = "Server Box"
+serverBtn.Font = Enum.Font.SourceSansBold
+serverBtn.TextSize = 20
+serverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50) -- same OFF color
+serverBtn.TextColor3 = Color3.new(1,1,1)
+round(serverBtn,8)
 
-    serverBtn.MouseButton1Click:Connect(function()
-        serverActive = not serverActive
-        serverBtn.Text = serverActive and "Server Box (ON)" or "Server Box"
-        serverBtn.BackgroundColor3 = serverActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50) -- same ON/OFF colors
+local serverConnection
+serverBtn.MouseButton1Click:Connect(function()
+    serverActive = not serverActive
+    serverBtn.Text = serverActive and "Server Box (ON)" or "Server Box"
+    serverBtn.BackgroundColor3 = serverActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if serverActive then
-            task.spawn(function()
-                while serverActive do
-                    fireServerBox()
-                    task.wait(1) -- 1 second delay
-                end
-            end)
+    if serverActive then
+        serverConnection = RunService.RenderStepped:Connect(function()
+            local args = {"21", true}
+            ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer(unpack(args))
+        end)
+    else
+        if serverConnection then
+            serverConnection:Disconnect()
+            serverConnection = nil
         end
-    end)
-end
-
+    end
+end)
 ---------------------------------------------------
 -- Tabs
 ---------------------------------------------------
