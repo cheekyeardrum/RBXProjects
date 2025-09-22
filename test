@@ -323,47 +323,63 @@ local function buildAutoCollectTab()
     end)
 end
 
--- Break Blocks Tab
 ---------------------------------------------------
-local breaking = false
-local breakConnection
-local serverActive = false
+-- Break Blocks Tab (Optimized)
+---------------------------------------------------
+local function buildBreakBlocksTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
--- Debounce flags
-local plotDebounce = true
-local serverDebounce = true
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Break Blocks (Plot Only)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
 
-local function firePlotBox()
-    if not plotDebounce then return end
-    plotDebounce = false
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer("20")
-    task.wait(0.15)  -- cooldown before next break
-    plotDebounce = true
-end
+    -- Plot Box button
+    local plotBtn = Instance.new("TextButton", contentFrame)
+    plotBtn.Size = UDim2.new(0,200,0,50)
+    plotBtn.Position = UDim2.new(0,20,0,60)
+    plotBtn.Text = "Plot Box"
+    plotBtn.Font = Enum.Font.SourceSansBold
+    plotBtn.TextSize = 20
+    plotBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    plotBtn.TextColor3 = Color3.new(1,1,1)
+    round(plotBtn,8)
 
-local function fireServerBox()
-    if not serverDebounce then return end
-    serverDebounce = false
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("ServerBox"):FireServer("21", true)
-    task.wait(0.15)  -- cooldown
-    serverDebounce = true
-end
+    -- Debounce
+    local breaking = false
+    local canFire = true
 
--- Plot Box button
-plotBtn.MouseButton1Click:Connect(function()
-    breaking = not breaking
-    plotBtn.Text = breaking and "Plot Box (ON)" or "Plot Box"
-    plotBtn.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-    if breaking then
-        breakConnection = RunService.RenderStepped:Connect(firePlotBox)
-    else
-        if breakConnection then
-            breakConnection:Disconnect()
-            breakConnection = nil
-        end
+    -- Function to instantly break plot box
+    local function firePlotBox()
+        if not canFire then return end
+        canFire = false
+        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer("20")
+        task.wait(0.05) -- small delay to prevent spamming
+        canFire = true
     end
-end)
+
+    -- Toggle button
+    plotBtn.MouseButton1Click:Connect(function()
+        breaking = not breaking
+        plotBtn.Text = breaking and "Plot Box (ON)" or "Plot Box"
+        plotBtn.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if breaking then
+            -- Connect RenderStepped to constantly fire
+            breakConnection = RunService.RenderStepped:Connect(firePlotBox)
+        else
+            -- Disconnect when turned off
+            if breakConnection then
+                breakConnection:Disconnect()
+                breakConnection = nil
+            end
+        end
+    end)
+end
 
 -- Server Box button
 serverBtn.MouseButton1Click:Connect(function()
