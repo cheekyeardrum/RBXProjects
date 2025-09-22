@@ -324,21 +324,44 @@ local function buildAutoCollectTab()
 end
 
 ---------------------------------------------------
--- Break Blocks Tab (Optimized)
+-- Break Blocks Tab (Robust Version)
 ---------------------------------------------------
+local breaking = false
+local breakConnection
+local serverActive = false
+local serverConnection
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local function firePlotBox()
+    local args = {"20"} -- Plot Box
+    local events = ReplicatedStorage:WaitForChild("Events")
+    events:WaitForChild("Touch"):FireServer(unpack(args))
+end
+
+local function fireServerBox()
+    local args = {"21", true} -- Server Box
+    local events = ReplicatedStorage:WaitForChild("Events")
+    events:WaitForChild("ServerBox"):FireServer(unpack(args))
+end
+
 local function buildBreakBlocksTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    -- Clear content
+    for _,v in pairs(contentFrame:GetChildren()) do
+        v:Destroy()
+    end
 
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Break Blocks (Plot Only)"
+    label.Text = "Break Blocks"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    -- Plot Box button
+    -- ================= Plot Box Button =================
     local plotBtn = Instance.new("TextButton", contentFrame)
     plotBtn.Size = UDim2.new(0,200,0,50)
     plotBtn.Position = UDim2.new(0,20,0,60)
@@ -349,53 +372,78 @@ local function buildBreakBlocksTab()
     plotBtn.TextColor3 = Color3.new(1,1,1)
     round(plotBtn,8)
 
-    -- Debounce
-    local breaking = false
-    local canFire = true
-
-    -- Function to instantly break plot box
-    local function firePlotBox()
-        if not canFire then return end
-        canFire = false
-        ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer("20")
-        task.wait(0.05) -- small delay to prevent spamming
-        canFire = true
-    end
-
-    -- Toggle button
+    -- Safe click connection
+    local plotDebounce = false
     plotBtn.MouseButton1Click:Connect(function()
+        if plotDebounce then return end
+        plotDebounce = true
+
         breaking = not breaking
         plotBtn.Text = breaking and "Plot Box (ON)" or "Plot Box"
         plotBtn.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
         if breaking then
-            -- Connect RenderStepped to constantly fire
             breakConnection = RunService.RenderStepped:Connect(firePlotBox)
         else
-            -- Disconnect when turned off
             if breakConnection then
                 breakConnection:Disconnect()
                 breakConnection = nil
             end
         end
+
+        task.wait(0.2) -- small debounce
+        plotDebounce = false
+    end)
+
+    -- Hotkey toggle (P)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == Enum.KeyCode.P then
+            plotBtn.MouseButton1Click:Fire() -- simulate button click
+        end
+    end)
+
+    -- ================= Server Box Button =================
+    local serverBtn = Instance.new("TextButton", contentFrame)
+    serverBtn.Size = UDim2.new(0,200,0,50)
+    serverBtn.Position = UDim2.new(0,20,0,130)
+    serverBtn.Text = "Server Box"
+    serverBtn.Font = Enum.Font.SourceSansBold
+    serverBtn.TextSize = 20
+    serverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    serverBtn.TextColor3 = Color3.new(1,1,1)
+    round(serverBtn,8)
+
+    local serverDebounce = false
+    serverBtn.MouseButton1Click:Connect(function()
+        if serverDebounce then return end
+        serverDebounce = true
+
+        serverActive = not serverActive
+        serverBtn.Text = serverActive and "Server Box (ON)" or "Server Box"
+        serverBtn.BackgroundColor3 = serverActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if serverActive then
+            serverConnection = RunService.RenderStepped:Connect(fireServerBox)
+        else
+            if serverConnection then
+                serverConnection:Disconnect()
+                serverConnection = nil
+            end
+        end
+
+        task.wait(0.2) -- debounce
+        serverDebounce = false
+    end)
+
+    -- Hotkey toggle (O)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == Enum.KeyCode.O then
+            serverBtn.MouseButton1Click:Fire()
+        end
     end)
 end
-
--- Server Box button
-serverBtn.MouseButton1Click:Connect(function()
-    serverActive = not serverActive
-    serverBtn.Text = serverActive and "Server Box (ON)" or "Server Box"
-    serverBtn.BackgroundColor3 = serverActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-    if serverActive then
-        serverConnection = RunService.RenderStepped:Connect(fireServerBox)
-    else
-        if serverConnection then
-            serverConnection:Disconnect()
-            serverConnection = nil
-        end
-    end
-end)
 
 ---------------------------------------------------
 -- Tabs
