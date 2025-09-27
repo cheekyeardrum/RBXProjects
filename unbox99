@@ -1,4 +1,4 @@
--- Clean Hub (Full Integrated Version)
+-- Clean Hub (Full Integrated Version, Fixed)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local guiParent = CoreGui
@@ -127,11 +128,7 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
--- Tab Names
-local tabNames={"AutoBuy","AutoCollect","Break Blocks"}
-local tabButtons={}
-
--- ================= AutoBuy Tab =================
+-- ================= AutoBuy Tab (Buy 1 or 10 with Prices, no Robux boxes) =================
 local function buildAutoBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -144,62 +141,143 @@ local function buildAutoBuyTab()
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    -- Tungstenio Button
-    local tungstenBtn = Instance.new("TextButton", contentFrame)
-    tungstenBtn.Size = UDim2.new(0,200,0,50)
-    tungstenBtn.Position = UDim2.new(0,20,0,60)
-    tungstenBtn.Text = "Buy Tungstenio"
-    tungstenBtn.Font = Enum.Font.SourceSansBold
-    tungstenBtn.TextSize = 20
-    tungstenBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    tungstenBtn.TextColor3 = Color3.new(1,1,1)
-    round(tungstenBtn,8)
+    -- Scrollable frame
+    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
+    scrollFrame.Size = UDim2.new(1,-20,1,-60)
+    scrollFrame.Position = UDim2.new(0,10,0,60)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+    scrollFrame.ScrollBarThickness = 10
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
 
-    tungstenBtn.MouseButton1Click:Connect(function()
-        local args = { { "Tungstenio", "\017" } }
-        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    local uiListLayout = Instance.new("UIListLayout", scrollFrame)
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    uiListLayout.Padding = UDim.new(0,10)
+
+    -- Define boxes (no Robux items)
+    local Boxes = {
+        {Name="Simple", Item=game:GetService("ReplicatedStorage").Shared.Box.Simple, Price=3500},
+        {Name="Scrapper", Item=game:GetService("ReplicatedStorage").Shared.Box.Scrapper, Price=15000},
+        {Name="Robust", Item=game:GetService("ReplicatedStorage").Shared.Box.Robust, Price=45000},
+        {Name="Warning", Item=game:GetService("ReplicatedStorage").Shared.Box.Warning, Price=120000},
+        {Name="Disintegration", Item=game:GetService("ReplicatedStorage").Shared.Box.Disintegration, Price=300000},
+        {Name="Future", Item=game:GetService("ReplicatedStorage").Shared.Box.Future, Price=1500000},
+        {Name="Tungstenio", Item=game:GetService("ReplicatedStorage").Shared.Box.Tungstenio, Price=4000000},
+        {Name="God", Item=game:GetService("ReplicatedStorage").Shared.Box.God, Price=10000000},
+    }
+
+    -- Sort by price
+    table.sort(Boxes, function(a,b)
+        return (a.Price or math.huge) < (b.Price or math.huge)
     end)
 
-    -- God Button
-    local godBtn = Instance.new("TextButton", contentFrame)
-    godBtn.Size = UDim2.new(0,200,0,50)
-    godBtn.Position = UDim2.new(0,20,0,130)
-    godBtn.Text = "Buy God"
-    godBtn.Font = Enum.Font.SourceSansBold
-    godBtn.TextSize = 20
-    godBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    godBtn.TextColor3 = Color3.new(1,1,1)
-    round(godBtn,8)
+    -- Generate buttons
+    for _,box in ipairs(Boxes) do
+        local container = Instance.new("Frame", scrollFrame)
+        container.Size = UDim2.new(1,0,0,60)
+        container.BackgroundTransparency = 1
 
-    godBtn.MouseButton1Click:Connect(function()
-        local args = { { "God", "\017" } }
-        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
-    end)
+        -- Buy 1 button
+        local buy1 = Instance.new("TextButton", container)
+        buy1.Size = UDim2.new(0.48,0,1,0)
+        buy1.Position = UDim2.new(0,0,0,0)
+        buy1.Text = "Buy 1 "..box.Name..(box.Price and (" ($".. tostring(box.Price)..")") or "")
+        buy1.Font = Enum.Font.SourceSansBold
+        buy1.TextSize = 18
+        buy1.BackgroundColor3 = Color3.fromRGB(50,150,50)
+        buy1.TextColor3 = Color3.new(1,1,1)
+        round(buy1,6)
+
+        buy1.MouseButton1Click:Connect(function()
+            local args = { {box.Name, "\017"} }
+            game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+        end)
+
+        -- Buy 10 button
+        local buy10 = Instance.new("TextButton", container)
+        buy10.Size = UDim2.new(0.48,0,1,0)
+        buy10.Position = UDim2.new(0.52,0,0,0)
+        buy10.Text = "Buy 10 "..box.Name..(box.Price and (" ($".. tostring((box.Price or 0)*10)..")") or "")
+        buy10.Font = Enum.Font.SourceSansBold
+        buy10.TextSize = 18
+        buy10.BackgroundColor3 = Color3.fromRGB(50,100,200)
+        buy10.TextColor3 = Color3.new(1,1,1)
+        round(buy10,6)
+
+        buy10.MouseButton1Click:Connect(function()
+            for i=1,10 do
+                local args = { {box.Name, "\017"} }
+                game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                task.wait(0.05)
+            end
+        end)
+    end
+
+    task.wait(0.1)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
 end
 
+
+---------------------------------------------------
 -- ================= AutoCollect Tab =================
 local collecting = false
-local collectConnection
+local collectThread
 
-local plots = {
-    {Plot="1", UID="06713d06-929c-49f2-a9da-62e047cc9b39"},
-    {Plot="2", UID="9af530bd-a573-456b-bf5a-b5fc94475c40"},
-    {Plot="3", UID="3a2f8904-9de0-46c8-833e-c95dfeb6316d"},
-    {Plot="4", UID="5331e1c0-defe-4561-b093-f39345226ab5"},
-    {Plot="5", UID="a40c2b86-b3fa-47dc-9f75-43bb545495f5"},
-    {Plot="6", UID="75f35d93-91af-4c44-b1f3-6fa657714a69"},
-    {Plot="7", UID="74e77b45-efcd-4873-a672-1a18e36ae395"},
-    {Plot="8", UID="4baa1dd0-a767-499d-8b69-4b36a4bdccb3"},
-    {Plot="9", UID="95235596-3712-4af4-87d4-9d1621da4ccc"},
-    {Plot="10", UID="1d850962-89d9-45ad-8f2a-13de8f671b01"},
-    {Plot="11", UID="fa949549-0bf6-484f-ad26-b20de41dad19"},
-    {Plot="12", UID="2eda760b-4337-43c2-84e2-d62359667eba"}
-}
+local function getMyTycoon()
+    local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local tycoonsFolder = Workspace:WaitForChild("Tycoons")
 
-local function fireCollectMoney()
-    for _, plot in pairs(plots) do
-        local args = { {plot, "\014"} }
-        ReplicatedStorage:WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+    for i = 1, 6 do
+        local tycoonModel = tycoonsFolder:FindFirstChild("Tycoon_"..i)
+        if tycoonModel then
+            local playerSign = tycoonModel:FindFirstChild("Player_Sign")
+            if playerSign then
+                local playerInfo = playerSign:FindFirstChild("PlayerInfo")
+                if playerInfo then
+                    local baseInfo = playerInfo:FindFirstChild("BaseInfo")
+                    if baseInfo then
+                        local playerNameBox = baseInfo:FindFirstChild("PlayerName")
+                        if playerNameBox and playerNameBox:IsA("TextLabel") then
+                            if playerNameBox.Text == player.Name then
+                                return tycoonModel
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil -- not found yet
+end
+
+local function collectFromMyTycoon()
+    local myTycoon = getMyTycoon()
+    if not myTycoon or not myTycoon:FindFirstChild("Tycoon") then return end
+
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    local slots = myTycoon.Tycoon:FindFirstChild("Slots")
+    if slots then
+        for slotNum = 1, 12 do
+            local slotModel = slots:FindFirstChild(tostring(slotNum))
+            if slotModel then
+                local touchModel = slotModel:FindFirstChild("Touch")
+                if touchModel then
+                    local touchPart = touchModel:FindFirstChild("Part")
+                    if touchPart and touchPart:IsA("BasePart") then
+                        firetouchinterest(hrp, touchPart, 0)
+                        task.wait(0.1)
+                        firetouchinterest(hrp, touchPart, 1)
+                    end
+                end
+            end
+            task.wait(2) -- wait before moving to the next plot
+        end
     end
 end
 
@@ -210,7 +288,7 @@ local function buildAutoCollectTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Collect Money (Plots 1–12)"
+    label.Text = "Auto Collect Money (Your Tycoon Only)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -231,65 +309,123 @@ local function buildAutoCollectTab()
         toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
         if collecting then
-            collectConnection = RunService.RenderStepped:Connect(fireCollectMoney)
+            collectThread = task.spawn(function()
+                while collecting do
+                    collectFromMyTycoon()
+                end
+            end)
         else
-            if collectConnection then
-                collectConnection:Disconnect()
-                collectConnection = nil
+            if collectThread then
+                task.cancel(collectThread)
+                collectThread = nil
             end
         end
     end)
 end
 
--- ================= Break Blocks Tab =================
+---------------------------------------------------
+-- Break Blocks Tab (With Animations)
+---------------------------------------------------
 local breaking = false
 local breakConnection
+local serverActive = false
+local serverConnection
+local events = ReplicatedStorage:WaitForChild("Events")
 
-local function fireBreakBlocks()
-    local args = {"20"}
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Touch"):FireServer(unpack(args))
+-- Fire Plot Box (respect animation)
+local function firePlotBox()
+    events.Touch:FireServer("20")
+end
+
+-- Fire Server Box (respect animation)
+local function fireServerBox()
+    events.ServerBox:FireServer("21", true)
 end
 
 local function buildBreakBlocksTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+    -- Clear content
+    for _,v in pairs(contentFrame:GetChildren()) do
+        v:Destroy()
+    end
 
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Break Blocks"
+    label.Text = "Break Blocks (With Animations)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
+    -- ================= Plot Box Button =================
+    local plotBtn = Instance.new("TextButton", contentFrame)
+    plotBtn.Size = UDim2.new(0,200,0,50)
+    plotBtn.Position = UDim2.new(0,20,0,60)
+    plotBtn.Text = "Plot Box"
+    plotBtn.Font = Enum.Font.SourceSansBold
+    plotBtn.TextSize = 20
+    plotBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    plotBtn.TextColor3 = Color3.new(1,1,1)
+    round(plotBtn,8)
 
-    toggle.MouseButton1Click:Connect(function()
+    plotBtn.MouseButton1Click:Connect(function()
         breaking = not breaking
-        toggle.Text = breaking and "ON" or "OFF"
-        toggle.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        plotBtn.Text = breaking and "Plot Box (ON)" or "Plot Box"
+        plotBtn.BackgroundColor3 = breaking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
         if breaking then
-            breakConnection = RunService.RenderStepped:Connect(fireBreakBlocks)
+            breakConnection = task.spawn(function()
+                while breaking do
+                    firePlotBox()
+                    task.wait(1) -- ⬅ wait for animation length
+                end
+            end)
         else
             if breakConnection then
-                breakConnection:Disconnect()
+                task.cancel(breakConnection)
                 breakConnection = nil
             end
         end
     end)
-end
 
--- Tab Functions
-local tabFuncs = {buildAutoBuyTab, buildAutoCollectTab, buildBreakBlocksTab}
+    -- ================= Server Box Button =================
+    local serverBtn = Instance.new("TextButton", contentFrame)
+    serverBtn.Size = UDim2.new(0,200,0,50)
+    serverBtn.Position = UDim2.new(0,20,0,130)
+    serverBtn.Text = "Server Box"
+    serverBtn.Font = Enum.Font.SourceSansBold
+    serverBtn.TextSize = 20
+    serverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    serverBtn.TextColor3 = Color3.new(1,1,1)
+    round(serverBtn,8)
+
+    serverBtn.MouseButton1Click:Connect(function()
+        serverActive = not serverActive
+        serverBtn.Text = serverActive and "Server Box (ON)" or "Server Box"
+        serverBtn.BackgroundColor3 = serverActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if serverActive then
+            serverConnection = task.spawn(function()
+                while serverActive do
+                    fireServerBox()
+                    task.wait(1.2) -- ⬅ slightly longer wait for server animation
+                end
+            end)
+        else
+            if serverConnection then
+                task.cancel(serverConnection)
+                serverConnection = nil
+            end
+        end
+    end)
+end
+---------------------------------------------------
+-- Tabs
+---------------------------------------------------
+local tabNames={"AutoBuy","AutoCollect","Break Blocks"}
+local tabFuncs={buildAutoBuyTab,buildAutoCollectTab,buildBreakBlocksTab}
+local tabButtons={}
+
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
