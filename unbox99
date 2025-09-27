@@ -426,7 +426,6 @@ end
 ---------------------------------------------------
 local clicking = false
 local clickThread
-local clickKey = Enum.KeyCode.Q
 
 local function buildAutoClickerTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
@@ -435,7 +434,7 @@ local function buildAutoClickerTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Clicker (Toggle with Q)"
+    label.Text = "AutoClicker (Press Q to toggle)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -443,10 +442,10 @@ local function buildAutoClickerTab()
     local toggle = Instance.new("TextButton", contentFrame)
     toggle.Size = UDim2.new(0,200,0,50)
     toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = clicking and "ON" or "OFF"
+    toggle.Text = "OFF"
     toggle.Font = Enum.Font.SourceSansBold
     toggle.TextSize = 20
-    toggle.BackgroundColor3 = clicking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
     toggle.TextColor3 = Color3.new(1,1,1)
     round(toggle,8)
 
@@ -458,9 +457,25 @@ local function buildAutoClickerTab()
         if clicking then
             clickThread = task.spawn(function()
                 while clicking do
-                    -- Fires the plot box touch (same as Break Blocks)
-                    events.Touch:FireServer("21")
-                    task.wait(0.1) -- click interval
+                    -- simulate left mouse click
+                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(
+                        workspace.CurrentCamera.ViewportSize.X/2,
+                        workspace.CurrentCamera.ViewportSize.Y/2,
+                        0, -- 0 = left mouse button down
+                        true, -- press
+                        game, -- ignored but required
+                        0
+                    )
+                    task.wait(0.05)
+                    game:GetService("VirtualInputManager"):SendMouseButtonEvent(
+                        workspace.CurrentCamera.ViewportSize.X/2,
+                        workspace.CurrentCamera.ViewportSize.Y/2,
+                        0, -- 0 = left mouse button up
+                        false, -- release
+                        game,
+                        0
+                    )
+                    task.wait(0.05)
                 end
             end)
         else
@@ -473,14 +488,13 @@ local function buildAutoClickerTab()
 
     toggle.MouseButton1Click:Connect(toggleClicker)
 
-    -- Hotkey listener
+    -- Hotkey Q to toggle
     UserInputService.InputBegan:Connect(function(input, gpe)
-        if not gpe and input.KeyCode == clickKey then
+        if not gpe and input.KeyCode == Enum.KeyCode.Q then
             toggleClicker()
         end
     end)
 end
-
 
 
 
