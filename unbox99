@@ -420,10 +420,74 @@ local function buildBreakBlocksTab()
     end)
 end
 
+
+---------------------------------------------------
+-- AutoClicker Tab
+---------------------------------------------------
+local clicking = false
+local clickThread
+local clickKey = Enum.KeyCode.Q
+
+local function buildAutoClickerTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Auto Clicker (Toggle with Q)"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = clicking and "ON" or "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = clicking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
+
+    local function toggleClicker()
+        clicking = not clicking
+        toggle.Text = clicking and "ON" or "OFF"
+        toggle.BackgroundColor3 = clicking and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if clicking then
+            clickThread = task.spawn(function()
+                while clicking do
+                    -- Fires the plot box touch (same as Break Blocks)
+                    events.Touch:FireServer("21")
+                    task.wait(0.1) -- click interval
+                end
+            end)
+        else
+            if clickThread then
+                task.cancel(clickThread)
+                clickThread = nil
+            end
+        end
+    end
+
+    toggle.MouseButton1Click:Connect(toggleClicker)
+
+    -- Hotkey listener
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if not gpe and input.KeyCode == clickKey then
+            toggleClicker()
+        end
+    end)
+end
+
+
+
+
 ---------------------------------------------------
 -- Tabs
 ---------------------------------------------------
-local tabNames={"AutoBuy","AutoCollect","Break Blocks"}
+local tabNames={"AutoBuy","AutoCollect","Break Blocks","AutoClicker"}
 local tabFuncs={buildAutoBuyTab,buildAutoCollectTab,buildBreakBlocksTab}
 
 for i,name in ipairs(tabNames) do
