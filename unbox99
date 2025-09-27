@@ -488,7 +488,7 @@ end
 -- Tabs
 ---------------------------------------------------
 local tabNames={"AutoBuy","AutoCollect","Break Blocks","AutoClicker"}
-local tabFuncs={buildAutoBuyTab,buildAutoCollectTab,buildBreakBlocksTab}
+local tabFuncs={buildAutoBuyTab,buildAutoCollectTab,buildBreakBlocksTab,buildAutoClickerTab}
 
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
