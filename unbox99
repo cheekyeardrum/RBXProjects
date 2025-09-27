@@ -221,6 +221,64 @@ end
 local collecting = false
 local collectThread
 
+local function getMyTycoon()
+    local Workspace = game:GetService("Workspace")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local tycoonsFolder = Workspace:WaitForChild("Tycoons")
+
+    for i = 1, 6 do
+        local tycoonModel = tycoonsFolder:FindFirstChild("Tycoon_"..i)
+        if tycoonModel then
+            local playerSign = tycoonModel:FindFirstChild("Player_Sign")
+            if playerSign then
+                local playerInfo = playerSign:FindFirstChild("PlayerInfo")
+                if playerInfo then
+                    local baseInfo = playerInfo:FindFirstChild("BaseInfo")
+                    if baseInfo then
+                        local playerNameBox = baseInfo:FindFirstChild("PlayerName")
+                        if playerNameBox and playerNameBox:IsA("TextLabel") then
+                            if playerNameBox.Text == player.Name then
+                                return tycoonModel
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function collectFromMyTycoon()
+    local myTycoon = getMyTycoon()
+    if not myTycoon or not myTycoon:FindFirstChild("Tycoon") then return end
+
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+
+    local slots = myTycoon.Tycoon:FindFirstChild("Slots")
+    if slots then
+        for slotNum = 1, 12 do
+            local slotModel = slots:FindFirstChild(tostring(slotNum))
+            if slotModel then
+                local touchModel = slotModel:FindFirstChild("Touch")
+                if touchModel then
+                    local touchPart = touchModel:FindFirstChild("Part")
+                    if touchPart and touchPart:IsA("BasePart") then
+                        firetouchinterest(hrp, touchPart, 0)
+                        task.wait(0.1)
+                        firetouchinterest(hrp, touchPart, 1)
+                    end
+                end
+            end
+            task.wait(2)
+        end
+    end
+end
+
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -236,34 +294,25 @@ local function buildAutoCollectTab()
     local toggle = Instance.new("TextButton", contentFrame)
     toggle.Size = UDim2.new(0,200,0,50)
     toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = collecting and "ON" or "OFF"
     toggle.Font = Enum.Font.SourceSansBold
     toggle.TextSize = 20
+    toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
     toggle.TextColor3 = Color3.new(1,1,1)
     round(toggle,8)
 
-    -- restore state
-    if collecting then
-        toggle.Text = "ON"
-        toggle.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    else
-        toggle.Text = "OFF"
-        toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    end
-
     toggle.MouseButton1Click:Connect(function()
         collecting = not collecting
+        toggle.Text = collecting and "ON" or "OFF"
+        toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
         if collecting then
-            toggle.Text = "ON"
-            toggle.BackgroundColor3 = Color3.fromRGB(50,150,50)
             collectThread = task.spawn(function()
                 while collecting do
-                    -- your collect logic
-                    task.wait(2)
+                    collectFromMyTycoon()
                 end
             end)
         else
-            toggle.Text = "OFF"
-            toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
             if collectThread then
                 task.cancel(collectThread)
                 collectThread = nil
@@ -271,6 +320,7 @@ local function buildAutoCollectTab()
         end
     end)
 end
+
 
 ---------------------------------------------------
 -- Break Blocks Tab
