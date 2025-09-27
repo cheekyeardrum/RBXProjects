@@ -367,7 +367,7 @@ local function buildBreakBlocksTab()
             plotBtn.BackgroundColor3 = Color3.fromRGB(50,150,50)
             breakConnection = task.spawn(function()
                 while breaking do
-                    events.Touch:FireServer("20")
+                    events.Touch:FireServer("21")
                     task.wait(1)
                 end
             end)
