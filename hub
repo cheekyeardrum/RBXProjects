@@ -230,15 +230,19 @@ local function buildGrassUpgradeTab()
 end
 
 
--- Tree Upgrade Tab
+-- Improved Tree Upgrade tab (debug + fallbacks)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+
 local upgradingTrees = false
 local treeLoop
 
--- List of upgrades (we'll resolve to Pad.Main)
 local treeUpgradePaths = {
     workspace.World.Scriptable.TreeUpgrades1.UpgradeConfig,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade1,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade10,
+    workspace.World.Scriptable.TreeScriptable and workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade12 or workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade12,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade12,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade13,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade14,
@@ -252,61 +256,106 @@ local treeUpgradePaths = {
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade8,
 }
 
--- Function to touch all pads
+local function findMainPart(upgrade)
+    if not upgrade or typeof(upgrade) ~= "Instance" then return nil end
+    -- Prefer Pad.Main
+    local pad = upgrade:FindFirstChild("Pad")
+    if pad then
+        local main = pad:FindFirstChild("Main")
+        if main and main:IsA("BasePart") then return main end
+    end
+    -- Fallback: any BasePart that has a TouchInterest child
+    for _,desc in ipairs(upgrade:GetDescendants()) do
+        if desc:IsA("BasePart") and desc:FindFirstChild("TouchInterest") then
+            return desc
+        end
+    end
+    -- Last resort: first BasePart descendant
+    for _,desc in ipairs(upgrade:GetDescendants()) do
+        if desc:IsA("BasePart") then return desc end
+    end
+    return nil
+end
+
+local function simulateTouch(part, hrp)
+    if not part or not hrp then return false, "missing args" end
+
+    -- 1) Try exploit-provided firetouchinterest
+    if type(firetouchinterest) == "function" then
+        local ok,err = pcall(function()
+            firetouchinterest(hrp, part, 0)
+            firetouchinterest(hrp, part, 1)
+        end)
+        if ok then return true, "firetouchinterest" end
+    end
+
+    -- 2) Try calling server callbacks attached to Touched via getconnections (exploit-specific)
+    if type(getconnections) == "function" then
+        local ok,conns = pcall(function() return getconnections(part.Touched) end)
+        if ok and conns and #conns > 0 then
+            for _,c in ipairs(conns) do
+                pcall(c.Function, part, hrp)
+            end
+            return true, "getconnections"
+        end
+    end
+
+    -- 3) Try find a TouchInterest instance (some exploit APIs expose ways to trigger it)
+    local ti = part:FindFirstChild("TouchInterest")
+    if ti then
+        -- Some exploits provide ti:Fire or similar; try pcall as fallback
+        if type(ti.Fire) == "function" then
+            pcall(function() ti:Fire(hrp) end)
+            return true, "TouchInterest:Fire"
+        end
+    end
+
+    return false, "no-method-available"
+end
+
 local function fireTreeUpgrades()
     local char = player.Character or player.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+    if not hrp then
+        warn("[TreeUpgrade] No HRP found for player")
+        return
+    end
 
     for _, upgrade in ipairs(treeUpgradePaths) do
-        local pad = upgrade:FindFirstChild("Pad")
-        if pad and pad:FindFirstChild("Main") and pad.Main:IsA("BasePart") then
-            local part = pad.Main
-            firetouchinterest(hrp, part, 0) -- touch begin
-            firetouchinterest(hrp, part, 1) -- touch end
+        local ok, part = pcall(findMainPart, upgrade)
+        if not ok or not part then
+            warn("[TreeUpgrade] couldn't find part for", tostring(upgrade))
+        else
+            local success, method = simulateTouch(part, hrp)
+            if success then
+                print("[TreeUpgrade] touched", part:GetFullName(), "via", method)
+            else
+                warn("[TreeUpgrade] failed to touch", part:GetFullName(), "(", method, ")")
+            end
         end
     end
 end
 
-local function buildTreeUpgradeTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Tree Upgrades"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
-
-    toggle.MouseButton1Click:Connect(function()
-        upgradingTrees = not upgradingTrees
-        toggle.Text = upgradingTrees and "ON" or "OFF"
-        toggle.BackgroundColor3 = upgradingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if upgradingTrees then
-            treeLoop = task.spawn(function()
-                while upgradingTrees do
-                    fireTreeUpgrades()
-                    task.wait(0.2) -- small delay for efficiency
-                end
-            end)
-        else
-            upgradingTrees = false
+-- Example toggle builder (adapt into your UI code)
+local function startTreeLoop()
+    if treeLoop then return end
+    treeLoop = task.spawn(function()
+        while upgradingTrees do
+            fireTreeUpgrades()
+            task.wait(0.2)
         end
+        treeLoop = nil
     end)
 end
 
+local function stopTreeLoop()
+    upgradingTrees = false
+    -- loop will exit itself
+end
+
+-- quick debug helper (run in executor console first to check availability)
+print("DEBUG: firetouchinterest exists? ", type(firetouchinterest))
+print("DEBUG: getconnections exists? ", type(getconnections))
 
 
 -- Tab Functions
