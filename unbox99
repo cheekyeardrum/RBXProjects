@@ -324,7 +324,7 @@ local function buildAutoCollectTab()
 end
 
 ---------------------------------------------------
--- Break Blocks Tab (With Animations)
+-- Break Blocks Tab (With Animations, No Hotkeys)
 ---------------------------------------------------
 local breaking = false
 local breakConnection
@@ -377,7 +377,7 @@ local function buildBreakBlocksTab()
             breakConnection = task.spawn(function()
                 while breaking do
                     firePlotBox()
-                    task.wait(1) -- ⬅ wait for animation length
+                    task.wait(1) -- wait for animation to finish
                 end
             end)
         else
@@ -408,7 +408,7 @@ local function buildBreakBlocksTab()
             serverConnection = task.spawn(function()
                 while serverActive do
                     fireServerBox()
-                    task.wait(1.2) -- ⬅ slightly longer wait for server animation
+                    task.wait(1.2) -- wait for animation to finish
                 end
             end)
         else
@@ -419,6 +419,7 @@ local function buildBreakBlocksTab()
         end
     end)
 end
+
 ---------------------------------------------------
 -- Tabs
 ---------------------------------------------------
