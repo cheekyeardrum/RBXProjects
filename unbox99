@@ -126,9 +126,7 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
----------------------------------------------------
--- AutoBuy Tab (no toggle state needed)
----------------------------------------------------
+-- ================= AutoBuy Tab (Buy 1 or 10 with Prices, no Robux boxes) =================
 local function buildAutoBuyTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -141,7 +139,80 @@ local function buildAutoBuyTab()
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    -- (unchanged buying buttons...)
+    -- Scrollable frame
+    local scrollFrame = Instance.new("ScrollingFrame", contentFrame)
+    scrollFrame.Size = UDim2.new(1,-20,1,-60)
+    scrollFrame.Position = UDim2.new(0,10,0,60)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,0)
+    scrollFrame.ScrollBarThickness = 10
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+
+    local uiListLayout = Instance.new("UIListLayout", scrollFrame)
+    uiListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    uiListLayout.Padding = UDim.new(0,10)
+
+    -- Define boxes (no Robux items)
+    local Boxes = {
+        {Name="Simple", Item=game:GetService("ReplicatedStorage").Shared.Box.Simple, Price=3500},
+        {Name="Scrapper", Item=game:GetService("ReplicatedStorage").Shared.Box.Scrapper, Price=15000},
+        {Name="Robust", Item=game:GetService("ReplicatedStorage").Shared.Box.Robust, Price=45000},
+        {Name="Warning", Item=game:GetService("ReplicatedStorage").Shared.Box.Warning, Price=120000},
+        {Name="Disintegration", Item=game:GetService("ReplicatedStorage").Shared.Box.Disintegration, Price=300000},
+        {Name="Future", Item=game:GetService("ReplicatedStorage").Shared.Box.Future, Price=1500000},
+        {Name="Tungstenio", Item=game:GetService("ReplicatedStorage").Shared.Box.Tungstenio, Price=4000000},
+        {Name="God", Item=game:GetService("ReplicatedStorage").Shared.Box.God, Price=10000000},
+    }
+
+    -- Sort by price
+    table.sort(Boxes, function(a,b)
+        return (a.Price or math.huge) < (b.Price or math.huge)
+    end)
+
+    -- Generate buttons
+    for _,box in ipairs(Boxes) do
+        local container = Instance.new("Frame", scrollFrame)
+        container.Size = UDim2.new(1,0,0,60)
+        container.BackgroundTransparency = 1
+
+        -- Buy 1 button
+        local buy1 = Instance.new("TextButton", container)
+        buy1.Size = UDim2.new(0.48,0,1,0)
+        buy1.Position = UDim2.new(0,0,0,0)
+        buy1.Text = "Buy 1 "..box.Name..(box.Price and (" ($".. tostring(box.Price)..")") or "")
+        buy1.Font = Enum.Font.SourceSansBold
+        buy1.TextSize = 18
+        buy1.BackgroundColor3 = Color3.fromRGB(50,150,50)
+        buy1.TextColor3 = Color3.new(1,1,1)
+        round(buy1,6)
+
+        buy1.MouseButton1Click:Connect(function()
+            local args = { {box.Name, "\017"} }
+            game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+        end)
+
+        -- Buy 10 button
+        local buy10 = Instance.new("TextButton", container)
+        buy10.Size = UDim2.new(0.48,0,1,0)
+        buy10.Position = UDim2.new(0.52,0,0,0)
+        buy10.Text = "Buy 10 "..box.Name..(box.Price and (" ($".. tostring((box.Price or 0)*10)..")") or "")
+        buy10.Font = Enum.Font.SourceSansBold
+        buy10.TextSize = 18
+        buy10.BackgroundColor3 = Color3.fromRGB(50,100,200)
+        buy10.TextColor3 = Color3.new(1,1,1)
+        round(buy10,6)
+
+        buy10.MouseButton1Click:Connect(function()
+            for i=1,10 do
+                local args = { {box.Name, "\017"} }
+                game:GetService("ReplicatedStorage"):WaitForChild("BridgeNet"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+                task.wait(0.05)
+            end
+        end)
+    end
+
+    task.wait(0.1)
+    scrollFrame.CanvasSize = UDim2.new(0,0,0,uiListLayout.AbsoluteContentSize.Y)
 end
 
 ---------------------------------------------------
