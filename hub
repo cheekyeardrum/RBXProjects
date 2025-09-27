@@ -234,7 +234,8 @@ end
 local upgradingTrees = false
 local treeLoop
 
-local treeParts = {
+-- List of upgrades (we'll resolve to Pad.Main)
+local treeUpgradePaths = {
     workspace.World.Scriptable.TreeUpgrades1.UpgradeConfig,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade1,
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade10,
@@ -251,12 +252,15 @@ local treeParts = {
     workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade8,
 }
 
+-- Function to touch all pads
 local function fireTreeUpgrades()
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
 
-    for _, part in ipairs(treeParts) do
-        if part and part:IsA("BasePart") then
+    for _, upgrade in ipairs(treeUpgradePaths) do
+        local pad = upgrade:FindFirstChild("Pad")
+        if pad and pad:FindFirstChild("Main") and pad.Main:IsA("BasePart") then
+            local part = pad.Main
             firetouchinterest(hrp, part, 0) -- touch begin
             firetouchinterest(hrp, part, 1) -- touch end
         end
@@ -294,7 +298,7 @@ local function buildTreeUpgradeTab()
             treeLoop = task.spawn(function()
                 while upgradingTrees do
                     fireTreeUpgrades()
-                    task.wait(0.2) -- small delay between loops
+                    task.wait(0.2) -- small delay for efficiency
                 end
             end)
         else
@@ -302,7 +306,6 @@ local function buildTreeUpgradeTab()
         end
     end)
 end
-
 
 
 
