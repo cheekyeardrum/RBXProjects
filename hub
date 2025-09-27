@@ -127,7 +127,7 @@ contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
 -- Tab Names
-local tabNames={"Tab1","Tab2","Tab3","Grass Upgrade"}
+local tabNames={"Tab1","Tab2","Tab3","Grass Upgrade","Tree Upgrade"}
 local tabButtons={}
 
 -- Empty Tabs
@@ -229,8 +229,85 @@ local function buildGrassUpgradeTab()
     end)
 end
 
+
+-- Tree Upgrade Tab
+local upgradingTrees = false
+local treeLoop
+
+local treeParts = {
+    workspace.World.Scriptable.TreeUpgrades1.UpgradeConfig,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade1,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade10,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade12,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade13,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade14,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade15,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade17,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade2,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade3,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade4,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade5,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade6,
+    workspace.World.Scriptable.TreeUpgrades1.TreeUpgrade8,
+}
+
+local function fireTreeUpgrades()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    for _, part in ipairs(treeParts) do
+        if part and part:IsA("BasePart") then
+            firetouchinterest(hrp, part, 0) -- touch begin
+            firetouchinterest(hrp, part, 1) -- touch end
+        end
+    end
+end
+
+local function buildTreeUpgradeTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Tree Upgrades"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
+
+    toggle.MouseButton1Click:Connect(function()
+        upgradingTrees = not upgradingTrees
+        toggle.Text = upgradingTrees and "ON" or "OFF"
+        toggle.BackgroundColor3 = upgradingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if upgradingTrees then
+            treeLoop = task.spawn(function()
+                while upgradingTrees do
+                    fireTreeUpgrades()
+                    task.wait(0.2) -- small delay between loops
+                end
+            end)
+        else
+            upgradingTrees = false
+        end
+    end)
+end
+
+
+
+
 -- Tab Functions
-local tabFuncs = {buildTab1,buildTab2,buildTab3,buildGrassUpgradeTab}
+local tabFuncs = {buildTab1,buildTab2,buildTab3,buildGrassUpgradeTab,buildTreeUpgradeTab}
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
