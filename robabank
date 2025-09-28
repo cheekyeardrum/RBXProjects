@@ -154,31 +154,56 @@ local function buildAutoCollectTab()
         collectBtn.Text = autoCollect and "Auto Collect: ON" or "Auto Collect: OFF"
         collectBtn.BackgroundColor3 = autoCollect and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-       if autoCollect then
-    task.spawn(function()
-        while autoCollect do
-            local plot
-            for _,p in pairs(workspace.Plots:GetChildren()) do
-                local owner = p:FindFirstChild("Owner")
-                if owner and owner.Value == player.Name then  -- <-- compare to username
-                    plot = p
-                    break
-                end
-            end
+       local autoCollect = false
 
-            if plot and plot:FindFirstChild("MoneyCollecter") and plot.MoneyCollecter:FindFirstChild("Collect") then
-                local collectPart = plot.MoneyCollecter.Collect
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    firetouchinterest(hrp, collectPart, 0)
-                    firetouchinterest(hrp, collectPart, 1)
-                end
-            end
-
-            task.wait(0.2)
+local function getMyPlot()
+    for _, plot in pairs(workspace.Plots:GetChildren()) do
+        local owner = plot:FindFirstChild("Owner")
+        if owner and owner:IsA("StringValue") and owner.Value == player.Name then
+            return plot
         end
-    end)
+    end
+    return nil
 end
+
+local function fireCollect(plot)
+    local collect = plot:FindFirstChild("MoneyCollecter") and plot.MoneyCollecter:FindFirstChild("Collect")
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if collect and hrp then
+        firetouchinterest(hrp, collect, 0)
+        firetouchinterest(hrp, collect, 1)
+    end
+end
+
+-- Toggle Button
+local collectBtn = Instance.new("TextButton", contentFrame)
+collectBtn.Size = UDim2.new(0,200,0,50)
+collectBtn.Position = UDim2.new(0,20,0,60)
+collectBtn.Text = "Auto Collect: OFF"
+collectBtn.Font = Enum.Font.SourceSansBold
+collectBtn.TextSize = 20
+collectBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+collectBtn.TextColor3 = Color3.new(1,1,1)
+round(collectBtn,8)
+
+collectBtn.MouseButton1Click:Connect(function()
+    autoCollect = not autoCollect
+    collectBtn.Text = autoCollect and "Auto Collect: ON" or "Auto Collect: OFF"
+    collectBtn.BackgroundColor3 = autoCollect and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+    if autoCollect then
+        task.spawn(function()
+            while autoCollect do
+                local plot = getMyPlot()
+                if plot then
+                    fireCollect(plot)
+                end
+                task.wait(0.3)
+            end
+        end)
+    end
+end)
+
 
 
 ---------------------------------------------------
