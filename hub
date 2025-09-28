@@ -238,6 +238,15 @@ local function fireTreeUpgrades()
             firetouchinterest(hrp, upgrade.Pad.Main, 1)
         end
     end
+
+    -- TreeUpgrades3
+    for i=1,30 do  -- adjust number if different
+        local upgrade = workspace.World.Scriptable.TreeUpgrades3:FindFirstChild("TreeUpgrade"..i)
+        if upgrade and upgrade:FindFirstChild("Pad") and upgrade.Pad:FindFirstChild("Main") then
+            firetouchinterest(hrp, upgrade.Pad.Main, 0)
+            firetouchinterest(hrp, upgrade.Pad.Main, 1)
+        end
+    end
 end
 
 local function buildTreeUpgradeTab()
