@@ -179,22 +179,30 @@ local function buildGrassUpgradeTab()
     end)
 end
 
--- Tree Upgrade Tab
-local upgradingTrees = false
+---------------------------------------------------
+-- Tree Upgrade Tab (covers TreeUpgrades1 + TreeUpgrades2)
+---------------------------------------------------
+local treeUpgrade = false
 local treeLoop
 
 local function fireTreeUpgrades()
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
 
-    for i = 1, 20 do
-        local upgrade = workspace.World.Scriptable.TreeUpgrades1:FindFirstChild("TreeUpgrade"..i)
-        if upgrade then
-            local pad = upgrade:FindFirstChild("Pad")
-            if pad and pad:FindFirstChild("Main") then
-                local part = pad.Main
-                firetouchinterest(hrp, part, 0)
-                firetouchinterest(hrp, part, 1)
+    -- check both folders
+    for _, folderName in ipairs({"TreeUpgrades1","TreeUpgrades2"}) do
+        local folder = workspace.World.Scriptable:FindFirstChild(folderName)
+        if folder then
+            for i = 1, 20 do
+                local upgrade = folder:FindFirstChild("TreeUpgrade"..i)
+                if upgrade then
+                    local pad = upgrade:FindFirstChild("Pad")
+                    if pad and pad:FindFirstChild("Main") then
+                        local part = pad.Main
+                        firetouchinterest(hrp, part, 0)
+                        firetouchinterest(hrp, part, 1)
+                    end
+                end
             end
         end
     end
@@ -207,7 +215,7 @@ local function buildTreeUpgradeTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Tree Upgrades"
+    label.Text = "Tree Upgrade"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -223,20 +231,21 @@ local function buildTreeUpgradeTab()
     round(toggle,8)
 
     toggle.MouseButton1Click:Connect(function()
-        upgradingTrees = not upgradingTrees
-        toggle.Text = upgradingTrees and "ON" or "OFF"
-        toggle.BackgroundColor3 = upgradingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        treeUpgrade = not treeUpgrade
+        toggle.Text = treeUpgrade and "ON" or "OFF"
+        toggle.BackgroundColor3 = treeUpgrade and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if upgradingTrees then
+        if treeUpgrade then
             treeLoop = task.spawn(function()
-                while upgradingTrees do
+                while treeUpgrade do
                     fireTreeUpgrades()
-                    task.wait(0.2)
+                    task.wait(0.5)
                 end
             end)
         end
     end)
 end
+
 
 -- Tab Functions
 local tabNames = {"Grass Upgrade","Tree Upgrade"}
