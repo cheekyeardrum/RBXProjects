@@ -1,4 +1,4 @@
--- Clean Hub (GUI Framework + Grass Upgrade Tab)
+-- Clean Hub (GUI Framework + Grass + Tree Upgrade Tabs)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -126,68 +126,18 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
--- Tab Names
-local tabNames={"Tab1","Tab2","Tab3","Grass Upgrade","Tree Upgrade"}
-local tabButtons={}
-
--- Empty Tabs
-local function buildTab1()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 1 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
-local function buildTab2()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 2 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
-local function buildTab3()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,1,-20)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "This is Tab 3 (empty)"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 20
-end
-
 -- Grass Upgrade Tab
-local upgrading = false
-local connection
+local upgradingGrass = false
+local grassLoop
 
 local function fireGrassUpgrades()
-    -- Upgrade 1
-    local args1 = {
-        buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005")
-    }
+    local args1 = {buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005")}
     game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
 
-    -- Upgrade 2
-    local args2 = {
-        buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002")
-    }
+    local args2 = {buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002")}
     game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
 
-    -- Upgrade 3
-    local args3 = {
-        buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003")
-    }
+    local args3 = {buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003")}
     game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args3))
 end
 
@@ -214,43 +164,24 @@ local function buildGrassUpgradeTab()
     round(toggle,8)
 
     toggle.MouseButton1Click:Connect(function()
-        upgrading = not upgrading
-        toggle.Text = upgrading and "ON" or "OFF"
-        toggle.BackgroundColor3 = upgrading and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        upgradingGrass = not upgradingGrass
+        toggle.Text = upgradingGrass and "ON" or "OFF"
+        toggle.BackgroundColor3 = upgradingGrass and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if upgrading then
-            connection = RunService.RenderStepped:Connect(fireGrassUpgrades)
-        else
-            if connection then
-                connection:Disconnect()
-                connection = nil
-            end
+        if upgradingGrass then
+            grassLoop = task.spawn(function()
+                while upgradingGrass do
+                    fireGrassUpgrades()
+                    task.wait(0.2)
+                end
+            end)
         end
     end)
 end
 
-
 -- Tree Upgrade Tab
 local upgradingTrees = false
 local treeLoop
-
--- Names of upgrades (they appear one by one)
-local treeUpgradeNames = {
-    "UpgradeConfig",
-    "TreeUpgrade1",
-    "TreeUpgrade2",
-    "TreeUpgrade3",
-    "TreeUpgrade4",
-    "TreeUpgrade5",
-    "TreeUpgrade6",
-    "TreeUpgrade8",
-    "TreeUpgrade10",
-    "TreeUpgrade12",
-    "TreeUpgrade13",
-    "TreeUpgrade14",
-    "TreeUpgrade15",
-    "TreeUpgrade17",
-}
 
 local function fireTreeUpgrades()
     local char = player.Character or player.CharacterAdded:Wait()
@@ -268,8 +199,6 @@ local function fireTreeUpgrades()
         end
     end
 end
-
-
 
 local function buildTreeUpgradeTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
@@ -302,17 +231,18 @@ local function buildTreeUpgradeTab()
             treeLoop = task.spawn(function()
                 while upgradingTrees do
                     fireTreeUpgrades()
-                    task.wait(0.2) -- small delay so it doesn't spam
+                    task.wait(0.2)
                 end
             end)
-        else
-            upgradingTrees = false
         end
     end)
 end
 
 -- Tab Functions
-local tabFuncs = {buildTab1,buildTab2,buildTab3,buildGrassUpgradeTab,buildTreeUpgradeTab}
+local tabNames = {"Grass Upgrade","Tree Upgrade"}
+local tabFuncs = {buildGrassUpgradeTab,buildTreeUpgradeTab}
+local tabButtons={}
+
 for i,name in ipairs(tabNames) do
     local btn = Instance.new("TextButton", tabsFrame)
     btn.Size = UDim2.new(1,0,0,40)
@@ -333,10 +263,14 @@ closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 minBtn.MouseButton1Click:Connect(function()
     if frame.Size==HUB_SZ then
         tween(frame,{Size=MINIMIZED_SZ})
+        tabsFrame.Visible=false
+        contentFrame.Visible=false
     else
         tween(frame,{Size=HUB_SZ})
+        tabsFrame.Visible=true
+        contentFrame.Visible=true
     end
 end)
 
 -- Default tab
-buildTab1()
+buildGrassUpgradeTab()
