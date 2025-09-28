@@ -128,110 +128,77 @@ enableDrag(contentFrame)
 local tabNames={"AutoFarm","Tree Upgrades"}
 local tabButtons={}
 
--- Inside buildAutoFarmTab()
+---------------------------------------------------
+-- AutoFarm Tab (only working toggles)
+---------------------------------------------------
+local autoGrass, autoSilver, autoWood, autoMuscle = false, false, false, false
 
-for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+local function buildAutoFarmTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-local label = Instance.new("TextLabel", contentFrame)
-label.Size = UDim2.new(1,-20,0,40)
-label.Position = UDim2.new(0,10,0,10)
-label.BackgroundTransparency = 1
-label.Text = "AutoFarm"
-label.TextColor3 = Color3.new(1,1,1)
-label.Font = Enum.Font.SourceSansBold
-label.TextSize = 22
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "AutoFarm"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
 
-local toggleList = {} -- store toggle states
+    local function createToggle(name, yPos, getFunc)
+        local toggle = Instance.new("TextButton", contentFrame)
+        toggle.Size = UDim2.new(0,200,0,40)
+        toggle.Position = UDim2.new(0,20,0,yPos)
+        toggle.Text = name..": OFF"
+        toggle.Font = Enum.Font.SourceSansBold
+        toggle.TextSize = 18
+        toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+        toggle.TextColor3 = Color3.new(1,1,1)
+        round(toggle,8)
 
--- Helper function to create toggle buttons
-local function createToggle(name, yPos, func)
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,40)
-    toggle.Position = UDim2.new(0,20,0,yPos)
-    toggle.Text = name..": OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 18
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
+        local state = false
+        toggle.MouseButton1Click:Connect(function()
+            state = not state
+            toggle.Text = name..(state and ": ON" or ": OFF")
+            toggle.BackgroundColor3 = state and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-    local state = false
-    toggle.MouseButton1Click:Connect(function()
-        state = not state
-        toggle.Text = name..(state and ": ON" or ": OFF")
-        toggle.BackgroundColor3 = state and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+            if state then
+                task.spawn(function()
+                    while state do
+                        pcall(getFunc)
+                        task.wait(0.1)
+                    end
+                end)
+            end
+        end)
+    end
 
-        if state then
-            task.spawn(function()
-                while state do
-                    pcall(func)
-                    task.wait(0.1)
-                end
-            end)
-        end
+    -- Grass
+    createToggle("Grass", 60, function()
+        local args1 = {buffer.fromstring("\014\007\000Diamond\014\006\000Normal")}
+        local args2 = {buffer.fromstring("\014\004\000Ruby")}
+        game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
+        game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
+    end)
+
+    -- Silver
+    createToggle("Silver", 110, function()
+        local args = {100000000}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseSilver"):FireServer(unpack(args))
+    end)
+
+    -- Wood
+    createToggle("Wood", 160, function()
+        local args = {1000000000}
+        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseTree"):FireServer(unpack(args))
+    end)
+
+    -- Muscle
+    createToggle("Muscle", 210, function()
+        local args = {1000000000}
+        game:GetService("ReplicatedStorage").Remotes.IncreaseMuscle:FireServer(unpack(args))
     end)
 end
-
--- Grass
-createToggle("Grass", 60, function()
-    local args1 = {buffer.fromstring("\014\007\000Diamond\014\006\000Normal")}
-    local args2 = {buffer.fromstring("\014\004\000Ruby")}
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
-end)
-
--- Silver
-createToggle("Silver", 110, function()
-    local args = {100000000}
-    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseSilver"):FireServer(unpack(args))
-end)
-
--- Wood
-createToggle("Wood", 160, function()
-    local args = {1000000000}
-    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseTree"):FireServer(unpack(args))
-end)
-
--- Daily Reward
-createToggle("DailyReward", 210, function()
-    game:GetService("ReplicatedStorage").Remotes.GetDailyReward:FireServer()
-end)
-
--- Verified List
-createToggle("VerifiedList", 260, function()
-    game:GetService("ReplicatedStorage").Remotes.GetVerifiedList:FireServer()
-end)
-
--- Airdrop
-createToggle("Airdrop", 310, function()
-    game:GetService("ReplicatedStorage").Remotes.AirdropClaimed:FireServer()
-end)
-
--- Muscle
-createToggle("Muscle", 360, function()
-    local args = {1000000000} -- 1 billion muscle
-    game:GetService("ReplicatedStorage").Remotes.IncreaseMuscle:FireServer(unpack(args))
-end)
-
--- Key Obtained
-createToggle("Key", 410, function()
-    game:GetService("ReplicatedStorage").Remotes.KeyObtained:FireServer()
-end)
-
--- Remove Bench
-createToggle("RemoveBench", 460, function()
-    game:GetService("ReplicatedStorage").Remotes.RemoveBench:FireServer()
-end)
-
--- Adaptive Price
-createToggle("AdaptivePrice", 510, function()
-    game:GetService("ReplicatedStorage").Remotes.SetAdaptivePrice:FireServer()
-end)
-
--- System Message
-createToggle("SystemMsg", 560, function()
-    game:GetService("ReplicatedStorage").Remotes.SystemMessage:FireServer()
-end)
 
 ---------------------------------------------------
 -- Tree Upgrades Tab (50 upgrades, toggle loop)
