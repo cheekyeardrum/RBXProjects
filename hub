@@ -312,11 +312,60 @@ local function buildCuttingGrassTab()
     end)
 end
 
+
+---------------------------------------------------
+-- Silver Farm Tab
+---------------------------------------------------
+local silverFarm = false
+local silverLoop
+
+local function buildSilverFarmTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Silver Farm"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggle = Instance.new("TextButton", contentFrame)
+    toggle.Size = UDim2.new(0,200,0,50)
+    toggle.Position = UDim2.new(0,20,0,60)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSansBold
+    toggle.TextSize = 20
+    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggle.TextColor3 = Color3.new(1,1,1)
+    round(toggle,8)
+
+    toggle.MouseButton1Click:Connect(function()
+        silverFarm = not silverFarm
+        toggle.Text = silverFarm and "ON" or "OFF"
+        toggle.BackgroundColor3 = silverFarm and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if silverFarm then
+            silverLoop = task.spawn(function()
+                while silverFarm do
+                    local args = {100000000}
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseSilver"):FireServer(unpack(args))
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end)
+end
+
+
+
+
 ---------------------------------------------------
 -- Tab Buttons
 ---------------------------------------------------
-local tabNames = {"Grass Upgrade","Tree Upgrade","Cutting Grass"}
-local tabFuncs = {buildGrassUpgradeTab,buildTreeUpgradeTab,buildCuttingGrassTab}
+local tabNames = {"Grass Upgrade","Tree Upgrade","Cutting Grass","Silver Farm"}
+local tabFuncs = {buildGrassUpgradeTab,buildTreeUpgradeTab,buildCuttingGrassTab,buildSilverFarmTab}
 local tabButtons = {}
 
 for i,name in ipairs(tabNames) do
