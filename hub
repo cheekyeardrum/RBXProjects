@@ -1,354 +1,139 @@
--- Clean Hub (GUI Framework + Grass/Tree/Cutting Tabs)
+-- Clean Hub (Updated with AutoFarm + merged Tree Upgrades tab)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
-
 local player = Players.LocalPlayer
-local guiParent = CoreGui
+local playerGui = player:WaitForChild("PlayerGui")
 
--- Sizes
-local HUB_SZ = UDim2.new(0,700,0,450)
-local MINIMIZED_SZ = UDim2.new(0,200,0,40)
-
--- Tween helper
-local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local function tween(obj, props)
-    local tw = TweenService:Create(obj, tweenInfo, props)
-    tw:Play()
-    return tw
-end
-
-local function round(ui, radius)
-    local c = Instance.new("UICorner", ui)
-    c.CornerRadius = UDim.new(0, radius or 8)
-end
-
--- ScreenGui
+---------------------------------------------------
+-- UI Setup
+---------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CleanHubGui"
+screenGui.Name = "CleanHub"
+screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
-screenGui.Parent = guiParent
 
--- Main Frame
-local frame = Instance.new("Frame", screenGui)
-frame.Name = "MainFrame"
-frame.Size = HUB_SZ
-frame.Position = UDim2.new(0.5,0,0.5,0)
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
-frame.Active = true
-frame.BorderSizePixel = 0
-round(frame,10)
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 500, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
 
--- Dragging
-local dragging, dragInput, dragStart, startPos
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset+delta.X,
-            startPos.Y.Scale, startPos.Y.Offset+delta.Y
-        )
-    end
-end)
+local tabFrame = Instance.new("Frame", mainFrame)
+tabFrame.Size = UDim2.new(0, 130, 1, 0)
+tabFrame.Position = UDim2.new(0, 0, 0, 0)
+tabFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+tabFrame.BorderSizePixel = 0
 
-local function enableDrag(target)
-    target.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = i.Position
-            startPos = frame.Position
-            i.Changed:Connect(function()
-                if i.UserInputState==Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+local contentFrame = Instance.new("Frame", mainFrame)
+contentFrame.Size = UDim2.new(1, -130, 1, 0)
+contentFrame.Position = UDim2.new(0, 130, 0, 0)
+contentFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+contentFrame.BorderSizePixel = 0
+
+local tabButtons = {}
+
+local function round(obj, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius)
+    corner.Parent = obj
+end
+
+---------------------------------------------------
+-- Tab Creation
+---------------------------------------------------
+local function createTab(name, buildFunc)
+    local btn = Instance.new("TextButton", tabFrame)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Text = name
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 18
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    btn.BorderSizePixel = 0
+    round(btn,8)
+
+    btn.MouseButton1Click:Connect(function()
+        for _,b in pairs(tabButtons) do
+            b.BackgroundColor3 = Color3.fromRGB(60,60,60)
         end
+        btn.BackgroundColor3 = Color3.fromRGB(100,100,100)
+        buildFunc()
     end)
-    target.InputChanged:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
-            dragInput = i
-        end
-    end)
-end
 
--- Top Bar
-local bar=Instance.new("Frame",frame)
-bar.Size=UDim2.new(1,0,0,40)
-bar.Position=UDim2.new(0,0,0,0)
-bar.BackgroundColor3=Color3.fromRGB(40,40,40)
-bar.Active=true
-round(bar,10)
-enableDrag(bar)
-
-local title=Instance.new("TextLabel",bar)
-title.Size=UDim2.new(1,-120,1,0)
-title.Position = UDim2.new(0,10,0,0)
-title.BackgroundTransparency=1
-title.Font=Enum.Font.SourceSansBold
-title.TextSize=24
-title.Text="Clean Hub"
-title.TextColor3 = Color3.new(1,1,1)
-title.TextXAlignment=Enum.TextXAlignment.Left
-
-local closeBtn=Instance.new("TextButton",bar)
-closeBtn.Size=UDim2.new(0,30,0,30)
-closeBtn.Position=UDim2.new(1,-40,0,5)
-closeBtn.Text="X"
-closeBtn.Font=Enum.Font.SourceSansBold
-closeBtn.TextSize=18
-closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
-closeBtn.TextColor3=Color3.new(1,1,1)
-round(closeBtn,4)
-
-local minBtn=Instance.new("TextButton",bar)
-minBtn.Size=UDim2.new(0,30,0,30)
-minBtn.Position=UDim2.new(1,-80,0,5)
-minBtn.Text="-"
-minBtn.Font=Enum.Font.SourceSansBold
-minBtn.TextSize=22
-minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
-minBtn.TextColor3=Color3.new(1,1,1)
-round(minBtn,4)
-
--- Tabs + Content
-local tabsFrame=Instance.new("Frame",frame)
-tabsFrame.Size=UDim2.new(0,160,1,-60)
-tabsFrame.Position=UDim2.new(0,0,0,50)
-tabsFrame.BackgroundTransparency=1
-
-local contentFrame=Instance.new("Frame",frame)
-contentFrame.Size=UDim2.new(1,-160,1,-60)
-contentFrame.Position=UDim2.new(0,160,0,50)
-contentFrame.BackgroundTransparency=1
-enableDrag(contentFrame)
-
----------------------------------------------------
--- Grass Upgrade Tab
----------------------------------------------------
-local grassUpgrade = false
-local grassConn
-
-local function fireGrassUpgrades()
-    local args1 = { buffer.fromstring("\002\n\000SpawnRate1\000\001\0001\001\0007\005\000Grass\001\0005") }
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
-
-    local args2 = { buffer.fromstring("\002\n\000GrassValue\000\001\0001\002\00099\005\000Grass\001\0002") }
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
-
-    local args3 = { buffer.fromstring("\002\v\000GrassAmount\000\001\0001\002\00049\005\000Grass\001\0003") }
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args3))
-end
-
-local function buildGrassUpgradeTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Grass Upgrade"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
-
-    toggle.MouseButton1Click:Connect(function()
-        grassUpgrade = not grassUpgrade
-        toggle.Text = grassUpgrade and "ON" or "OFF"
-        toggle.BackgroundColor3 = grassUpgrade and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if grassUpgrade then
-            grassConn = RunService.RenderStepped:Connect(fireGrassUpgrades)
-        else
-            if grassConn then
-                grassConn:Disconnect()
-                grassConn = nil
-            end
-        end
-    end)
+    table.insert(tabButtons, btn)
 end
 
 ---------------------------------------------------
--- Tree Upgrade Tab (TreeUpgrades1 = 20, TreeUpgrades2 = 30)
+-- AutoFarm Tab
 ---------------------------------------------------
-local treeUpgrade = false
-local treeLoop
+local autoGrass = false
+local autoSilver = false
+local autoWood = false
 
-local function fireTreeUpgrades()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart")
-
-    -- TreeUpgrades1 (20 upgrades)
-    local folder1 = workspace.World.Scriptable:FindFirstChild("TreeUpgrades1")
-    if folder1 then
-        for i = 1, 20 do
-            local upgrade = folder1:FindFirstChild("TreeUpgrade"..i)
-            if upgrade then
-                local pad = upgrade:FindFirstChild("Pad")
-                if pad and pad:FindFirstChild("Main") then
-                    local part = pad.Main
-                    firetouchinterest(hrp, part, 0)
-                    firetouchinterest(hrp, part, 1)
-                end
-            end
-        end
-    end
-
-    -- TreeUpgrades2 (30 upgrades)
-    local folder2 = workspace.World.Scriptable:FindFirstChild("TreeUpgrades2")
-    if folder2 then
-        for i = 1, 30 do
-            local upgrade = folder2:FindFirstChild("TreeUpgrade"..i)
-            if upgrade then
-                local pad = upgrade:FindFirstChild("Pad")
-                if pad and pad:FindFirstChild("Main") then
-                    local part = pad.Main
-                    firetouchinterest(hrp, part, 0)
-                    firetouchinterest(hrp, part, 1)
-                end
-            end
-        end
-    end
-end
-
-local function buildTreeUpgradeTab()
+local function buildAutoFarmTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Tree Upgrade"
+    label.Text = "AutoFarm"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
+    -- Grass Cutting
+    local grassBtn = Instance.new("TextButton", contentFrame)
+    grassBtn.Size = UDim2.new(0,200,0,40)
+    grassBtn.Position = UDim2.new(0,20,0,60)
+    grassBtn.Text = "Grass: OFF"
+    grassBtn.Font = Enum.Font.SourceSansBold
+    grassBtn.TextSize = 18
+    grassBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    grassBtn.TextColor3 = Color3.new(1,1,1)
+    round(grassBtn,8)
 
-    toggle.MouseButton1Click:Connect(function()
-        treeUpgrade = not treeUpgrade
-        toggle.Text = treeUpgrade and "ON" or "OFF"
-        toggle.BackgroundColor3 = treeUpgrade and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+    grassBtn.MouseButton1Click:Connect(function()
+        autoGrass = not autoGrass
+        grassBtn.Text = autoGrass and "Grass: ON" or "Grass: OFF"
+        grassBtn.BackgroundColor3 = autoGrass and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if treeUpgrade then
-            treeLoop = task.spawn(function()
-                while treeUpgrade do
-                    fireTreeUpgrades()
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end)
-end
-
----------------------------------------------------
--- Cutting Grass Tab
----------------------------------------------------
-local cutting = false
-local cutLoop
-
-local function fireCutGrass()
-    local args1 = {buffer.fromstring("\014\007\000Diamond\014\006\000Normal")}
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
-
-    local args2 = {buffer.fromstring("\014\004\000Ruby")}
-    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
-end
-
-local function buildCuttingGrassTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Cutting Grass"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
-
-    toggle.MouseButton1Click:Connect(function()
-        cutting = not cutting
-        toggle.Text = cutting and "ON" or "OFF"
-        toggle.BackgroundColor3 = cutting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if cutting then
-            cutLoop = task.spawn(function()
-                while cutting do
-                    fireCutGrass()
+        if autoGrass then
+            task.spawn(function()
+                while autoGrass do
+                    local args1 = {buffer.fromstring("\014\007\000Diamond\014\006\000Normal")}
+                    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args1))
+                    local args2 = {buffer.fromstring("\014\004\000Ruby")}
+                    game:GetService("ReplicatedStorage"):WaitForChild("ByteNetReliable"):FireServer(unpack(args2))
                     task.wait(0.01)
                 end
             end)
         end
     end)
-end
 
+    -- Silver
+    local silverBtn = Instance.new("TextButton", contentFrame)
+    silverBtn.Size = UDim2.new(0,200,0,40)
+    silverBtn.Position = UDim2.new(0,20,0,110)
+    silverBtn.Text = "Silver: OFF"
+    silverBtn.Font = Enum.Font.SourceSansBold
+    silverBtn.TextSize = 18
+    silverBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    silverBtn.TextColor3 = Color3.new(1,1,1)
+    round(silverBtn,8)
 
----------------------------------------------------
--- Silver Farm Tab
----------------------------------------------------
-local silverFarm = false
-local silverLoop
+    silverBtn.MouseButton1Click:Connect(function()
+        autoSilver = not autoSilver
+        silverBtn.Text = autoSilver and "Silver: ON" or "Silver: OFF"
+        silverBtn.BackgroundColor3 = autoSilver and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-local function buildSilverFarmTab()
-    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
-
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Silver Farm"
-    label.TextColor3 = Color3.new(1,1,1)
-    label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
-
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
-
-    toggle.MouseButton1Click:Connect(function()
-        silverFarm = not silverFarm
-        toggle.Text = silverFarm and "ON" or "OFF"
-        toggle.BackgroundColor3 = silverFarm and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if silverFarm then
-            silverLoop = task.spawn(function()
-                while silverFarm do
+        if autoSilver then
+            task.spawn(function()
+                while autoSilver do
                     local args = {100000000}
                     game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseSilver"):FireServer(unpack(args))
                     task.wait(0.1)
@@ -356,42 +141,105 @@ local function buildSilverFarmTab()
             end)
         end
     end)
+
+    -- Wood
+    local woodBtn = Instance.new("TextButton", contentFrame)
+    woodBtn.Size = UDim2.new(0,200,0,40)
+    woodBtn.Position = UDim2.new(0,20,0,160)
+    woodBtn.Text = "Wood: OFF"
+    woodBtn.Font = Enum.Font.SourceSansBold
+    woodBtn.TextSize = 18
+    woodBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    woodBtn.TextColor3 = Color3.new(1,1,1)
+    round(woodBtn,8)
+
+    woodBtn.MouseButton1Click:Connect(function()
+        autoWood = not autoWood
+        woodBtn.Text = autoWood and "Wood: ON" or "Wood: OFF"
+        woodBtn.BackgroundColor3 = autoWood and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if autoWood then
+            task.spawn(function()
+                while autoWood do
+                    local args = {1000000000} -- 1 Billion
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("IncreaseTree"):FireServer(unpack(args))
+                    task.wait(0.1)
+                end
+            end)
+        end
+    end)
 end
 
-
-
-
 ---------------------------------------------------
--- Tab Buttons
+-- Tree Upgrades Tab (merged 1 + 2)
 ---------------------------------------------------
-local tabNames = {"Grass Upgrade","Tree Upgrade","Cutting Grass","Silver Farm"}
-local tabFuncs = {buildGrassUpgradeTab,buildTreeUpgradeTab,buildCuttingGrassTab,buildSilverFarmTab}
-local tabButtons = {}
+local function buildTreeUpgradesTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-for i,name in ipairs(tabNames) do
-    local btn = Instance.new("TextButton", tabsFrame)
-    btn.Size = UDim2.new(1,0,0,40)
-    btn.Position = UDim2.new(0,0,0,(i-1)*45)
-    btn.Text = name
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 16
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    btn.TextColor3 = Color3.new(1,1,1)
-    round(btn,6)
-    local func = tabFuncs[i]
-    btn.MouseButton1Click:Connect(func)
-    table.insert(tabButtons, btn)
-end
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Tree Upgrades"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
 
--- Close/Minimize
-closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
-minBtn.MouseButton1Click:Connect(function()
-    if frame.Size==HUB_SZ then
-        tween(frame,{Size=MINIMIZED_SZ})
-    else
-        tween(frame,{Size=HUB_SZ})
+    local scroll = Instance.new("ScrollingFrame", contentFrame)
+    scroll.Size = UDim2.new(1,-20,1,-60)
+    scroll.Position = UDim2.new(0,10,0,50)
+    scroll.CanvasSize = UDim2.new(0,0,0,2000)
+    scroll.ScrollBarThickness = 8
+    scroll.BackgroundTransparency = 1
+
+    local layout = Instance.new("UIListLayout", scroll)
+    layout.Padding = UDim.new(0,5)
+
+    -- Generate 20 upgrades from TreeUpgrades1
+    for i=1,20 do
+        local btn = Instance.new("TextButton", scroll)
+        btn.Size = UDim2.new(0,200,0,40)
+        btn.Text = "Upgrade 1-"..i
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 18
+        btn.BackgroundColor3 = Color3.fromRGB(80,80,120)
+        btn.TextColor3 = Color3.new(1,1,1)
+        round(btn,8)
+
+        btn.MouseButton1Click:Connect(function()
+            local path = workspace.World.Scriptable.TreeUpgrades1:FindFirstChild("TreeUpgrade"..i)
+            if path and path:FindFirstChild("Pad") and path.Pad:FindFirstChild("Main") then
+                firetouchinterest(Players.LocalPlayer.Character.HumanoidRootPart, path.Pad.Main, 0)
+                task.wait()
+                firetouchinterest(Players.LocalPlayer.Character.HumanoidRootPart, path.Pad.Main, 1)
+            end
+        end)
     end
-end)
 
--- Default tab
-buildGrassUpgradeTab()
+    -- Generate 30 upgrades from TreeUpgrades2
+    for i=1,30 do
+        local btn = Instance.new("TextButton", scroll)
+        btn.Size = UDim2.new(0,200,0,40)
+        btn.Text = "Upgrade 2-"..i
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 18
+        btn.BackgroundColor3 = Color3.fromRGB(120,80,80)
+        btn.TextColor3 = Color3.new(1,1,1)
+        round(btn,8)
+
+        btn.MouseButton1Click:Connect(function()
+            local path = workspace.World.Scriptable.TreeUpgrades2:FindFirstChild("TreeUpgrade"..i)
+            if path and path:FindFirstChild("Pad") and path.Pad:FindFirstChild("Main") then
+                firetouchinterest(Players.LocalPlayer.Character.HumanoidRootPart, path.Pad.Main, 0)
+                task.wait()
+                firetouchinterest(Players.LocalPlayer.Character.HumanoidRootPart, path.Pad.Main, 1)
+            end
+        end)
+    end
+end
+
+---------------------------------------------------
+-- Register Tabs
+---------------------------------------------------
+createTab("AutoFarm", buildAutoFarmTab)
+createTab("Tree Upgrades", buildTreeUpgradesTab)
