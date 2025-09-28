@@ -1,0 +1,207 @@
+-- Clean Hub (GUI Framework + Dynamic Tree Farm Tab)
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local guiParent = game:GetService("CoreGui")
+
+-- Sizes
+local HUB_SZ = UDim2.new(0,700,0,450)
+local MINIMIZED_SZ = UDim2.new(0,200,0,40)
+
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, props)
+    local tw = TweenService:Create(obj, tweenInfo, props)
+    tw:Play()
+    return tw
+end
+
+local function round(ui, radius)
+    local c = Instance.new("UICorner", ui)
+    c.CornerRadius = UDim.new(0, radius or 8)
+end
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CleanHubGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = guiParent
+
+-- Main Frame
+local frame = Instance.new("Frame", screenGui)
+frame.Name = "MainFrame"
+frame.Size = HUB_SZ
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+frame.Active = true
+frame.BorderSizePixel = 0
+round(frame,10)
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset+delta.X,
+            startPos.Y.Scale, startPos.Y.Offset+delta.Y
+        )
+    end
+end)
+
+local function enableDrag(target)
+    target.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = i.Position
+            startPos = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState==Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    target.InputChanged:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
+            dragInput = i
+        end
+    end)
+end
+
+-- Top Bar
+local bar=Instance.new("Frame",frame)
+bar.Size=UDim2.new(1,0,0,40)
+bar.Position=UDim2.new(0,0,0,0)
+bar.BackgroundColor3=Color3.fromRGB(40,40,40)
+bar.Active=true
+round(bar,10)
+enableDrag(bar)
+
+local title=Instance.new("TextLabel",bar)
+title.Size = UDim2.new(1,-20,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.Text="Clean Hub"
+title.TextColor3=Color3.new(1,1,1)
+title.TextXAlignment=Enum.TextXAlignment.Left
+
+local closeBtn=Instance.new("TextButton",bar)
+closeBtn.Size=UDim2.new(0,30,0,30)
+closeBtn.Position=UDim2.new(1,-40,0,5)
+closeBtn.Text="X"
+closeBtn.Font=Enum.Font.SourceSansBold
+closeBtn.TextSize=18
+closeBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
+closeBtn.TextColor3=Color3.new(1,1,1)
+round(closeBtn,4)
+
+local minBtn=Instance.new("TextButton",bar)
+minBtn.Size=UDim2.new(0,30,0,30)
+minBtn.Position=UDim2.new(1,-80,0,5)
+minBtn.Text="-"
+minBtn.Font=Enum.Font.SourceSansBold
+minBtn.TextSize=22
+minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
+minBtn.TextColor3=Color3.new(1,1,1)
+round(minBtn,4)
+
+-- Tabs Frame
+local tabsFrame=Instance.new("Frame",frame)
+tabsFrame.Size=UDim2.new(0,140,1,-60)
+tabsFrame.Position=UDim2.new(0,0,0,50)
+tabsFrame.BackgroundTransparency=1
+
+-- Content Frame
+local contentFrame=Instance.new("Frame",frame)
+contentFrame.Size=UDim2.new(1,-140,1,-60)
+contentFrame.Position=UDim2.new(0,140,0,50)
+contentFrame.BackgroundTransparency=1
+enableDrag(contentFrame)
+
+---------------------------------------------------
+-- Tree Farm Tab
+---------------------------------------------------
+local farmingTrees = false
+
+local function fireTree(tree)
+    -- Use tree.Name dynamically instead of static world name
+    local args = {"damage", tree.Name}
+    local signal = game:GetService("ReplicatedStorage"):WaitForChild("Signal"):WaitForChild("Tree")
+    pcall(function()
+        signal:FireServer(unpack(args))
+    end)
+end
+
+local function buildTreeFarmTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Tree Farm"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggleBtn = Instance.new("TextButton", contentFrame)
+    toggleBtn.Size = UDim2.new(0,200,0,50)
+    toggleBtn.Position = UDim2.new(0,20,0,60)
+    toggleBtn.Text = "OFF"
+    toggleBtn.Font = Enum.Font.SourceSansBold
+    toggleBtn.TextSize = 20
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggleBtn.TextColor3 = Color3.new(1,1,1)
+    round(toggleBtn,8)
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        farmingTrees = not farmingTrees
+        toggleBtn.Text = farmingTrees and "ON" or "OFF"
+        toggleBtn.BackgroundColor3 = farmingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if farmingTrees then
+            task.spawn(function()
+                while farmingTrees do
+                    local folder = workspace:FindFirstChild("TreesFolder")
+                    if folder then
+                        for _, tree in pairs(folder:GetChildren()) do
+                            fireTree(tree)
+                        end
+                    end
+                    task.wait(0.2)
+                end
+            end)
+        end
+    end)
+end
+
+-- Tab Button
+local btnTreeFarm = Instance.new("TextButton", tabsFrame)
+btnTreeFarm.Size = UDim2.new(1,0,0,40)
+btnTreeFarm.Position = UDim2.new(0,0,0,0)
+btnTreeFarm.Text = "Tree Farm"
+btnTreeFarm.Font = Enum.Font.SourceSansBold
+btnTreeFarm.TextSize = 16
+btnTreeFarm.BackgroundColor3 = Color3.fromRGB(50,50,50)
+btnTreeFarm.TextColor3 = Color3.new(1,1,1)
+round(btnTreeFarm,6)
+btnTreeFarm.MouseButton1Click:Connect(buildTreeFarmTab)
+
+-- Open Tree Farm tab by default
+buildTreeFarmTab()
+
+-- Close/Minimize
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+minBtn.MouseButton1Click:Connect(function()
+    if frame.Size==HUB_SZ then
+        tween(frame,{Size=MINIMIZED_SZ})
+    else
+        tween(frame,{Size=HUB_SZ})
+    end
+end)
