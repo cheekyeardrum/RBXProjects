@@ -1,4 +1,4 @@
--- Clean Hub (GUI Framework + Dynamic Tree Farm Tab)
+-- Clean Hub (Tree Farm + Chest Collector)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -82,11 +82,11 @@ round(bar,10)
 enableDrag(bar)
 
 local title=Instance.new("TextLabel",bar)
-title.Size = UDim2.new(1,-20,1,0)
+title.Size=UDim2.new(1,-120,1,0)
 title.Position = UDim2.new(0,10,0,0)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 24
+title.BackgroundTransparency=1
+title.Font=Enum.Font.SourceSansBold
+title.TextSize=24
 title.Text="Clean Hub"
 title.TextColor3=Color3.new(1,1,1)
 title.TextXAlignment=Enum.TextXAlignment.Left
@@ -111,13 +111,12 @@ minBtn.BackgroundColor3=Color3.fromRGB(100,100,100)
 minBtn.TextColor3=Color3.new(1,1,1)
 round(minBtn,4)
 
--- Tabs Frame
+-- Tabs + Content
 local tabsFrame=Instance.new("Frame",frame)
 tabsFrame.Size=UDim2.new(0,140,1,-60)
 tabsFrame.Position=UDim2.new(0,0,0,50)
 tabsFrame.BackgroundTransparency=1
 
--- Content Frame
 local contentFrame=Instance.new("Frame",frame)
 contentFrame.Size=UDim2.new(1,-140,1,-60)
 contentFrame.Position=UDim2.new(0,140,0,50)
@@ -128,15 +127,6 @@ enableDrag(contentFrame)
 -- Tree Farm Tab
 ---------------------------------------------------
 local farmingTrees = false
-
-local function fireTree(tree)
-    -- Use tree.Name dynamically instead of static world name
-    local args = {"damage", tree.Name}
-    local signal = game:GetService("ReplicatedStorage"):WaitForChild("Signal"):WaitForChild("Tree")
-    pcall(function()
-        signal:FireServer(unpack(args))
-    end)
-end
 
 local function buildTreeFarmTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
@@ -171,7 +161,8 @@ local function buildTreeFarmTab()
                     local folder = workspace:FindFirstChild("TreesFolder")
                     if folder then
                         for _, tree in pairs(folder:GetChildren()) do
-                            fireTree(tree)
+                            local args = {"damage", tree.Name}
+                            game:GetService("ReplicatedStorage"):WaitForChild("Signal"):WaitForChild("Tree"):FireServer(unpack(args))
                         end
                     end
                     task.wait(0.2)
@@ -181,7 +172,68 @@ local function buildTreeFarmTab()
     end)
 end
 
--- Tab Button
+---------------------------------------------------
+-- Chest Collector Tab
+---------------------------------------------------
+local collectingChests = false
+
+local function fireChest(chest)
+    local hitPart = chest:FindFirstChild("HitPart")
+    if hitPart and hitPart:FindFirstChild("ProximityPoint") then
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            firetouchinterest(hrp, hitPart.ProximityPoint, 0)
+            firetouchinterest(hrp, hitPart.ProximityPoint, 1)
+        end
+    end
+end
+
+local function buildChestCollectorTab()
+    for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
+    local label = Instance.new("TextLabel", contentFrame)
+    label.Size = UDim2.new(1,-20,0,40)
+    label.Position = UDim2.new(0,10,0,10)
+    label.BackgroundTransparency = 1
+    label.Text = "Chest Collector"
+    label.TextColor3 = Color3.new(1,1,1)
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 22
+
+    local toggleBtn = Instance.new("TextButton", contentFrame)
+    toggleBtn.Size = UDim2.new(0,200,0,50)
+    toggleBtn.Position = UDim2.new(0,20,0,60)
+    toggleBtn.Text = "OFF"
+    toggleBtn.Font = Enum.Font.SourceSansBold
+    toggleBtn.TextSize = 20
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    toggleBtn.TextColor3 = Color3.new(1,1,1)
+    round(toggleBtn,8)
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        collectingChests = not collectingChests
+        toggleBtn.Text = collectingChests and "ON" or "OFF"
+        toggleBtn.BackgroundColor3 = collectingChests and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+        if collectingChests then
+            task.spawn(function()
+                while collectingChests do
+                    local folder = workspace:FindFirstChild("ChestFolder")
+                    if folder then
+                        for _, chest in pairs(folder:GetChildren()) do
+                            fireChest(chest)
+                        end
+                    end
+                    task.wait(0.3)
+                end
+            end)
+        end
+    end)
+end
+
+---------------------------------------------------
+-- Tab Buttons
+---------------------------------------------------
 local btnTreeFarm = Instance.new("TextButton", tabsFrame)
 btnTreeFarm.Size = UDim2.new(1,0,0,40)
 btnTreeFarm.Position = UDim2.new(0,0,0,0)
@@ -193,7 +245,18 @@ btnTreeFarm.TextColor3 = Color3.new(1,1,1)
 round(btnTreeFarm,6)
 btnTreeFarm.MouseButton1Click:Connect(buildTreeFarmTab)
 
--- Open Tree Farm tab by default
+local btnChestCollector = Instance.new("TextButton", tabsFrame)
+btnChestCollector.Size = UDim2.new(1,0,0,40)
+btnChestCollector.Position = UDim2.new(0,0,0,45)
+btnChestCollector.Text = "Chest Collector"
+btnChestCollector.Font = Enum.Font.SourceSansBold
+btnChestCollector.TextSize = 16
+btnChestCollector.BackgroundColor3 = Color3.fromRGB(50,50,50)
+btnChestCollector.TextColor3 = Color3.new(1,1,1)
+round(btnChestCollector,6)
+btnChestCollector.MouseButton1Click:Connect(buildChestCollectorTab)
+
+-- Default tab
 buildTreeFarmTab()
 
 -- Close/Minimize
