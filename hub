@@ -256,11 +256,11 @@ local function fireTreeUpgrades()
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
 
-    for _, name in ipairs(treeUpgradeNames) do
-        local upgrade = workspace.World.Scriptable.TreeUpgrades1:FindFirstChild(name)
+    for i = 1, 20 do
+        local upgrade = workspace.World.Scriptable.TreeUpgrades1:FindFirstChild("TreeUpgrade"..i)
         if upgrade then
             local pad = upgrade:FindFirstChild("Pad")
-            if pad and pad:FindFirstChild("Main") and pad.Main:IsA("BasePart") then
+            if pad and pad:FindFirstChild("Main") then
                 local part = pad.Main
                 firetouchinterest(hrp, part, 0)
                 firetouchinterest(hrp, part, 1)
@@ -268,6 +268,8 @@ local function fireTreeUpgrades()
         end
     end
 end
+
+
 
 local function buildTreeUpgradeTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
