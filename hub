@@ -181,7 +181,7 @@ local function buildGrassUpgradeTab()
 end
 
 ---------------------------------------------------
--- Tree Upgrade Tab (covers TreeUpgrades1 + TreeUpgrades2)
+-- Tree Upgrade Tab (TreeUpgrades1 = 20, TreeUpgrades2 = 30)
 ---------------------------------------------------
 local treeUpgrade = false
 local treeLoop
@@ -190,18 +190,33 @@ local function fireTreeUpgrades()
     local char = player.Character or player.CharacterAdded:Wait()
     local hrp = char:WaitForChild("HumanoidRootPart")
 
-    for _, folderName in ipairs({"TreeUpgrades1","TreeUpgrades2"}) do
-        local folder = workspace.World.Scriptable:FindFirstChild(folderName)
-        if folder then
-            for i = 1, 20 do
-                local upgrade = folder:FindFirstChild("TreeUpgrade"..i)
-                if upgrade then
-                    local pad = upgrade:FindFirstChild("Pad")
-                    if pad and pad:FindFirstChild("Main") then
-                        local part = pad.Main
-                        firetouchinterest(hrp, part, 0)
-                        firetouchinterest(hrp, part, 1)
-                    end
+    -- TreeUpgrades1 (20 upgrades)
+    local folder1 = workspace.World.Scriptable:FindFirstChild("TreeUpgrades1")
+    if folder1 then
+        for i = 1, 20 do
+            local upgrade = folder1:FindFirstChild("TreeUpgrade"..i)
+            if upgrade then
+                local pad = upgrade:FindFirstChild("Pad")
+                if pad and pad:FindFirstChild("Main") then
+                    local part = pad.Main
+                    firetouchinterest(hrp, part, 0)
+                    firetouchinterest(hrp, part, 1)
+                end
+            end
+        end
+    end
+
+    -- TreeUpgrades2 (30 upgrades)
+    local folder2 = workspace.World.Scriptable:FindFirstChild("TreeUpgrades2")
+    if folder2 then
+        for i = 1, 30 do
+            local upgrade = folder2:FindFirstChild("TreeUpgrade"..i)
+            if upgrade then
+                local pad = upgrade:FindFirstChild("Pad")
+                if pad and pad:FindFirstChild("Main") then
+                    local part = pad.Main
+                    firetouchinterest(hrp, part, 0)
+                    firetouchinterest(hrp, part, 1)
                 end
             end
         end
@@ -210,6 +225,7 @@ end
 
 local function buildTreeUpgradeTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
+
     local label = Instance.new("TextLabel", contentFrame)
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
