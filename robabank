@@ -154,33 +154,32 @@ local function buildAutoCollectTab()
         collectBtn.Text = autoCollect and "Auto Collect: ON" or "Auto Collect: OFF"
         collectBtn.BackgroundColor3 = autoCollect and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
-        if autoCollect then
-            task.spawn(function()
-                while autoCollect do
-                    local plot
-                    for _,p in pairs(workspace.Plots:GetChildren()) do
-                        local owner = p:FindFirstChild("Owner")
-                        if owner and owner.Value == player then
-                            plot = p
-                            break
-                        end
-                    end
-
-                    if plot and plot:FindFirstChild("MoneyCollecter") and plot.MoneyCollecter:FindFirstChild("Collect") then
-                        local collectPart = plot.MoneyCollecter.Collect
-                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp then
-                            firetouchinterest(hrp, collectPart, 0)
-                            firetouchinterest(hrp, collectPart, 1)
-                        end
-                    end
-
-                    task.wait(0.2)
+       if autoCollect then
+    task.spawn(function()
+        while autoCollect do
+            local plot
+            for _,p in pairs(workspace.Plots:GetChildren()) do
+                local owner = p:FindFirstChild("Owner")
+                if owner and owner.Value == player.Name then  -- <-- compare to username
+                    plot = p
+                    break
                 end
-            end)
+            end
+
+            if plot and plot:FindFirstChild("MoneyCollecter") and plot.MoneyCollecter:FindFirstChild("Collect") then
+                local collectPart = plot.MoneyCollecter.Collect
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    firetouchinterest(hrp, collectPart, 0)
+                    firetouchinterest(hrp, collectPart, 1)
+                end
+            end
+
+            task.wait(0.2)
         end
     end)
 end
+
 
 ---------------------------------------------------
 -- Tab Button
