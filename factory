@@ -215,57 +215,57 @@ local function buildAutoBuyStockTab()
     end)
 end
 
--- ================= AutoCollect Tab =================
+---------------------------------------------------
+-- AutoCollect Tab (Collect Only When Full)
+---------------------------------------------------
 local collecting = false
 local collectThread
+
+-- Mapping collector names to max money
+local collectorMax = {
+    ["Basic Collector"] = 1000,
+    ["Doubler Collector"] = 50000,
+    ["Super Collector"] = 500000,
+    ["Infinite Collector"] = math.huge,
+}
+
+-- Function to get your tycoon
 local function getMyTycoon()
-    local Workspace = game:GetService("Workspace")
-    local tycoonsFolder = Workspace:WaitForChild("Tycoons")
-    for _, tycoonModel in pairs(tycoonsFolder:GetChildren()) do
-        local playerSign = tycoonModel:FindFirstChild("Player_Sign")
-        if playerSign then
-            local playerInfo = playerSign:FindFirstChild("PlayerInfo")
-            if playerInfo then
-                local baseInfo = playerInfo:FindFirstChild("BaseInfo")
-                if baseInfo then
-                    local playerNameBox = baseInfo:FindFirstChild("PlayerName")
-                    if playerNameBox and playerNameBox:IsA("TextLabel") then
-                        if playerNameBox.Text == player.Name then
-                            return tycoonModel
-                        end
-                    end
-                end
-            end
+    local tycoonsFolder = workspace:WaitForChild("cheekyeardrumFactory") -- change if your tycoons folder is different
+    local playerName = game.Players.LocalPlayer.Name
+    for _, tycoon in ipairs(tycoonsFolder:GetChildren()) do
+        local owner = tycoon:FindFirstChild("Owner")
+        if owner and owner.Value == playerName then
+            return tycoon
         end
     end
     return nil
 end
 
+-- Function to collect from collectors when full
 local function collectFromMyTycoon()
     local myTycoon = getMyTycoon()
-    if not myTycoon or not myTycoon:FindFirstChild("Tycoon") then return end
-    local character = player.Character or player.CharacterAdded:Wait()
+    if not myTycoon then return end
+    local character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
     local hrp = character:WaitForChild("HumanoidRootPart")
-    local slots = myTycoon.Tycoon:FindFirstChild("Slots")
-    if slots then
-        for slotNum = 1, 12 do
-            local slotModel = slots:FindFirstChild(tostring(slotNum))
-            if slotModel then
-                local touchModel = slotModel:FindFirstChild("Touch")
-                if touchModel then
-                    local touchPart = touchModel:FindFirstChild("Part")
-                    if touchPart and touchPart:IsA("BasePart") then
-                        firetouchinterest(hrp, touchPart, 0)
-                        task.wait(0.1)
-                        firetouchinterest(hrp, touchPart, 1)
-                    end
+
+    local collectorsFolder = myTycoon:FindFirstChild("Collectors")
+    if collectorsFolder then
+        for _, collector in ipairs(collectorsFolder:GetChildren()) do
+            local prompt = collector:FindFirstChild("CollectPrompt")
+            local holdingValue = collector:FindFirstChild("holdingValue")
+            if prompt and holdingValue then
+                local maxHold = collectorMax[collector.Name] or 1000
+                if holdingValue.Value >= maxHold then
+                    fireproximityprompt(prompt)
+                    task.wait(0.1)
                 end
             end
-            task.wait(2)
         end
     end
 end
 
+-- Build the AutoCollect Tab UI
 local function buildAutoCollectTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
@@ -273,7 +273,7 @@ local function buildAutoCollectTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Auto Collect Money (Your Tycoon Only)"
+    label.Text = "Auto Collect Money (Only When Full)"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
@@ -297,10 +297,14 @@ local function buildAutoCollectTab()
             collectThread = task.spawn(function()
                 while collecting do
                     collectFromMyTycoon()
+                    task.wait(0.5) -- check every half-second
                 end
             end)
         else
-            if collectThread then task.cancel(collectThread) collectThread=nil end
+            if collectThread then
+                task.cancel(collectThread)
+                collectThread = nil
+            end
         end
     end)
 end
