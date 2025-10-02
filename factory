@@ -230,40 +230,41 @@ local collectorMax = {
 }
 
 -- Function to get your tycoon
-local function getMyTycoon()
-    local tycoonsFolder = workspace:WaitForChild("cheekyeardrumFactory") -- change if your tycoons folder is different
-    local playerName = game.Players.LocalPlayer.Name
-    for _, tycoon in ipairs(tycoonsFolder:GetChildren()) do
-        local owner = tycoon:FindFirstChild("Owner")
-        if owner and owner.Value == playerName then
-            return tycoon
-        end
-    end
-    return nil
-end
-
--- Function to collect from collectors when full
 local function collectFromMyTycoon()
     local myTycoon = getMyTycoon()
-    if not myTycoon then return end
-    local character = game.Players.LocalPlayer.Character or game.Players.LocalPlayer.CharacterAdded:Wait()
-    local hrp = character:WaitForChild("HumanoidRootPart")
+    if not myTycoon then
+        warn("No tycoon found for", player.Name)
+        return
+    end
 
     local collectorsFolder = myTycoon:FindFirstChild("Collectors")
-    if collectorsFolder then
-        for _, collector in ipairs(collectorsFolder:GetChildren()) do
-            local prompt = collector:FindFirstChild("CollectPrompt")
-            local holdingValue = collector:FindFirstChild("holdingValue")
-            if prompt and holdingValue then
-                local maxHold = collectorMax[collector.Name] or 1000
-                if holdingValue.Value >= maxHold then
-                    fireproximityprompt(prompt)
-                    task.wait(0.1)
-                end
+    if not collectorsFolder then
+        warn("No Collectors folder inside tycoon:", myTycoon.Name)
+        return
+    end
+
+    for _, collector in ipairs(collectorsFolder:GetChildren()) do
+        local prompt = collector:FindFirstChild("CollectPrompt")
+        local holdingValue = collector:FindFirstChild("holdingValue")
+
+        if not prompt then
+            warn("No CollectPrompt in", collector.Name)
+        elseif not holdingValue then
+            warn("No holdingValue in", collector.Name)
+        else
+            local maxHold = collectorMax[collector.Name] or 1000
+            print(("Checking %s: %d / %d"):format(collector.Name, holdingValue.Value, maxHold))
+            if holdingValue.Value >= maxHold then
+                print("Collecting from", collector.Name)
+                pcall(function()
+                    fireproximityprompt(prompt, 1)
+                end)
+                task.wait(0.1)
             end
         end
     end
 end
+
 
 -- Build the AutoCollect Tab UI
 local function buildAutoCollectTab()
