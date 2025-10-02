@@ -215,148 +215,77 @@ local function buildAutoBuyStockTab()
     end)
 end
 
--- AutoCollect Tab (Collect Only When Full)  -- REPLACEMENT (drop-in)
-local collecting = false
-local collectThread = nil
-
+---------------------------------------------------
+-- Auto Collect Tab
+---------------------------------------------------
+local autoCollectEnabled = false
 local collectorMax = {
     ["Basic Collector"] = 1000,
-    ["Doubler Collector"] = 50000,
-    ["Super Collector"] = 500000,
-    ["Infinite Collector"] = math.huge,
+    ["Upgraded Collector"] = 5000,
+    ["Advanced Collector"] = 10000,
+    -- add more collectors if needed
 }
 
--- Try to locate tycoons folder intelligently
-local function findTycoonsFolder()
-    local common = {"cheekyeardrumFactory", "Tycoons", "Factories", "FactoriesFolder", "tycoons"}
-    for _, name in ipairs(common) do
-        local f = workspace:FindFirstChild(name)
-        if f and f:IsA("Folder") then return f end
-    end
-    -- fallback: search for any folder that contains a model with an Owner value
-    for _, child in ipairs(workspace:GetChildren()) do
-        if child:IsA("Folder") then
-            for _, maybeModel in ipairs(child:GetChildren()) do
-                if maybeModel:IsA("Model") and maybeModel:FindFirstChild("Owner") then
-                    return child
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function getMyTycoon()
-    local tycoonsFolder = findTycoonsFolder()
-    if not tycoonsFolder then
-        warn("[AutoCollect] Tycoons folder not found in workspace.")
-        return nil
-    end
-    local playerName = player.Name
-    for _, tycoon in ipairs(tycoonsFolder:GetChildren()) do
-        local owner = tycoon:FindFirstChild("Owner")
-        if owner and owner.Value == playerName then
-            return tycoon
-        end
-    end
-    return nil
-end
-
--- Safely attempt to fire a proximity prompt (works only if environment exposes fireproximityprompt)
-local function safeFirePrompt(prompt)
-    if typeof(prompt) ~= "Instance" then
-        return false, "prompt is not an Instance"
-    end
-    local ok, err = pcall(function()
-        if type(fireproximityprompt) == "function" then
-            fireproximityprompt(prompt, 1) -- hold time 1s (executor-specific)
-        else
-            error("fireproximityprompt not available in this environment")
-        end
-    end)
-    return ok, err
-end
+local player = game:GetService("Players").LocalPlayer
+local factory = workspace:WaitForChild(player.Name .. "Factory")
+local collectorsFolder = factory:WaitForChild("Collectors")
 
 local function collectFromMyTycoon()
-    local myTycoon = getMyTycoon()
-    if not myTycoon then
-        warn("[AutoCollect] No tycoon found for player:", player.Name)
-        return
-    end
-
-    -- try a few possible folder names to be flexible
-    local collectorsFolder = myTycoon:FindFirstChild("Collectors") or myTycoon:FindFirstChild("Collector") or myTycoon:FindFirstChild("Collectibles")
-    if not collectorsFolder then
-        warn("[AutoCollect] No Collectors folder inside tycoon:", myTycoon.Name)
-        return
-    end
-
     for _, collector in ipairs(collectorsFolder:GetChildren()) do
-        local prompt = collector:FindFirstChildWhichIsA("ProximityPrompt") or collector:FindFirstChild("CollectPrompt")
-        local holdingValue = collector:FindFirstChild("holdingValue") or collector:FindFirstChild("HoldingValue") or collector:FindFirstChild("HoldAmount")
+        local prompt = collector:FindFirstChild("CollectPrompt")
+        local holdingValue = collector:FindFirstChild("holdingValue")
 
-        if not prompt then
-            warn("[AutoCollect] No CollectPrompt/ProximityPrompt in", collector.Name)
-        elseif not holdingValue then
-            warn("[AutoCollect] No holdingValue in", collector.Name)
-        else
+        if prompt and holdingValue then
             local maxHold = collectorMax[collector.Name] or 1000
-            print(("[AutoCollect] %s - holding=%d / max=%s"):format(collector.Name, holdingValue.Value, tostring(maxHold)))
             if holdingValue.Value >= maxHold then
-                print("[AutoCollect] Attempting collect from:", collector.Name)
-                local ok, err = safeFirePrompt(prompt)
-                if not ok then
-                    warn("[AutoCollect] Failed to fire prompt:", err)
-                end
+                pcall(function()
+                    fireproximityprompt(prompt, 1)
+                end)
                 task.wait(0.1)
             end
         end
     end
 end
 
--- Build AutoCollect UI
+local function autoCollectLoop()
+    while autoCollectEnabled do
+        collectFromMyTycoon()
+        task.wait(1) -- collect every second
+    end
+end
+
+-- Build GUI Tab
 local function buildAutoCollectTab()
     for _, v in pairs(contentFrame:GetChildren()) do v:Destroy() end
 
-    local label = Instance.new("TextLabel", contentFrame)
-    label.Size = UDim2.new(1,-20,0,40)
-    label.Position = UDim2.new(0,10,0,10)
-    label.BackgroundTransparency = 1
-    label.Text = "Auto Collect Money (Only When Full)"
-    label.TextColor3 = Color3.new(1,1,1)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 30)
+    label.Text = "Auto Collect"
     label.Font = Enum.Font.SourceSansBold
-    label.TextSize = 22
+    label.TextSize = 20
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.BackgroundTransparency = 1
+    label.Parent = contentFrame
 
-    local toggle = Instance.new("TextButton", contentFrame)
-    toggle.Size = UDim2.new(0,200,0,50)
-    toggle.Position = UDim2.new(0,20,0,60)
-    toggle.Text = collecting and "ON" or "OFF"
-    toggle.Font = Enum.Font.SourceSansBold
-    toggle.TextSize = 20
-    toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-    toggle.TextColor3 = Color3.new(1,1,1)
-    round(toggle,8)
+    local toggle = Instance.new("TextButton")
+    toggle.Size = UDim2.new(1, -20, 0, 30)
+    toggle.Position = UDim2.new(0, 10, 0, 40)
+    toggle.Text = "OFF"
+    toggle.Font = Enum.Font.SourceSans
+    toggle.TextSize = 18
+    toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggle.Parent = contentFrame
 
     toggle.MouseButton1Click:Connect(function()
-        collecting = not collecting
-        toggle.Text = collecting and "ON" or "OFF"
-        toggle.BackgroundColor3 = collecting and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
-
-        if collecting then
-            -- spawn collector loop; don't try to cancel it later — use the collecting flag
-            collectThread = task.spawn(function()
-                while collecting do
-                    local ok, err = pcall(collectFromMyTycoon)
-                    if not ok then
-                        warn("[AutoCollect] collectFromMyTycoon error:", err)
-                    end
-                    task.wait(0.5)
-                end
-                collectThread = nil
-            end)
+        autoCollectEnabled = not autoCollectEnabled
+        if autoCollectEnabled then
+            toggle.Text = "ON"
+            toggle.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+            task.spawn(autoCollectLoop)
         else
-            -- stop: flip flag and loop will finish by itself
-            print("[AutoCollect] Stopping auto-collect (will exit loop shortly).")
+            toggle.Text = "OFF"
+            toggle.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         end
     end)
 end
