@@ -127,20 +127,32 @@ enableDrag(contentFrame)
 --------------------------------------------------
 -- TREE FARM TAB
 --------------------------------------------------
+-- Inside your existing Clean Hub contentFrame functions
 local farmingTrees = false
+local chestCollecting = false
 local farmingLoopID = 0
-local MAX_DISTANCE = 100 -- Default radius
+local MAX_TREE_DISTANCE = 15 -- adjustable range for trees
+local MAX_CHEST_DISTANCE = 100 -- radius to detect chests
 
 local function getCharacter()
     return player.Character or player.CharacterAdded:Wait()
 end
 
 local function fireTree(tree)
-    local args = {"damage", tree.Name}
-    local signal = game:GetService("ReplicatedStorage"):WaitForChild("Signal"):WaitForChild("Tree")
     pcall(function()
-        signal:FireServer(unpack(args))
+        local signal = game:GetService("ReplicatedStorage"):WaitForChild("Signal"):WaitForChild("Tree")
+        signal:FireServer("damage", tree.Name)
     end)
+end
+
+local function collectChest(chest)
+    local root = getCharacter():FindFirstChild("HumanoidRootPart")
+    if root and chest and chest:IsA("Model") then
+        local chestRoot = chest:FindFirstChild("root") or chest:FindFirstChildWhichIsA("BasePart")
+        if chestRoot then
+            chestRoot.CFrame = root.CFrame + Vector3.new(0,0,-3) -- teleport chest slightly in front
+        end
+    end
 end
 
 local function buildTreeFarmTab()
@@ -150,100 +162,82 @@ local function buildTreeFarmTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Tree Farm"
+    label.Text = "Tree & Chest Farm"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    -- Toggle Button
-    local toggleBtn = Instance.new("TextButton", contentFrame)
-    toggleBtn.Size = UDim2.new(0,200,0,50)
-    toggleBtn.Position = UDim2.new(0,20,0,60)
-    toggleBtn.Text = "OFF"
-    toggleBtn.Font = Enum.Font.SourceSansBold
-    toggleBtn.TextSize = 20
-    toggleBtn.BackgroundColor3 = Color3.fromRGB(150,50,50)
-    toggleBtn.TextColor3 = Color3.new(1,1,1)
-    round(toggleBtn,8)
+    -- Ultra-Fast Tree Farm Toggle
+    local treeToggle = Instance.new("TextButton", contentFrame)
+    treeToggle.Size = UDim2.new(0,200,0,50)
+    treeToggle.Position = UDim2.new(0,20,0,60)
+    treeToggle.Text = "Ultra Tree Farm: OFF"
+    treeToggle.Font = Enum.Font.SourceSansBold
+    treeToggle.TextSize = 18
+    treeToggle.BackgroundColor3 = Color3.fromRGB(150,50,50)
+    treeToggle.TextColor3 = Color3.new(1,1,1)
+    round(treeToggle,8)
 
-    -- Radius Label
-    local radiusLabel = Instance.new("TextLabel", contentFrame)
-    radiusLabel.Size = UDim2.new(0,200,0,30)
-    radiusLabel.Position = UDim2.new(0,20,0,130)
-    radiusLabel.BackgroundTransparency = 1
-    radiusLabel.Text = "Radius: "..MAX_DISTANCE.." studs"
-    radiusLabel.TextColor3 = Color3.new(1,1,1)
-    radiusLabel.Font = Enum.Font.SourceSans
-    radiusLabel.TextSize = 18
-
-    -- Slider Background
-    local sliderBack = Instance.new("Frame", contentFrame)
-    sliderBack.Size = UDim2.new(0,200,0,10)
-    sliderBack.Position = UDim2.new(0,20,0,170)
-    sliderBack.BackgroundColor3 = Color3.fromRGB(80,80,80)
-    round(sliderBack,4)
-
-    local sliderFill = Instance.new("Frame", sliderBack)
-    sliderFill.Size = UDim2.new(0.5,0,1,0)
-    sliderFill.BackgroundColor3 = Color3.fromRGB(50,150,50)
-    round(sliderFill,4)
-
-    local draggingSlider = false
-    sliderBack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = true end
-    end)
-    sliderBack.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = false end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local relX = math.clamp((input.Position.X - sliderBack.AbsolutePosition.X) / sliderBack.AbsoluteSize.X, 0, 1)
-            sliderFill.Size = UDim2.new(relX, 0, 1, 0)
-            MAX_DISTANCE = math.floor(relX * 400)
-            radiusLabel.Text = "Radius: " .. MAX_DISTANCE .. " studs"
-        end
-    end)
-
-    toggleBtn.MouseButton1Click:Connect(function()
+    treeToggle.MouseButton1Click:Connect(function()
         farmingTrees = not farmingTrees
-        toggleBtn.Text = farmingTrees and "ON" or "OFF"
-        toggleBtn.BackgroundColor3 = farmingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        treeToggle.Text = "Ultra Tree Farm: " .. (farmingTrees and "ON" or "OFF")
+        treeToggle.BackgroundColor3 = farmingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
 
         if farmingTrees then
             farmingLoopID += 1
             local thisLoop = farmingLoopID
             task.spawn(function()
                 while farmingTrees and farmingLoopID == thisLoop do
-                    local folder = workspace:FindFirstChild("TreesFolder")
                     local char = getCharacter()
                     local root = char:FindFirstChild("HumanoidRootPart")
-                    if folder and root then
-                        for _, tree in pairs(folder:GetChildren()) do
-                            local base = tree:FindFirstChild("Base") or tree:FindFirstChildWhichIsA("BasePart")
-                            if base and (base.Position - root.Position).Magnitude <= MAX_DISTANCE then
-                                fireTree(tree)
+                    local treeFolder = workspace:FindFirstChild("TreesFolder")
+                    local chestFolder = workspace:FindFirstChild("ChestFolder")
+                    if root then
+                        -- Trees
+                        if treeFolder then
+                            for _, tree in pairs(treeFolder:GetChildren()) do
+                                local base = tree:FindFirstChild("Base") or tree:FindFirstChildWhichIsA("BasePart")
+                                if base and (base.Position - root.Position).Magnitude <= MAX_TREE_DISTANCE then
+                                    for i=1,3 do -- multi-fire per loop
+                                        fireTree(tree)
+                                    end
+                                end
+                            end
+                        end
+                        -- Chests
+                        if chestFolder then
+                            for _, chest in pairs(chestFolder:GetChildren()) do
+                                if chest.Name:match("Chest9") then
+                                    local chestRoot = chest:FindFirstChild("root") or chest:FindFirstChildWhichIsA("BasePart")
+                                    if chestRoot and (chestRoot.Position - root.Position).Magnitude <= MAX_CHEST_DISTANCE then
+                                        collectChest(chest)
+                                    end
+                                end
                             end
                         end
                     end
-                    task.wait(0.2)
+                    task.wait(0.001)
                 end
             end)
         end
     end)
 end
 
--- Tree Farm tab button
+-- Add tab button
 local btnTreeFarm = Instance.new("TextButton", tabsFrame)
 btnTreeFarm.Size = UDim2.new(1,0,0,40)
 btnTreeFarm.Position = UDim2.new(0,0,0,0)
-btnTreeFarm.Text = "Tree Farm"
+btnTreeFarm.Text = "Tree/Chest Farm"
 btnTreeFarm.Font = Enum.Font.SourceSansBold
 btnTreeFarm.TextSize = 16
 btnTreeFarm.BackgroundColor3 = Color3.fromRGB(50,50,50)
 btnTreeFarm.TextColor3 = Color3.new(1,1,1)
 round(btnTreeFarm,6)
 btnTreeFarm.MouseButton1Click:Connect(buildTreeFarmTab)
-buildTreeFarmTab() -- default open
+
+-- Open tab by default
+buildTreeFarmTab()
+
 
 --------------------------------------------------
 -- CHEST9 COLLECTOR TAB
