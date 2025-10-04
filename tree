@@ -1,4 +1,4 @@
--- Clean Hub (GUI Framework + Tree Farm + Chest Collector)
+-- Clean Hub (Full Integrated Version: Tree Farm + Chest9 Collector)
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -124,9 +124,9 @@ contentFrame.Position=UDim2.new(0,140,0,50)
 contentFrame.BackgroundTransparency=1
 enableDrag(contentFrame)
 
---------------------
+--------------------------------------------------
 -- TREE FARM TAB
---------------------
+--------------------------------------------------
 local farmingTrees = false
 local farmingLoopID = 0
 local MAX_DISTANCE = 100 -- Default radius
@@ -176,7 +176,7 @@ local function buildTreeFarmTab()
     radiusLabel.Font = Enum.Font.SourceSans
     radiusLabel.TextSize = 18
 
-    -- Slider
+    -- Slider Background
     local sliderBack = Instance.new("Frame", contentFrame)
     sliderBack.Size = UDim2.new(0,200,0,10)
     sliderBack.Position = UDim2.new(0,20,0,170)
@@ -190,14 +190,10 @@ local function buildTreeFarmTab()
 
     local draggingSlider = false
     sliderBack.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSlider = true
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = true end
     end)
     sliderBack.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            draggingSlider = false
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -221,15 +217,11 @@ local function buildTreeFarmTab()
                     local folder = workspace:FindFirstChild("TreesFolder")
                     local char = getCharacter()
                     local root = char:FindFirstChild("HumanoidRootPart")
-
                     if folder and root then
                         for _, tree in pairs(folder:GetChildren()) do
                             local base = tree:FindFirstChild("Base") or tree:FindFirstChildWhichIsA("BasePart")
-                            if base then
-                                local dist = (base.Position - root.Position).Magnitude
-                                if dist <= MAX_DISTANCE then
-                                    fireTree(tree)
-                                end
+                            if base and (base.Position - root.Position).Magnitude <= MAX_DISTANCE then
+                                fireTree(tree)
                             end
                         end
                     end
@@ -240,11 +232,61 @@ local function buildTreeFarmTab()
     end)
 end
 
--- Chest Collector
-local collectingChests = false
-local chestLoopID = 0
-local CHEST_DELAY = 0.5
-local PROMPT_WAIT = 0.3
+-- Tree Farm tab button
+local btnTreeFarm = Instance.new("TextButton", tabsFrame)
+btnTreeFarm.Size = UDim2.new(1,0,0,40)
+btnTreeFarm.Position = UDim2.new(0,0,0,0)
+btnTreeFarm.Text = "Tree Farm"
+btnTreeFarm.Font = Enum.Font.SourceSansBold
+btnTreeFarm.TextSize = 16
+btnTreeFarm.BackgroundColor3 = Color3.fromRGB(50,50,50)
+btnTreeFarm.TextColor3 = Color3.new(1,1,1)
+round(btnTreeFarm,6)
+btnTreeFarm.MouseButton1Click:Connect(buildTreeFarmTab)
+buildTreeFarmTab() -- default open
+
+--------------------------------------------------
+-- CHEST9 COLLECTOR TAB
+--------------------------------------------------
+local chestActive = false
+local CHEST_NAMES = {"Chest9", "Chest9_Huge", "Chest9_Giant"}
+local CHEST_FOLDER = workspace:WaitForChild("ChestFolder")
+
+local function fireproximityprompt(prompt)
+    pcall(function()
+        prompt:InputHoldBegin()
+        task.wait(0.1)
+        prompt:InputHoldEnd()
+    end)
+end
+
+local function collectChest(chest)
+    local hrp = getCharacter():FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local chestPos = chest:FindFirstChild("root") or chest:FindFirstChildWhichIsA("BasePart")
+    if not chestPos then return end
+
+    -- Teleport chest to player
+    chestPos.CFrame = hrp.CFrame + Vector3.new(0,3,0)
+
+    local prompt = chestPos:FindFirstChildWhichIsA("ProximityPrompt") or chest:FindFirstChild("Hitpart") and chest.Hitpart:FindFirstChildWhichIsA("ProximityPrompt")
+    if prompt then
+        fireproximityprompt(prompt)
+    end
+end
+
+local function startChestFarm()
+    spawn(function()
+        while chestActive do
+            for _, chest in pairs(CHEST_FOLDER:GetChildren()) do
+                if table.find(CHEST_NAMES, chest.Name) then
+                    collectChest(chest)
+                end
+            end
+            task.wait(0.3)
+        end
+    end)
+end
 
 local function buildChestTab()
     for _,v in pairs(contentFrame:GetChildren()) do v:Destroy() end
@@ -253,12 +295,11 @@ local function buildChestTab()
     label.Size = UDim2.new(1,-20,0,40)
     label.Position = UDim2.new(0,10,0,10)
     label.BackgroundTransparency = 1
-    label.Text = "Chest Collector"
+    label.Text = "Chest9 Collector"
     label.TextColor3 = Color3.new(1,1,1)
     label.Font = Enum.Font.SourceSansBold
     label.TextSize = 22
 
-    -- Toggle Button
     local toggleBtn = Instance.new("TextButton", contentFrame)
     toggleBtn.Size = UDim2.new(0,200,0,50)
     toggleBtn.Position = UDim2.new(0,20,0,60)
@@ -270,77 +311,35 @@ local function buildChestTab()
     round(toggleBtn,8)
 
     toggleBtn.MouseButton1Click:Connect(function()
-        collectingChests = not collectingChests
-        toggleBtn.Text = collectingChests and "ON" or "OFF"
-        toggleBtn.BackgroundColor3 = collectingChests and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        chestActive = not chestActive
+        toggleBtn.Text = chestActive and "ON" or "OFF"
+        toggleBtn.BackgroundColor3 = chestActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+        if chestActive then startChestFarm() end
+    end)
 
-        if collectingChests then
-            chestLoopID += 1
-            local thisLoop = chestLoopID
-            local player = game.Players.LocalPlayer
-            local char = player.Character or player.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            local chestFolder = workspace:WaitForChild("ChestFolder")
-
-            task.spawn(function()
-                while collectingChests and chestLoopID == thisLoop do
-                    for _, chest in pairs(chestFolder:GetChildren()) do
-                        -- Only target Chest9 variants
-                        if chest.Name == "Chest9" or chest.Name == "Chest9_Huge" or chest.Name == "Chest9_Giant" then
-                            local targetPart = chest:FindFirstChild("Hitpart") or chest:FindFirstChild("root")
-                            local prompt = targetPart and targetPart:FindFirstChildWhichIsA("ProximityPrompt")
-                            
-                            if targetPart then
-                                -- Teleport above the chest
-                                hrp.CFrame = targetPart.CFrame + Vector3.new(0,3,0)
-                                task.wait(PROMPT_WAIT)
-
-                                if prompt then
-                                    prompt:InputHoldBegin()
-                                    task.wait(0.1)
-                                    prompt:InputHoldEnd()
-                                end
-
-                                task.wait(CHEST_DELAY)
-                            end
-                        end
-                    end
-                    task.wait(1)
-                end
-            end)
+    -- Hotkey C
+    UserInputService.InputBegan:Connect(function(input, gp)
+        if gp then return end
+        if input.KeyCode == Enum.KeyCode.C then
+            chestActive = not chestActive
+            toggleBtn.Text = chestActive and "ON" or "OFF"
+            toggleBtn.BackgroundColor3 = chestActive and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+            if chestActive then startChestFarm() end
         end
     end)
 end
 
---------------------
--- TAB BUTTONS
---------------------
--- Tree Farm
-local btnTreeFarm = Instance.new("TextButton", tabsFrame)
-btnTreeFarm.Size = UDim2.new(1,0,0,40)
-btnTreeFarm.Position = UDim2.new(0,0,0,0)
-btnTreeFarm.Text = "Tree Farm"
-btnTreeFarm.Font = Enum.Font.SourceSansBold
-btnTreeFarm.TextSize = 16
-btnTreeFarm.BackgroundColor3 = Color3.fromRGB(50,50,50)
-btnTreeFarm.TextColor3 = Color3.new(1,1,1)
-round(btnTreeFarm,6)
-btnTreeFarm.MouseButton1Click:Connect(buildTreeFarmTab)
-
--- Chest Collector
+-- Chest9 tab button
 local btnChest = Instance.new("TextButton", tabsFrame)
 btnChest.Size = UDim2.new(1,0,0,40)
-btnChest.Position = UDim2.new(0,0,0,40) -- below Tree Farm
-btnChest.Text = "Chest Collector"
+btnChest.Position = UDim2.new(0,0,0,90)
+btnChest.Text = "Chest9 Collector"
 btnChest.Font = Enum.Font.SourceSansBold
 btnChest.TextSize = 16
 btnChest.BackgroundColor3 = Color3.fromRGB(50,50,50)
 btnChest.TextColor3 = Color3.new(1,1,1)
 round(btnChest,6)
 btnChest.MouseButton1Click:Connect(buildChestTab)
-
--- Open Tree Farm tab by default
-buildTreeFarmTab()
 
 -- Close/Minimize
 closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
