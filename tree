@@ -159,26 +159,44 @@ local function buildTreeFarmTab()
     toggleBtn.TextColor3 = Color3.new(1,1,1)
     round(toggleBtn,8)
 
-    toggleBtn.MouseButton1Click:Connect(function()
-        farmingTrees = not farmingTrees
-        toggleBtn.Text = farmingTrees and "ON" or "OFF"
-        toggleBtn.BackgroundColor3 = farmingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+   local function getCharacter()
+    return player.Character or player.CharacterAdded:Wait()
+end
 
-        if farmingTrees then
-            task.spawn(function()
-                while farmingTrees do
-                    local folder = workspace:FindFirstChild("TreesFolder")
-                    if folder then
-                        for _, tree in pairs(folder:GetChildren()) do
-                            fireTree(tree)
+local MAX_DISTANCE = 100 -- how far away trees can be cut
+
+toggleBtn.MouseButton1Click:Connect(function()
+    farmingTrees = not farmingTrees
+    toggleBtn.Text = farmingTrees and "ON" or "OFF"
+    toggleBtn.BackgroundColor3 = farmingTrees and Color3.fromRGB(50,150,50) or Color3.fromRGB(150,50,50)
+
+    if farmingTrees then
+        farmingLoopID += 1
+        local thisLoop = farmingLoopID
+        task.spawn(function()
+            while farmingTrees and farmingLoopID == thisLoop do
+                local folder = workspace:FindFirstChild("TreesFolder")
+                local char = getCharacter()
+                local root = char:FindFirstChild("HumanoidRootPart")
+
+                if folder and root then
+                    for _, tree in pairs(folder:GetChildren()) do
+                        local treePos = tree:FindFirstChild("Base") or tree:FindFirstChildWhichIsA("BasePart")
+                        if treePos then
+                            local dist = (treePos.Position - root.Position).Magnitude
+                            if dist <= MAX_DISTANCE then
+                                fireTree(tree)
+                            end
                         end
                     end
-                    task.wait(0.2)
                 end
-            end)
-        end
-    end)
-end
+
+                task.wait(0.2)
+            end
+        end)
+    end
+end)
+
 
 -- Tab Button (Tree Farm only)
 local btnTreeFarm = Instance.new("TextButton", tabsFrame)
