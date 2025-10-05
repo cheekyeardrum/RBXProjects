@@ -1,4 +1,4 @@
--- Cheeky Hub V1.0 (Universal Features Added)
+-- Cheeky Hub V1.1 (Clean + Fixed)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -63,8 +63,8 @@ UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset+delta.X,
-            startPos.Y.Scale, startPos.Y.Offset+delta.Y
+            startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y
         )
         shadow.Position = frame.Position
     end
@@ -72,19 +72,19 @@ end)
 
 local function enableDrag(target)
     target.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = i.Position
             startPos = frame.Position
             i.Changed:Connect(function()
-                if i.UserInputState==Enum.UserInputState.End then
+                if i.UserInputState == Enum.UserInputState.End then
                     dragging = false
                 end
             end)
         end
     end)
     target.InputChanged:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
+        if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
             dragInput = i
         end
     end)
@@ -106,7 +106,7 @@ title.Position = UDim2.new(0,15,0,0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.TextSize = 22
-title.Text = "Cheeky Hub V1.0"
+title.Text = "Cheeky Hub V1.1"
 title.TextColor3 = Color3.fromRGB(0,255,180)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -210,7 +210,7 @@ local function createToggle(parent, text)
     return function() return state end
 end
 
-function createSlider(parent, text, min, max, default, callback)
+local function createSlider(parent, text, min, max, default, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -20, 0, 30)
     frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
@@ -226,30 +226,32 @@ function createSlider(parent, text, min, max, default, callback)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = text .. ": " .. default
 
-    local slider = Instance.new("Frame", frame)
+    local slider = Instance.new("TextButton", frame)
     slider.Size = UDim2.new(0,0,1,0)
     slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
     round(slider,6)
+    slider.Position = UDim2.new(0,0,0,0)
 
     local dragging = false
-    frame.InputBegan:Connect(function(input)
+    slider.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
     end)
-    frame.InputEnded:Connect(function(input)
+    slider.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mouseX = math.clamp(input.Position.X - frame.AbsolutePosition.X,0,frame.AbsoluteSize.X)
+            local mouseX = input.Position.X - frame.AbsolutePosition.X
+            mouseX = math.clamp(mouseX,0,frame.AbsoluteSize.X)
             slider.Size = UDim2.new(mouseX/frame.AbsoluteSize.X,0,1,0)
-            local value = math.floor(min + (max-min)*(mouseX/frame.AbsoluteSize.X))
+            local value = math.floor((mouseX/frame.AbsoluteSize.X)*(max-min)+min)
             label.Text = text .. ": " .. value
             callback(value)
         end
     end)
 end
 
--- Walk Speed Slider (Fixed)
+-- Walk Speed Slider
 createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val)
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = val
@@ -258,30 +260,30 @@ end)
 
 -- Infinite Jump Toggle
 local infJumpToggle = createToggle(universalTab, "Infinite Jump")
-RunService.Stepped:Connect(function()
-    if infJumpToggle() and player.Character and player.Character:FindFirstChild("Humanoid") then
-        UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType==Enum.UserInputType.Keyboard and input.KeyCode==Enum.KeyCode.Space then
-                player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if infJumpToggle() and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == Enum.KeyCode.Space then
+        if player.Character and player.Character:FindFirstChild("Humanoid") then
+            player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
     end
 end)
 
 -- Noclip Toggle
 local noclipToggle = createToggle(universalTab, "Noclip")
+local noclipping = false
 RunService.Stepped:Connect(function()
-    if player.Character and noclipToggle() then
-        for _,part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+    if player.Character then
+        if noclipToggle() and not noclipping then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
             end
-        end
-    elseif player.Character then
-        for _,part in pairs(player.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
+            noclipping = true
+        elseif not noclipToggle() and noclipping then
+            for _, part in pairs(player.Character:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
             end
+            noclipping = false
         end
     end
 end)
@@ -303,11 +305,19 @@ RunService.RenderStepped:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - workspace.CurrentCamera.CFrame.LookVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - workspace.CurrentCamera.CFrame.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + workspace.CurrentCamera.CFrame.RightVector end
-        move = move.Unit * flySpeed
-        if move ~= move then move = Vector3.new() end -- handle NaN
+        move = move.Magnitude > 0 and move.Unit * flySpeed or Vector3.new()
         bodyVelocity.Velocity = move
     elseif flying then
         if bodyVelocity then bodyVelocity:Destroy() end
         flying = false
+    end
+end)
+
+-- Reset toggles on respawn
+player.CharacterAdded:Connect(function(char)
+    flying = false
+    noclipping = false
+    if char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = 16
     end
 end)
