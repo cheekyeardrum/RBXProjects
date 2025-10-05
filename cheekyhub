@@ -1,227 +1,180 @@
 -- ---------------------
--- CHEEKY HUB V1.0 PREMIUM – FULL TOOLS
+-- UNIVERSAL TAB (Scrollable, Clean)
 -- ---------------------
 
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser")
-local player = Players.LocalPlayer
-local guiParent = game:GetService("CoreGui")
+local utilTab = Instance.new("Frame", contentFrame)
+utilTab.Size = UDim2.new(1,0,1,0)
+utilTab.BackgroundTransparency = 1
 
--- Sizes
-local HUB_SZ = UDim2.new(0,700,0,500)
-local MINIMIZED_SZ = UDim2.new(0,200,0,40)
+-- Scroll Frame
+local scroll = Instance.new("ScrollingFrame", utilTab)
+scroll.Size = UDim2.new(1,0,1,0)
+scroll.BackgroundTransparency = 1
+scroll.ScrollBarThickness = 6
+scroll.CanvasSize = UDim2.new(0,0,0,0)
 
--- Tween helper
-local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local function tween(obj, props)
-    local tw = TweenService:Create(obj, tweenInfo, props)
-    tw:Play()
-    return tw
+local layout = Instance.new("UIListLayout", scroll)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0,8)
+
+local function updateCanvas()
+    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
 end
 
--- Rounded corners
-local function round(ui,radius)
-    local c = Instance.new("UICorner", ui)
-    c.CornerRadius = UDim.new(0,radius or 8)
-end
+layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
 
--- Helper for buttons
-local function createButton(parent, text, callback)
+-- Helper function for button
+local function createButton(title, parent, callback)
     local btn = Instance.new("TextButton", parent)
     btn.Size = UDim2.new(1,0,0,30)
     btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
     btn.TextColor3 = Color3.fromRGB(0,255,180)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 16
-    btn.Text = text
+    btn.Text = title
     round(btn,6)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
--- Helper for toggles
-local function createToggle(parent, text, default, callback)
-    local enabled = default
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1,0,0,30)
-    btn.BackgroundColor3 = enabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(40,40,40)
-    btn.TextColor3 = Color3.fromRGB(0,255,180)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.Text = text
-    round(btn,6)
-    btn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        btn.BackgroundColor3 = enabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(40,40,40)
-        if callback then callback(enabled) end
-    end)
-    return btn, function() return enabled end
-end
-
--- Helper for sliders
-local function createSlider(parent, text, min, max, default, callback)
+-- Helper function for slider
+local function createSlider(title, min, max, default, parent, callback)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,0,0,30)
-    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    round(frame,6)
+    frame.Size = UDim2.new(1,0,0,40)
+    frame.BackgroundTransparency = 1
+
     local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.4,0,1,0)
-    label.Position = UDim2.new(0,5,0,0)
-    label.Text = text..": "..default
+    label.Size = UDim2.new(0.6,0,1,0)
+    label.BackgroundTransparency = 1
     label.Font = Enum.Font.Gotham
     label.TextSize = 16
     label.TextColor3 = Color3.fromRGB(0,255,180)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = title.." : "..default
+
+    local slider = Instance.new("TextBox", frame)
+    slider.Size = UDim2.new(0.35,0,0.6,0)
+    slider.Position = UDim2.new(0.62,0,0.2,0)
+    slider.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    slider.TextColor3 = Color3.fromRGB(0,255,180)
+    slider.Text = tostring(default)
+    round(slider,6)
+
+    slider.FocusLost:Connect(function()
+        local val = tonumber(slider.Text)
+        if val then
+            val = math.clamp(val, min, max)
+            slider.Text = val
+            label.Text = title.." : "..val
+            callback(val)
+        end
+    end)
+    return frame
+end
+
+-- Helper function for toggle
+local function createToggle(title, parent)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1,0,0,30)
+    frame.BackgroundTransparency = 1
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(0.7,0,1,0)
     label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.fromRGB(0,255,180)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 16
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = title
 
-    local slider = Instance.new("Frame", frame)
-    slider.Size = UDim2.new(0.5,0,1,0)
-    slider.Position = UDim2.new(0.45,0,0,0)
-    slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
-    local dragging = false
-    slider.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.25,0,0.7,0)
+    btn.Position = UDim2.new(0.72,0,0.15,0)
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.fromRGB(0,255,180)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Text = "OFF"
+    round(btn,6)
+
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = state and "ON" or "OFF"
+        btn.BackgroundColor3 = state and Color3.fromRGB(0,180,0) or Color3.fromRGB(40,40,40)
     end)
-    slider.InputEnded:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(i)
-        if dragging and i.UserInputType==Enum.UserInputType.MouseMovement then
-            local rel = math.clamp((i.Position.X-frame.AbsolutePosition.X)/frame.AbsoluteSize.X,0,1)
-            local val = math.floor(min + (max-min)*rel)
-            slider.Size = UDim2.new(rel,0,1,0)
-            if callback then callback(val) end
-            label.Text = text..": "..val
-        end
-    end)
-    return slider
+
+    return frame, function() return state end
 end
 
 -- ---------------------
--- REUSE YOUR HUB FRAME & TOPBAR CODE
+-- UNIVERSAL FUNCTIONS
 -- ---------------------
--- (Paste your previous frame, topbar, minimize, close code here)
--- ContentFrame is assumed to exist
 
--- ---------------------
--- TAB SYSTEM (Collapsible Sections)
--- ---------------------
-local sections = {}
+local cam = workspace.CurrentCamera
 
-local function createSection(titleText)
-    local sec = Instance.new("Frame", contentFrame)
-    sec.Size = UDim2.new(1,0,0,40)
-    sec.BackgroundTransparency = 1
-
-    local header = Instance.new("TextButton", sec)
-    header.Size = UDim2.new(1,0,0,40)
-    header.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    header.Text = titleText.." ▼"
-    header.Font = Enum.Font.GothamBold
-    header.TextSize = 18
-    header.TextColor3 = Color3.fromRGB(0,255,180)
-    round(header,6)
-
-    local container = Instance.new("Frame", sec)
-    container.Size = UDim2.new(1,0,0,0)
-    container.Position = UDim2.new(0,0,0,40)
-    container.BackgroundTransparency = 1
-    local layout = Instance.new("UIListLayout", container)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0,6)
-
-    header.MouseButton1Click:Connect(function()
-        if container.Size.Y.Offset==0 then
-            container.Size = UDim2.new(1,0,0,layout.AbsoluteContentSize.Y+10)
-            header.Text = titleText.." ▲"
-        else
-            container.Size = UDim2.new(1,0,0,0)
-            header.Text = titleText.." ▼"
-        end
-    end)
-
-    sections[titleText] = container
-    return container
-end
-
-local universalSec = createSection("Universal Utilities")
-local scriptsSec = createSection("Scripts")
-local cheatsSec = createSection("Cheats")
-
--- ---------------------
--- UNIVERSAL UTILITIES
--- ---------------------
--- WalkSpeed slider
-local walkSpeed = 16
-createSlider(universalSec,"WalkSpeed",16,500,16,function(v)
-    walkSpeed=v
-    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if hum then pcall(function() hum.WalkSpeed=v end) end
+-- Camera FOV Slider
+createSlider("Camera FOV", 70, 120, cam.FieldOfView, scroll, function(v)
+    cam.FieldOfView = v
 end)
 
--- JumpPower slider
-local jumpPower = 50
-createSlider(universalSec,"JumpPower",50,500,50,function(v)
-    jumpPower=v
-    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if hum then pcall(function() hum.JumpPower=v end) end
+-- Rejoin Server
+createButton("Rejoin Server", scroll, function()
+    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
 end)
 
--- Infinite Jump toggle
-createToggle(universalSec,"Infinite Jump",false,function(enabled)
-    if enabled then
-        player.CharacterAdded:Connect(function(char)
-            local hum = char:WaitForChild("Humanoid")
-            hum.Jumping:Connect(function() if enabled then hum:ChangeState(Enum.HumanoidStateType.Jumping) end end)
-        end)
+-- Teleport to Player
+local tpFrame = Instance.new("Frame", scroll)
+tpFrame.Size = UDim2.new(1,0,0,40)
+tpFrame.BackgroundTransparency = 1
+
+local tpBox = Instance.new("TextBox", tpFrame)
+tpBox.Size = UDim2.new(0.7,0,1,0)
+tpBox.Position = UDim2.new(0,0,0,0)
+tpBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
+tpBox.TextColor3 = Color3.fromRGB(0,255,180)
+tpBox.PlaceholderText = "Enter player name..."
+round(tpBox,6)
+
+local tpBtn = createButton("Teleport", tpFrame, function()
+    local targetName = tpBox.Text
+    local targetPlayer = Players:FindFirstChild(targetName)
+    if targetPlayer and targetPlayer.Character and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
     end
 end)
+tpBtn.Size = UDim2.new(0.25,0,1,0)
+tpBtn.Position = UDim2.new(0.72,0,0,0)
 
--- ---------------------
--- SCRIPTS
--- ---------------------
--- Rejoin Game button
-createButton(scriptsSec,"Rejoin Game",function()
-    local tele = game:GetService("TeleportService")
-    tele:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
-end)
+-- ESP / Stats Toggle
+local espFrame, espGet = createToggle("ESP / Player Info Overlay", scroll)
+scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
 
--- Server Hop button
-createButton(scriptsSec,"Server Hop",function()
-    -- placeholder: complex logic can go here
-    print("Server Hop triggered")
-end)
-
--- ---------------------
--- CHEATS
--- ---------------------
--- Click Teleport (to mouse location)
-createToggle(cheatsSec,"Click Teleport",false,function(enabled)
-    if enabled then
-        local mouse = player:GetMouse()
-        mouse.Button1Down:Connect(function()
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                hrp.CFrame = CFrame.new(mouse.Hit.p + Vector3.new(0,5,0))
-            end
-        end)
-    end
-end)
-
--- Fullbright toggle
-createToggle(cheatsSec,"Fullbright",false,function(enabled)
-    if enabled then
-        for _, light in ipairs(game.Lighting:GetChildren()) do
-            if light:IsA("SunRaysEffect") or light:IsA("ColorCorrectionEffect") then
-                light.Enabled = false
+local espLabels = {}
+RunService.RenderStepped:Connect(function()
+    if espGet() then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                if not espLabels[plr.Name] then
+                    local lbl = Instance.new("BillboardGui", plr.Character.HumanoidRootPart)
+                    lbl.Size = UDim2.new(0,100,0,50)
+                    lbl.AlwaysOnTop = true
+                    local text = Instance.new("TextLabel", lbl)
+                    text.Size = UDim2.new(1,0,1,0)
+                    text.BackgroundTransparency = 1
+                    text.Font = Enum.Font.GothamBold
+                    text.TextColor3 = Color3.fromRGB(0,255,180)
+                    text.TextScaled = true
+                    espLabels[plr.Name] = text
+                end
+                local dist = math.floor((plr.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude)
+                espLabels[plr.Name].Text = plr.Name.." | "..dist.." studs"
             end
         end
+    else
+        for _, lbl in pairs(espLabels) do
+            if lbl.Parent then lbl.Parent:Destroy() end
+        end
+        espLabels = {}
     end
 end)
