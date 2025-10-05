@@ -2,7 +2,171 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetS-- Cheeky Hub V1.0
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local player = Players.LocalPlayer
+local guiParent = game:GetService("CoreGui")
+
+-- Hub Sizes
+local HUB_SZ = UDim2.new(0, 700, 0, 450)
+local MINIMIZED_SZ = UDim2.new(0, 200, 0, 40)
+
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, props)
+    local tw = TweenService:Create(obj, tweenInfo, props)
+    tw:Play()
+    return tw
+end
+
+-- Rounded corners
+local function round(ui, radius)
+    local c = Instance.new("UICorner", ui)
+    c.CornerRadius = UDim.new(0, radius or 8)
+end
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CheekyHubGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = guiParent
+
+-- Main Frame
+local frame = Instance.new("Frame", screenGui)
+frame.Name = "MainFrame"
+frame.Size = HUB_SZ
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.BorderSizePixel = 0
+round(frame, 16)
+
+-- Neon Edge Glow
+local edge = Instance.new("UIStroke", frame)
+edge.Color = Color3.fromRGB(0,255,180)
+edge.Thickness = 3
+edge.Transparency = 0.3
+edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- Shadow/Glow behind frame
+local shadow = Instance.new("Frame", screenGui)
+shadow.Size = frame.Size
+shadow.Position = frame.Position
+shadow.AnchorPoint = frame.AnchorPoint
+shadow.BackgroundColor3 = Color3.fromRGB(0,255,180)
+shadow.BackgroundTransparency = 0.95
+shadow.ZIndex = frame.ZIndex - 1
+round(shadow, 18)
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset+delta.X,
+            startPos.Y.Scale, startPos.Y.Offset+delta.Y
+        )
+        shadow.Position = frame.Position
+    end
+end)
+
+local function enableDrag(target)
+    target.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = i.Position
+            startPos = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState==Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    target.InputChanged:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
+            dragInput = i
+        end
+    end)
+end
+enableDrag(frame)
+
+-- Top Bar
+local bar = Instance.new("Frame", frame)
+bar.Size = UDim2.new(1,0,0,40)
+bar.Position = UDim2.new(0,0,0,0)
+bar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+bar.BorderSizePixel = 0
+round(bar,16)
+enableDrag(bar)
+
+local title = Instance.new("TextLabel", bar)
+title.Size = UDim2.new(1,-80,1,0)
+title.Position = UDim2.new(0,15,0,0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.Text = "Cheeky Hub V1.0"
+title.TextColor3 = Color3.fromRGB(0,255,180)
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close Button
+local closeBtn = Instance.new("TextButton", bar)
+closeBtn.Size = UDim2.new(0,30,0,30)
+closeBtn.Position = UDim2.new(1,-40,0,5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(180,50,50)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+round(closeBtn,6)
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+-- Minimize Button
+local minBtn = Instance.new("TextButton", bar)
+minBtn.Size = UDim2.new(0,30,0,30)
+minBtn.Position = UDim2.new(1,-80,0,5)
+minBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 18
+minBtn.Text = "-"
+minBtn.TextColor3 = Color3.fromRGB(255,255,255)
+round(minBtn,6)
+minBtn.MouseButton1Click:Connect(function()
+    if frame.Size == HUB_SZ then
+        tween(frame, {Size = MINIMIZED_SZ})
+        tween(shadow, {Size = MINIMIZED_SZ})
+    else
+        tween(frame, {Size = HUB_SZ})
+        tween(shadow, {Size = HUB_SZ})
+    end
+end)
+
+-- Content Frame (ready for tabs later)
+local contentFrame = Instance.new("Frame", frame)
+contentFrame.Size = UDim2.new(1,-20,1,-60)
+contentFrame.Position = UDim2.new(0,10,0,50)
+contentFrame.BackgroundTransparency = 1
+
+-- Optional: subtle neon lines in content area
+local topLine = Instance.new("Frame", contentFrame)
+topLine.Size = UDim2.new(1,0,0,2)
+topLine.Position = UDim2.new(0,0,0,0)
+topLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
+topLine.BackgroundTransparency = 0.5
+
+local bottomLine = Instance.new("Frame", contentFrame)
+bottomLine.Size = UDim2.new(1,0,0,2)
+bottomLine.Position = UDim2.new(0,0,1,-2)
+bottomLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
+bottomLine.BackgroundTransparency = 0.5
+ervice("RunService")
 local player = Players.LocalPlayer
 local guiParent = game:GetService("CoreGui")
 
