@@ -211,13 +211,13 @@ end
 local currentWalkSpeed = 16
 
 local function createSlider(parent, text, min, max, default, callback)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, -20, 0, 30)
-    frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
-    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    round(frame,6)
+    local sliderFrame = Instance.new("Frame", parent)
+    sliderFrame.Size = UDim2.new(1, -20, 0, 30)
+    sliderFrame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    round(sliderFrame,6)
 
-    local label = Instance.new("TextLabel", frame)
+    local label = Instance.new("TextLabel", sliderFrame)
     label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.GothamBold
@@ -226,27 +226,43 @@ local function createSlider(parent, text, min, max, default, callback)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = text .. ": " .. default
 
-    local slider = Instance.new("TextButton", frame)
-    slider.Size = UDim2.new(0,0,1,0)
-    slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
-    round(slider,6)
-    slider.Position = UDim2.new(0,0,0,0)
+    local bar = Instance.new("Frame", sliderFrame)
+    bar.Size = UDim2.new(1, -10, 0, 6)
+    bar.Position = UDim2.new(0, 5, 0.5, -3)
+    bar.BackgroundColor3 = Color3.fromRGB(0,255,180)
+    round(bar,3)
+    bar.ZIndex = 1
+
+    local handle = Instance.new("TextButton", sliderFrame)
+    handle.Size = UDim2.new(default/(max-min),0,1,0)
+    handle.Position = UDim2.new(0,0,0,0)
+    handle.BackgroundColor3 = Color3.fromRGB(0,180,255)
+    round(handle,6)
+    handle.Text = ""
+    handle.ZIndex = 2
 
     local dragging = false
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
     end)
-    slider.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    handle.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
     end)
+
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mouseX = input.Position.X - frame.AbsolutePosition.X
-            mouseX = math.clamp(mouseX,0,frame.AbsoluteSize.X)
-            slider.Size = UDim2.new(mouseX/frame.AbsoluteSize.X,0,1,0)
-            local value = math.floor((mouseX/frame.AbsoluteSize.X)*(max-min)+min)
-            label.Text = text .. ": " .. value
+            local mouseX = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X, 0, sliderFrame.AbsoluteSize.X)
+            handle.Size = UDim2.new(mouseX/sliderFrame.AbsoluteSize.X,0,1,0)
+            local value = math.floor(mouseX/sliderFrame.AbsoluteSize.X*(max-min)+min)
             currentWalkSpeed = value
+            label.Text = text .. ": " .. value
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.WalkSpeed = currentWalkSpeed
+            end
             callback(value)
         end
     end)
