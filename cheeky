@@ -320,32 +320,32 @@ flowerBtn.MouseButton1Click:Connect(function()
         :WaitForChild("Framework"):WaitForChild("Features")
         :WaitForChild("HoneySystem"):WaitForChild("FlowerUtil")
         :WaitForChild("RemoteEvent")
-    local player = game:GetService("Players").LocalPlayer
+
     local flowerList = {
-        player.FlowerShopScript.AquilegiaCoerulea,
-        player.FlowerShopScript.Bamboo,
-        player.FlowerShopScript.Bluebell,
-        player.FlowerShopScript.Cactus,
-        player.FlowerShopScript.Clover,
-        player.FlowerShopScript.Dahlia,
-        player.FlowerShopScript.Daisy,
-        player.FlowerShopScript.FireBlossom,
-        player.FlowerShopScript.KniphofiaUvaria,
-        player.FlowerShopScript.Lavender,
-        player.FlowerShopScript.Lily,
-        player.FlowerShopScript.MorningGlory,
-        player.FlowerShopScript.RedRose,
-        player.FlowerShopScript.Sunflower,
-        player.FlowerShopScript.Tulip,
-        player.FlowerShopScript.VenusFlyTrap,
+        "AquilegiaCoerulea",
+        "Bamboo",
+        "Bluebell",
+        "Cactus",
+        "Clover",
+        "Dahlia",
+        "Daisy",
+        "FireBlossom",
+        "KniphofiaUvaria",
+        "Lavender",
+        "Lily",
+        "MorningGlory",
+        "RedRose",
+        "Sunflower",
+        "Tulip",
+        "VenusFlyTrap",
     }
 
-    for _, flower in ipairs(flowerList) do
-        local args = {"BuyFlower", flower}
+    for _, flowerName in ipairs(flowerList) do
+        local args = {"BuyFlower", flowerName}
         pcall(function()
             FlowerRemote:FireServer(unpack(args))
         end)
-        task.wait(0.1) -- small delay to avoid server spam
+        task.wait(0.1) -- small delay to prevent server spam
     end
 end)
 
