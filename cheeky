@@ -249,6 +249,67 @@ local serverPage = createTab("Server", "🌐")
 
 
 
+-- ===== Visuals Tab - Anti-Lag Mode =====
+
+
+
+local antiLagSection = Instance.new("Frame", visualsPage)
+antiLagSection.Size = UDim2.new(1, -24, 0, 50)
+antiLagSection.BackgroundTransparency = 1
+
+local antiLagBtn = Instance.new("TextButton", antiLagSection)
+antiLagBtn.Size = UDim2.new(1, 0, 1, 0)
+antiLagBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+antiLagBtn.TextColor3 = Color3.new(1, 1, 1)
+antiLagBtn.Font = Enum.Font.GothamBold
+antiLagBtn.TextSize = 14
+antiLagBtn.Text = "Toggle Anti-Lag Mode"
+
+local antiLagActive = false
+
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local function applyAntiLag(plot)
+    if not plot then return end
+
+    for _, part in pairs(plot:GetDescendants()) do
+        if part:IsA("ParticleEmitter") then
+            part.Enabled = false
+        elseif part:IsA("AnimationController") or part:IsA("Animator") then
+            part:Destroy()
+        elseif part:IsA("Accessory") then
+            if part:FindFirstChild("Handle") then
+                part.Handle.Transparency = 1
+            end
+        elseif part:IsA("Motor6D") then
+            part:Destroy()
+        end
+    end
+end
+
+antiLagBtn.MouseButton1Click:Connect(function()
+    antiLagActive = not antiLagActive
+    antiLagBtn.Text = antiLagActive and "Anti-Lag Mode: ON" or "Toggle Anti-Lag Mode"
+    if antiLagActive then
+        print("Anti-Lag enabled")
+    else
+        print("Anti-Lag disabled — you may need to rejoin to restore full graphics")
+    end
+end)
+
+-- Continuously apply Anti-Lag to new hives/flowers
+RunService.Heartbeat:Connect(function()
+    if antiLagActive then
+        local plot = Workspace.Plots:FindFirstChild(LocalPlayer.Name) or Workspace.Plots:GetChildren()[1]
+        applyAntiLag(plot)
+    end
+end)
+
+
+
 -- ======================
 -- Honey System Tab
 -- ======================
