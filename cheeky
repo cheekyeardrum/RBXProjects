@@ -237,13 +237,11 @@ local autoPage = createTab("Auto", "⚙️")
 local tpPage = createTab("Teleports", "📍")
 local visualsPage = createTab("Visuals", "🎨")
 local serverPage = createTab("Server", "🌐")
-local honeyPage = createTab("Honey", "🍯")
+local honeyPage = createTab("Honey", "🍯")  -- only once
 
 -- ======================
 -- Honey System Tab
 -- ======================
-
-local honeyPage = createTab("Honey", "🍯")
 
 -- ===== Hive Section (Extract Honey) =====
 local hiveSection = Instance.new("Frame", honeyPage)
@@ -371,3 +369,4 @@ sellBtn.MouseButton1Click:Connect(function()
 end)
 
 print("Cheeky Hub V1.0 - Honey Tab loaded successfully.")
+
