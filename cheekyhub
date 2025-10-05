@@ -210,7 +210,7 @@ local function createToggle(parent, text)
     return function() return state end
 end
 
-local function createSlider(parent, text, min, max, default, callback)
+function createSlider(parent, text, min, max, default, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, -20, 0, 30)
     frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
@@ -226,25 +226,23 @@ local function createSlider(parent, text, min, max, default, callback)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = text .. ": " .. default
 
-    local slider = Instance.new("TextButton", frame)
+    local slider = Instance.new("Frame", frame)
     slider.Size = UDim2.new(0,0,1,0)
     slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
     round(slider,6)
-    slider.Position = UDim2.new(0,0,0,0)
 
     local dragging = false
-    slider.InputBegan:Connect(function(input)
+    frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
     end)
-    slider.InputEnded:Connect(function(input)
+    frame.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local mouseX = input.Position.X - frame.AbsolutePosition.X
-            mouseX = math.clamp(mouseX,0,frame.AbsoluteSize.X)
+            local mouseX = math.clamp(input.Position.X - frame.AbsolutePosition.X,0,frame.AbsoluteSize.X)
             slider.Size = UDim2.new(mouseX/frame.AbsoluteSize.X,0,1,0)
-            local value = math.floor((mouseX/frame.AbsoluteSize.X)*(max-min)+min)
+            local value = math.floor(min + (max-min)*(mouseX/frame.AbsoluteSize.X))
             label.Text = text .. ": " .. value
             callback(value)
         end
