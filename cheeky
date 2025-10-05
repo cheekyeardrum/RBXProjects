@@ -137,9 +137,17 @@ btnMin.MouseButton1Click:Connect(function()
     if isMinimized then
         tween(main, {Size = MINIMIZED}, TweenInfo.new(0.28))
         tween(glow, {Size = MINIMIZED}, TweenInfo.new(0.28))
+        
+        -- Hide tabs & content
+        leftPanel.Visible = false
+        contentArea.Visible = false
     else
-        tween(main, {Size = UDim2.new(0,HUB_W,0,HUB_H)}, TweenInfo.new(0.28))
-        tween(glow, {Size = UDim2.new(0,HUB_W,0,HUB_H)}, TweenInfo.new(0.28))
+        tween(main, {Size = UDim2.new(0, HUB_W, 0, HUB_H)}, TweenInfo.new(0.28))
+        tween(glow, {Size = UDim2.new(0, HUB_W, 0, HUB_H)}, TweenInfo.new(0.28))
+        
+        -- Show tabs & content
+        leftPanel.Visible = true
+        contentArea.Visible = true
     end
 end)
 
