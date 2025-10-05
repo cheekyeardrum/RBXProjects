@@ -1,180 +1,140 @@
 -- ---------------------
--- UNIVERSAL TAB (Scrollable, Clean)
+-- UNIVERSAL PLAYER UTILITIES TAB
 -- ---------------------
 
+-- Tab Frame
 local utilTab = Instance.new("Frame", contentFrame)
 utilTab.Size = UDim2.new(1,0,1,0)
 utilTab.BackgroundTransparency = 1
+utilTab.Visible = true -- can switch to false if you add multiple tabs
 
--- Scroll Frame
-local scroll = Instance.new("ScrollingFrame", utilTab)
-scroll.Size = UDim2.new(1,0,1,0)
-scroll.BackgroundTransparency = 1
-scroll.ScrollBarThickness = 6
-scroll.CanvasSize = UDim2.new(0,0,0,0)
+-- Section Title
+local utilTitle = Instance.new("TextLabel", utilTab)
+utilTitle.Size = UDim2.new(1,0,0,30)
+utilTitle.Position = UDim2.new(0,0,0,0)
+utilTitle.BackgroundTransparency = 1
+utilTitle.Font = Enum.Font.GothamBold
+utilTitle.TextSize = 20
+utilTitle.Text = "Player Utilities"
+utilTitle.TextColor3 = Color3.fromRGB(0,255,180)
+utilTitle.TextXAlignment = Enum.TextXAlignment.Left
 
-local layout = Instance.new("UIListLayout", scroll)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0,8)
-
-local function updateCanvas()
-    scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
-end
-
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-
--- Helper function for button
-local function createButton(title, parent, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1,0,0,30)
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    btn.TextColor3 = Color3.fromRGB(0,255,180)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.Text = title
-    round(btn,6)
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
--- Helper function for slider
-local function createSlider(title, min, max, default, parent, callback)
+-- Helper function to create sliders
+local function createSlider(parent, text, min, max, default, callback)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1,0,0,40)
     frame.BackgroundTransparency = 1
 
     local label = Instance.new("TextLabel", frame)
     label.Size = UDim2.new(0.6,0,1,0)
+    label.Position = UDim2.new(0,5,0,0)
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.Gotham
     label.TextSize = 16
-    label.TextColor3 = Color3.fromRGB(0,255,180)
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255,255,255)
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = title.." : "..default
 
     local slider = Instance.new("TextBox", frame)
-    slider.Size = UDim2.new(0.35,0,0.6,0)
-    slider.Position = UDim2.new(0.62,0,0.2,0)
-    slider.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    slider.Size = UDim2.new(0.35,0,0.5,0)
+    slider.Position = UDim2.new(0.62,0,0.25,0)
+    slider.BackgroundColor3 = Color3.fromRGB(40,40,40)
     slider.TextColor3 = Color3.fromRGB(0,255,180)
     slider.Text = tostring(default)
+    slider.ClearTextOnFocus = false
     round(slider,6)
 
     slider.FocusLost:Connect(function()
         local val = tonumber(slider.Text)
         if val then
-            val = math.clamp(val, min, max)
-            slider.Text = val
-            label.Text = title.." : "..val
+            val = math.clamp(val,min,max)
+            slider.Text = tostring(val)
             callback(val)
         end
     end)
-    return frame
 end
 
--- Helper function for toggle
-local function createToggle(title, parent)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,0,0,30)
-    frame.BackgroundTransparency = 1
-
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.7,0,1,0)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(0,255,180)
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 16
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Text = title
-
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0.25,0,0.7,0)
-    btn.Position = UDim2.new(0.72,0,0.15,0)
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    btn.TextColor3 = Color3.fromRGB(0,255,180)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.Text = "OFF"
+-- Helper function to create toggles
+local function createToggle(parent, text, default)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = default and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 16
+    btn.Text = text
     round(btn,6)
-
-    local state = false
+    local enabled = default
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = state and "ON" or "OFF"
-        btn.BackgroundColor3 = state and Color3.fromRGB(0,180,0) or Color3.fromRGB(40,40,40)
+        enabled = not enabled
+        btn.BackgroundColor3 = enabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
     end)
-
-    return frame, function() return state end
+    return btn, function() return enabled end
 end
 
 -- ---------------------
--- UNIVERSAL FUNCTIONS
+-- LOCAL PLAYER UTILITIES
 -- ---------------------
+local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 
-local cam = workspace.CurrentCamera
-
--- Camera FOV Slider
-createSlider("Camera FOV", 70, 120, cam.FieldOfView, scroll, function(v)
-    cam.FieldOfView = v
+-- WalkSpeed Slider
+createSlider(utilTab, "WalkSpeed (16-300)", 16, 300, 16, function(v)
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then pcall(function() hum.WalkSpeed = v end) end
 end)
 
--- Rejoin Server
-createButton("Rejoin Server", scroll, function()
-    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
+-- JumpPower Slider
+createSlider(utilTab, "JumpPower (50-500)", 50, 500, 50, function(v)
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then pcall(function() hum.JumpPower = v end) end
 end)
 
--- Teleport to Player
-local tpFrame = Instance.new("Frame", scroll)
-tpFrame.Size = UDim2.new(1,0,0,40)
-tpFrame.BackgroundTransparency = 1
-
-local tpBox = Instance.new("TextBox", tpFrame)
-tpBox.Size = UDim2.new(0.7,0,1,0)
-tpBox.Position = UDim2.new(0,0,0,0)
-tpBox.BackgroundColor3 = Color3.fromRGB(30,30,30)
-tpBox.TextColor3 = Color3.fromRGB(0,255,180)
-tpBox.PlaceholderText = "Enter player name..."
-round(tpBox,6)
-
-local tpBtn = createButton("Teleport", tpFrame, function()
-    local targetName = tpBox.Text
-    local targetPlayer = Players:FindFirstChild(targetName)
-    if targetPlayer and targetPlayer.Character and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = targetPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+-- Infinite Jump
+local infBtn, infGet = createToggle(utilTab, "Infinite Jump", false)
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if infGet() then
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
     end
 end)
-tpBtn.Size = UDim2.new(0.25,0,1,0)
-tpBtn.Position = UDim2.new(0.72,0,0,0)
 
--- ESP / Stats Toggle
-local espFrame, espGet = createToggle("ESP / Player Info Overlay", scroll)
-scroll.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y + 10)
+-- Noclip
+local noclipBtn, noclipGet = createToggle(utilTab, "Noclip", false)
+RunService.Stepped:Connect(function()
+    if noclipGet() and player.Character then
+        for _,p in ipairs(player.Character:GetDescendants()) do
+            if p:IsA("BasePart") then p.CanCollide = false end
+        end
+    end
+end)
 
-local espLabels = {}
+-- Fly
+local flyBtn, flyGet = createToggle(utilTab, "Fly", false)
+local flySpeed = 80
+createSlider(utilTab, "Fly Speed (50-300)", 50, 300, 80, function(v) flySpeed = v end)
+local flyVel
 RunService.RenderStepped:Connect(function()
-    if espGet() then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                if not espLabels[plr.Name] then
-                    local lbl = Instance.new("BillboardGui", plr.Character.HumanoidRootPart)
-                    lbl.Size = UDim2.new(0,100,0,50)
-                    lbl.AlwaysOnTop = true
-                    local text = Instance.new("TextLabel", lbl)
-                    text.Size = UDim2.new(1,0,1,0)
-                    text.BackgroundTransparency = 1
-                    text.Font = Enum.Font.GothamBold
-                    text.TextColor3 = Color3.fromRGB(0,255,180)
-                    text.TextScaled = true
-                    espLabels[plr.Name] = text
-                end
-                local dist = math.floor((plr.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude)
-                espLabels[plr.Name].Text = plr.Name.." | "..dist.." studs"
-            end
+    if flyGet() and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = player.Character.HumanoidRootPart
+        if not flyVel or not flyVel.Parent then
+            flyVel = Instance.new("BodyVelocity")
+            flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
+            flyVel.Velocity = Vector3.new(0,0,0)
+            flyVel.Parent = hrp
+        end
+        local dir = Vector3.new()
+        local cam = workspace.CurrentCamera
+        local UIS = game:GetService("UserInputService")
+        if UIS:IsKeyDown(Enum.KeyCode.W) then dir += cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then dir -= cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then dir += cam.CFrame.RightVector end
+        if dir.Magnitude > 0.1 then
+            flyVel.Velocity = dir.Unit * flySpeed
+        else
+            flyVel.Velocity = Vector3.new(0,0,0)
         end
     else
-        for _, lbl in pairs(espLabels) do
-            if lbl.Parent then lbl.Parent:Destroy() end
-        end
-        espLabels = {}
+        if flyVel and flyVel.Parent then flyVel:Destroy(); flyVel=nil end
     end
 end)
