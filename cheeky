@@ -1,5 +1,5 @@
 -- Cheeky Hub V1.0 - Advanced Animated Edition (with Honey System)
--- All-in-one universal hub (copy/paste into executor)
+-- Fully fixed and ready to paste into executor
 
 -- Services
 local Players = game:GetService("Players")
@@ -18,6 +18,14 @@ local TRANS = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Ou
 
 local HUB_W, HUB_H = 760, 520
 local MINIMIZED = UDim2.new(0, 260, 0, 44)
+
+-- Honey System Remotes
+local HiveRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
+local HoneyRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("HoneyUtil"):WaitForChild("RemoteEvent")
+local FlowerRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("FlowerUtil"):WaitForChild("RemoteFunction")
 
 -- Helpers
 local function round(ui, radius)
@@ -190,11 +198,8 @@ contentArea.Size = UDim2.new(1,-200,1,-60)
 contentArea.Position = UDim2.new(0,180,0,56)
 contentArea.BackgroundColor3 = Color3.fromRGB(8,8,9)
 round(contentArea,10)
-local contentLayout = Instance.new("UIListLayout", contentArea)
-contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-contentLayout.Padding = UDim.new(0,12)
 
--- Tabs management
+-- Tabs
 local tabs = {}
 local activeTab = nil
 local function createTab(name, emoji)
@@ -223,7 +228,6 @@ local function createTab(name, emoji)
         activeTab = name
         tween(btn, {BackgroundColor3 = THEME_BG}, TRANS)
     end)
-
     return page
 end
 
@@ -233,8 +237,81 @@ local autoPage = createTab("Auto", "⚙️")
 local tpPage = createTab("Teleports", "📍")
 local visualsPage = createTab("Visuals", "🎨")
 local serverPage = createTab("Server", "🌐")
+local honeyPage = createTab("Honey", "🍯")
 
--- Default open
+-- Honey Tab Layout
+local honeyLayout = Instance.new("UIListLayout", honeyPage)
+honeyLayout.SortOrder = Enum.SortOrder.LayoutOrder
+honeyLayout.Padding = UDim.new(0,12)
+
+-- Extract Honey
+local loopExtract = false
+local extractDelay = 5
+local extractBtn = Instance.new("TextButton", honeyPage)
+extractBtn.Size = UDim2.new(1,0,0,30)
+extractBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+extractBtn.TextColor3 = Color3.new(1,1,1)
+extractBtn.Font = Enum.Font.GothamBold
+extractBtn.TextSize = 14
+extractBtn.Text = "Start Extract"
+round(extractBtn,6)
+extractBtn.MouseButton1Click:Connect(function()
+    loopExtract = not loopExtract
+    extractBtn.Text = loopExtract and "Stop Extract" or "Start Extract"
+    if loopExtract then
+        task.spawn(function()
+            while loopExtract do
+                local plot = workspace.Plots:GetChildren()[2]
+                local hives = {}
+                for i=1,30 do
+                    local hive = plot:FindFirstChild("Hives"):FindFirstChild(tostring(i))
+                    if hive then table.insert(hives,hive) end
+                end
+                pcall(function() HiveRemote:FireServer("ExtractHoney",hives) end)
+                task.wait(extractDelay)
+            end
+        end)
+    end
+end)
+
+-- Sell Honey
+local loopSell = false
+local sellDelay = 5
+local sellBtn = Instance.new("TextButton", honeyPage)
+sellBtn.Size = UDim2.new(1,0,0,30)
+sellBtn.BackgroundColor3 = Color3.fromRGB(0,255,127)
+sellBtn.TextColor3 = Color3.new(1,1,1)
+sellBtn.Font = Enum.Font.GothamBold
+sellBtn.TextSize = 14
+sellBtn.Text = "Start Sell"
+round(sellBtn,6)
+sellBtn.MouseButton1Click:Connect(function()
+    loopSell = not loopSell
+    sellBtn.Text = loopSell and "Stop Sell" or "Start Sell"
+    if loopSell then
+        task.spawn(function()
+            while loopSell do
+                pcall(function() HoneyRemote:FireServer("SellHoney","Honey") end)
+                task.wait(sellDelay)
+            end
+        end)
+    end
+end)
+
+-- Buy Flower
+local flowerBtn = Instance.new("TextButton", honeyPage)
+flowerBtn.Size = UDim2.new(1,0,0,30)
+flowerBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
+flowerBtn.TextColor3 = Color3.new(1,1,1)
+flowerBtn.Font = Enum.Font.GothamBold
+flowerBtn.TextSize = 14
+flowerBtn.Text = "Buy Dahlia"
+round(flowerBtn,6)
+flowerBtn.MouseButton1Click:Connect(function()
+    pcall(function() FlowerRemote:InvokeServer("BuyFlower","Dahlia") end)
+end)
+
+-- Default open tab
 tabs["Player"].Button.BackgroundColor3 = THEME_BG
 tabs["Player"].Page.Visible = true
 activeTab = "Player"
@@ -256,100 +333,4 @@ RunService.RenderStepped:Connect(function()
     glow.Size = main.Size
 end)
 
--- ======================
--- Honey System Tab
--- ======================
-
-local honeyPage = createTab("Honey", "🍯")
-
--- Hive Section
-local hiveSection = Instance.new("Frame", honeyPage)
-hiveSection.Size = UDim2.new(1,-24,0,120)
-hiveSection.BackgroundTransparency = 1
-local hiveLayout = Instance.new("UIListLayout", hiveSection)
-hiveLayout.SortOrder = Enum.SortOrder.LayoutOrder
-hiveLayout.Padding = UDim.new(0,8)
-
-local loopExtract = false
-local extractDelay = 5
-
-local extractBtn = Instance.new("TextButton", hiveSection)
-extractBtn.Size = UDim2.new(1,0,0,30)
-extractBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
-extractBtn.TextColor3 = Color3.new(1,1,1)
-extractBtn.Font = Enum.Font.GothamBold
-extractBtn.TextSize = 14
-extractBtn.Text = "Start Extract"
-
-extractBtn.MouseButton1Click:Connect(function()
-    loopExtract = not loopExtract
-    extractBtn.Text = loopExtract and "Stop Extract" or "Start Extract"
-    if loopExtract then
-        spawn(function()
-            while loopExtract do
-                local plot = workspace.Plots:GetChildren()[2]
-                local hives = {}
-                for i=1,30 do
-                    local hive = plot:FindFirstChild("Hives"):FindFirstChild(tostring(i))
-                    if hive then table.insert(hives,hive) end
-                end
-                pcall(function() HiveRemote:FireServer("ExtractHoney",hives) end)
-                task.wait(extractDelay)
-            end
-        end)
-    end
-end)
-
--- Flower Section
-local flowerSection = Instance.new("Frame", honeyPage)
-flowerSection.Size = UDim2.new(1,-24,0,80)
-flowerSection.BackgroundTransparency = 1
-local flowerLayout = Instance.new("UIListLayout", flowerSection)
-flowerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-flowerLayout.Padding = UDim.new(0,8)
-
-local flowerBtn = Instance.new("TextButton", flowerSection)
-flowerBtn.Size = UDim2.new(1,0,0,30)
-flowerBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
-flowerBtn.TextColor3 = Color3.new(1,1,1)
-flowerBtn.Font = Enum.Font.GothamBold
-flowerBtn.TextSize = 14
-flowerBtn.Text = "Buy Dahlia"
-
-flowerBtn.MouseButton1Click:Connect(function()
-    pcall(function() FlowerRemote:InvokeServer("BuyFlower","Dahlia") end)
-end)
-
--- Sell Section
-local sellSection = Instance.new("Frame", honeyPage)
-sellSection.Size = UDim2.new(1,-24,0,80)
-sellSection.BackgroundTransparency = 1
-local sellLayout = Instance.new("UIListLayout", sellSection)
-sellLayout.SortOrder = Enum.SortOrder.LayoutOrder
-sellLayout.Padding = UDim.new(0,8)
-
-local loopSell = false
-local sellDelay = 5
-
-local sellBtn = Instance.new("TextButton", sellSection)
-sellBtn.Size = UDim2.new(1,0,0,30)
-sellBtn.BackgroundColor3 = Color3.fromRGB(0,255,127)
-sellBtn.TextColor3 = Color3.new(1,1,1)
-sellBtn.Font = Enum.Font.GothamBold
-sellBtn.TextSize = 14
-sellBtn.Text = "Start Sell"
-
-sellBtn.MouseButton1Click:Connect(function()
-    loopSell = not loopSell
-    sellBtn.Text = loopSell and "Stop Sell" or "Start Sell"
-    if loopSell then
-        spawn(function()
-            while loopSell do
-                pcall(function() HoneyRemote:FireServer("SellHoney","Honey") end)
-                task.wait(sellDelay)
-            end
-        end)
-    end
-end)
-
-print("Cheeky Hub V1.0)
+print("✅ Cheeky Hub V1.0 loaded successfully.")
