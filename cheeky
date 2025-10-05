@@ -1,4 +1,4 @@
--- Cheeky Hub V1.0 (Universal)
+-- Cheeky Hub V1.0 (Universal Features Added)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -18,7 +18,7 @@ local function tween(obj, props)
     return tw
 end
 
--- Rounded corners
+-- Rounded corners helper
 local function round(ui, radius)
     local c = Instance.new("UICorner", ui)
     c.CornerRadius = UDim.new(0, radius or 8)
@@ -144,176 +144,172 @@ minBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Content Frame
-local contentFrame = Instance.new("Frame", frame)
-contentFrame.Size = UDim2.new(1,-20,1,-60)
-contentFrame.Position = UDim2.new(0,10,0,50)
-contentFrame.BackgroundTransparency = 1
+-- Tab Frame
+local tabFrame = Instance.new("Frame", frame)
+tabFrame.Size = UDim2.new(1, -20, 0, 30)
+tabFrame.Position = UDim2.new(0, 10, 0, 45)
+tabFrame.BackgroundTransparency = 1
 
--- Neon lines
-local topLine = Instance.new("Frame", contentFrame)
-topLine.Size = UDim2.new(1,0,0,2)
-topLine.Position = UDim2.new(0,0,0,0)
-topLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-topLine.BackgroundTransparency = 0.5
+-- Content container for tabs
+local tabContent = Instance.new("Frame", frame)
+tabContent.Size = UDim2.new(1, -20, 1, -80)
+tabContent.Position = UDim2.new(0, 10, 0, 80)
+tabContent.BackgroundTransparency = 1
 
-local bottomLine = Instance.new("Frame", contentFrame)
-bottomLine.Size = UDim2.new(1,0,0,2)
-bottomLine.Position = UDim2.new(0,0,1,-2)
-bottomLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-bottomLine.BackgroundTransparency = 0.5
-
--- ---------------------
--- UNIVERSAL SECTION
--- ---------------------
--- Section Frame
-local universalSec = Instance.new("Frame", contentFrame)
-universalSec.Size = UDim2.new(1,0,1,0)
-universalSec.Position = UDim2.new(0,0,0,0)
-universalSec.BackgroundTransparency = 1
-
--- Toggle Helper
-function createToggle(parent, text, default, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0, 200, 0, 30)
-    btn.Position = UDim2.new(0,10,#parent:GetChildren()*35)
-    btn.BackgroundColor3 = default and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
-    btn.Text = text
+-- Tab creation function
+local function createTab(name)
+    local btn = Instance.new("TextButton", tabFrame)
+    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Position = UDim2.new(0, (#tabFrame:GetChildren()-1)*125, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.Text = name
     btn.Font = Enum.Font.GothamBold
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
     round(btn,6)
-    local enabled = default
+
+    local page = Instance.new("Frame", tabContent)
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+
     btn.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        btn.BackgroundColor3 = enabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
-        callback(enabled)
+        for _,p in ipairs(tabContent:GetChildren()) do
+            if p:IsA("Frame") then p.Visible = false end
+        end
+        page.Visible = true
     end)
-    return btn
+
+    return page
 end
 
--- ---------------------
--- Walk Speed
--- ---------------------
-local walkSpeed = 16
-createToggle(universalSec,"Infinite Walk",false,function(enabled)
-    walkSpeed = enabled and 300 or 16
-    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum.WalkSpeed = walkSpeed end
-end)
+-- Example Tabs
+local universalTab = createTab("Universal")
+local playerTab = createTab("Player")
+local miscTab = createTab("Misc")
 
--- ---------------------
--- Infinite Jump
--- ---------------------
-local infJump = false
-createToggle(universalSec,"Infinite Jump",false,function(enabled)
-    infJump = enabled
-end)
+-- Show default tab
+universalTab.Visible = true
 
-UserInputService.JumpRequest:Connect(function()
-    if infJump then
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+-- --- UNIVERSAL FEATURES ---
+local function createToggle(parent, text)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(0,255,180)
+    btn.Text = text .. ": OFF"
+    round(btn,6)
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = text .. (state and ": ON" or ": OFF")
+    end)
+    return function() return state end
+end
+
+local function createSlider(parent, text, min, max, default, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -20, 0, 30)
+    frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
+    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    round(frame,6)
+
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(0,255,180)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = text .. ": " .. default
+
+    local slider = Instance.new("TextButton", frame)
+    slider.Size = UDim2.new(0,0,1,0)
+    slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
+    round(slider,6)
+    slider.Position = UDim2.new(0,0,0,0)
+
+    local dragging = false
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mouseX = input.Position.X - frame.AbsolutePosition.X
+            mouseX = math.clamp(mouseX,0,frame.AbsoluteSize.X)
+            slider.Size = UDim2.new(mouseX/frame.AbsoluteSize.X,0,1,0)
+            local value = math.floor((mouseX/frame.AbsoluteSize.X)*(max-min)+min)
+            label.Text = text .. ": " .. value
+            callback(value)
+        end
+    end)
+end
+
+-- Walk Speed Slider
+createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = val
     end
 end)
 
--- ---------------------
--- Noclip
--- ---------------------
-local noclip = false
-createToggle(universalSec,"Noclip",false,function(enabled) noclip = enabled end)
-
+-- Infinite Jump Toggle
+local infJumpToggle = createToggle(universalTab, "Infinite Jump")
 RunService.Stepped:Connect(function()
-    if noclip and player.Character then
-        for _,p in ipairs(player.Character:GetDescendants()) do
-            if p:IsA("BasePart") then p.CanCollide = false end
+    if infJumpToggle() and player.Character and player.Character:FindFirstChild("Humanoid") then
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType==Enum.UserInputType.Keyboard and input.KeyCode==Enum.KeyCode.Space then
+                player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
+    end
+end)
+
+-- Noclip Toggle
+local noclipToggle = createToggle(universalTab, "Noclip")
+RunService.Stepped:Connect(function()
+    if player.Character and noclipToggle() then
+        for _,part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    elseif player.Character then
+        for _,part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
         end
     end
 end)
 
--- ---------------------
--- Fly
--- ---------------------
-local fly = false
-local flySpeed = 80
-local flyVel
-createToggle(universalSec,"Fly",false,function(enabled) fly = enabled end)
-
+-- Fly Toggle
+local flyToggle = createToggle(universalTab, "Fly")
+local flySpeed = 50
+local flying = false
+local bodyVelocity
 RunService.RenderStepped:Connect(function()
-    if fly and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = player.Character.HumanoidRootPart
-        if not flyVel or not flyVel.Parent then
-            flyVel = Instance.new("BodyVelocity")
-            flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
-            flyVel.Velocity = Vector3.new(0,0,0)
-            flyVel.Parent = hrp
+    if flyToggle() and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if not flying then
+            bodyVelocity = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
+            bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+            flying = true
         end
-        local dir = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + workspace.CurrentCamera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - workspace.CurrentCamera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - workspace.CurrentCamera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + workspace.CurrentCamera.CFrame.RightVector end
-        flyVel.Velocity = dir.Magnitude > 0.1 and dir.Unit*flySpeed or Vector3.new(0,0,0)
-    else
-        if flyVel and flyVel.Parent then flyVel:Destroy(); flyVel = nil end
-    end
-end)
-
--- ---------------------
--- UNIVERSAL TELEPORT & AUTO-COLLECT
--- ---------------------
-local autoCollectEnabled = false
-local teleportToNearestEnabled = false
-
-createToggle(universalSec, "Auto Collect (Nearest)", false, function(enabled)
-    autoCollectEnabled = enabled
-end)
-
-createToggle(universalSec, "Teleport to Nearest Pad", false, function(enabled)
-    teleportToNearestEnabled = enabled
-end)
-
-local function getNearestObject()
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    local candidates = {}
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") or obj:IsA("Model") then
-            local n = obj.Name:lower()
-            if string.find(n,"pad") or string.find(n,"collect") or string.find(n,"drop") then
-                table.insert(candidates,obj)
-            end
-        end
-    end
-    local nearest, nearestDist = nil, math.huge
-    for _,c in ipairs(candidates) do
-        local cf = c:IsA("Model") and c.PrimaryPart and c.PrimaryPart.CFrame or c:IsA("BasePart") and c.CFrame
-        if cf then
-            local dist = (cf.Position - hrp.Position).Magnitude
-            if dist < nearestDist then
-                nearestDist = dist
-                nearest = c
-            end
-        end
-    end
-    return nearest
-end
-
-spawn(function()
-    while true do
-        task.wait(0.15)
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local nearest = getNearestObject()
-            if nearest then
-                local targetCFrame = nearest:IsA("Model") and nearest.PrimaryPart and nearest.PrimaryPart.CFrame or nearest:IsA("BasePart") and nearest.CFrame
-                if targetCFrame then
-                    if teleportToNearestEnabled or autoCollectEnabled then
-                        hrp.CFrame = targetCFrame + Vector3.new(0,5,0)
-                    end
-                end
-            end
-        end
+        local move = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + workspace.CurrentCamera.CFrame.RightVector end
+        move = move.Unit * flySpeed
+        if move ~= move then move = Vector3.new() end -- handle NaN
+        bodyVelocity.Velocity = move
+    elseif flying then
+        if bodyVelocity then bodyVelocity:Destroy() end
+        flying = false
     end
 end)
