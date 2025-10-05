@@ -1,4 +1,4 @@
--- Cheeky Hub V1.1 (Clean + Fixed)
+-- Cheeky Hub V1.2 (Fully Fixed + WalkSpeed)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -106,7 +106,7 @@ title.Position = UDim2.new(0,15,0,0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.TextSize = 22
-title.Text = "Cheeky Hub V1.1"
+title.Text = "Cheeky Hub V1.2"
 title.TextColor3 = Color3.fromRGB(0,255,180)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -183,12 +183,10 @@ local function createTab(name)
     return page
 end
 
--- Example Tabs
+-- Tabs
 local universalTab = createTab("Universal")
 local playerTab = createTab("Player")
 local miscTab = createTab("Misc")
-
--- Show default tab
 universalTab.Visible = true
 
 -- --- UNIVERSAL FEATURES ---
@@ -209,6 +207,8 @@ local function createToggle(parent, text)
     end)
     return function() return state end
 end
+
+local currentWalkSpeed = 16
 
 local function createSlider(parent, text, min, max, default, callback)
     local frame = Instance.new("Frame", parent)
@@ -246,19 +246,20 @@ local function createSlider(parent, text, min, max, default, callback)
             slider.Size = UDim2.new(mouseX/frame.AbsoluteSize.X,0,1,0)
             local value = math.floor((mouseX/frame.AbsoluteSize.X)*(max-min)+min)
             label.Text = text .. ": " .. value
+            currentWalkSpeed = value
             callback(value)
         end
     end)
 end
 
--- Walk Speed Slider
+-- WalkSpeed Slider
 createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val)
     if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = val
+        player.Character.Humanoid.WalkSpeed = currentWalkSpeed
     end
 end)
 
--- Infinite Jump Toggle
+-- Infinite Jump
 local infJumpToggle = createToggle(universalTab, "Infinite Jump")
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
@@ -269,7 +270,7 @@ UserInputService.InputBegan:Connect(function(input, processed)
     end
 end)
 
--- Noclip Toggle
+-- Noclip
 local noclipToggle = createToggle(universalTab, "Noclip")
 local noclipping = false
 RunService.Stepped:Connect(function()
@@ -288,7 +289,7 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Fly Toggle
+-- Fly
 local flyToggle = createToggle(universalTab, "Fly")
 local flySpeed = 50
 local flying = false
@@ -313,11 +314,11 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Reset toggles on respawn
+-- Apply toggles on respawn
 player.CharacterAdded:Connect(function(char)
     flying = false
     noclipping = false
     if char:FindFirstChild("Humanoid") then
-        char.Humanoid.WalkSpeed = 16
+        char.Humanoid.WalkSpeed = currentWalkSpeed
     end
 end)
