@@ -1,0 +1,159 @@
+-- Cheeky Hub V1.0 (Stealth Edition)
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+
+-- Sizes
+local HUB_SZ = UDim2.new(0,700,0,450)
+local MINIMIZED_SZ = UDim2.new(0,200,0,40)
+
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, props)
+    local tw = TweenService:Create(obj, tweenInfo, props)
+    tw:Play()
+    return tw
+end
+
+local function round(ui, radius)
+    local c = Instance.new("UICorner", ui)
+    c.CornerRadius = UDim.new(0, radius or 12)
+end
+
+-- ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CheekyHubV1"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = CoreGui
+
+-- Main Frame
+local frame = Instance.new("Frame", screenGui)
+frame.Size = HUB_SZ
+frame.Position = UDim2.new(0.5,0,0.5,0)
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+frame.BackgroundTransparency = 0.05
+frame.BorderSizePixel = 0
+round(frame, 16)
+
+-- Neon edge
+local edge = Instance.new("UIStroke", frame)
+edge.Color = Color3.fromRGB(0,255,120)
+edge.Thickness = 2
+edge.Transparency = 0.5
+edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- Shadow effect
+local shadow = Instance.new("UIStroke", frame)
+shadow.Color = Color3.fromRGB(0,0,0)
+shadow.Thickness = 4
+shadow.Transparency = 0.7
+shadow.ApplyStrokeMode = Enum.ApplyStrokeMode.Outer
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale, startPos.X.Offset+delta.X,
+            startPos.Y.Scale, startPos.Y.Offset+delta.Y
+        )
+    end
+end)
+local function enableDrag(target)
+    target.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = i.Position
+            startPos = frame.Position
+            i.Changed:Connect(function()
+                if i.UserInputState==Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    target.InputChanged:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
+            dragInput = i
+        end
+    end)
+end
+
+-- Top Bar
+local bar = Instance.new("Frame", frame)
+bar.Size = UDim2.new(1,0,0,45)
+bar.Position = UDim2.new(0,0,0,0)
+bar.BackgroundColor3 = Color3.fromRGB(25,25,25)
+bar.BorderSizePixel = 0
+round(bar,16)
+enableDrag(bar)
+
+local title = Instance.new("TextLabel", bar)
+title.Size = UDim2.new(1,-20,1,0)
+title.Position = UDim2.new(0,10,0,0)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 24
+title.Text = "Cheeky Hub V1.0"
+title.TextColor3 = Color3.fromRGB(0,255,120)
+title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Close Button
+local closeBtn = Instance.new("TextButton", bar)
+closeBtn.Size = UDim2.new(0,35,0,35)
+closeBtn.Position = UDim2.new(1,-45,0,5)
+closeBtn.Text = "X"
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.BackgroundColor3 = Color3.fromRGB(180,0,0)
+closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
+round(closeBtn,8)
+closeBtn.MouseEnter:Connect(function()
+    tween(closeBtn,{BackgroundTransparency=0.5})
+end)
+closeBtn.MouseLeave:Connect(function()
+    tween(closeBtn,{BackgroundTransparency=0})
+end)
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+-- Minimize Button
+local minBtn = Instance.new("TextButton", bar)
+minBtn.Size = UDim2.new(0,35,0,35)
+minBtn.Position = UDim2.new(1,-90,0,5)
+minBtn.Text = "-"
+minBtn.Font = Enum.Font.GothamBold
+minBtn.TextSize = 20
+minBtn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+minBtn.TextColor3 = Color3.fromRGB(0,255,120)
+round(minBtn,8)
+minBtn.MouseEnter:Connect(function()
+    tween(minBtn,{BackgroundTransparency=0.5})
+end)
+minBtn.MouseLeave:Connect(function()
+    tween(minBtn,{BackgroundTransparency=0})
+end)
+minBtn.MouseButton1Click:Connect(function()
+    if frame.Size==HUB_SZ then
+        tween(frame,{Size=MINIMIZED_SZ})
+    else
+        tween(frame,{Size=HUB_SZ})
+    end
+end)
+
+-- Content Frame
+local contentFrame = Instance.new("Frame", frame)
+contentFrame.Size = UDim2.new(1,0,1,-50)
+contentFrame.Position = UDim2.new(0,0,0,50)
+contentFrame.BackgroundTransparency = 1
+
+-- Glowing separator line
+local sep = Instance.new("Frame", contentFrame)
+sep.Size = UDim2.new(1,0,0,2)
+sep.Position = UDim2.new(0,0,0,0)
+sep.BackgroundColor3 = Color3.fromRGB(0,255,120)
+sep.BackgroundTransparency = 0.4
