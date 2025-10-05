@@ -210,32 +210,36 @@ end
 
 local currentWalkSpeed = 16
 
+local currentWalkSpeed = 16
+
 local function createSlider(parent, text, min, max, default, callback)
     local sliderFrame = Instance.new("Frame", parent)
     sliderFrame.Size = UDim2.new(1, -20, 0, 30)
     sliderFrame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
-    sliderFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    round(sliderFrame,6)
+    sliderFrame.BackgroundTransparency = 1 -- make the frame transparent
+    --round(sliderFrame,6)
 
     local label = Instance.new("TextLabel", sliderFrame)
-    label.Size = UDim2.new(1,0,1,0)
+    label.Size = UDim2.new(1,0,0,15) -- smaller height for text
+    label.Position = UDim2.new(0,0,0,0) -- at top
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.GothamBold
     label.TextSize = 14
     label.TextColor3 = Color3.fromRGB(0,255,180)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = text .. ": " .. default
+    label.ZIndex = 3 -- ensure it's above the handle
 
     local bar = Instance.new("Frame", sliderFrame)
     bar.Size = UDim2.new(1, -10, 0, 6)
-    bar.Position = UDim2.new(0, 5, 0.5, -3)
+    bar.Position = UDim2.new(0, 5, 0, 20) -- slightly below text
     bar.BackgroundColor3 = Color3.fromRGB(0,255,180)
     round(bar,3)
     bar.ZIndex = 1
 
     local handle = Instance.new("TextButton", sliderFrame)
     handle.Size = UDim2.new(default/(max-min),0,1,0)
-    handle.Position = UDim2.new(0,0,0,0)
+    handle.Position = UDim2.new(0,0,0,20) -- align with bar
     handle.BackgroundColor3 = Color3.fromRGB(0,180,255)
     round(handle,6)
     handle.Text = ""
