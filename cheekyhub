@@ -1,390 +1,44 @@
--- Cheeky Hub V1.0 (Ultimate Universal Edition)
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
-local Workspace = game:GetService("Workspace")
+-- Tab Frame (buttons)
+local tabFrame = Instance.new("Frame", frame)
+tabFrame.Size = UDim2.new(1, -20, 0, 30)
+tabFrame.Position = UDim2.new(0, 10, 0, 45)
+tabFrame.BackgroundTransparency = 1
 
-local player = Players.LocalPlayer
-local guiParent = game:GetService("CoreGui")
+-- Content container
+local tabContent = Instance.new("Frame", frame)
+tabContent.Size = UDim2.new(1, -20, 1, -80)
+tabContent.Position = UDim2.new(0, 10, 0, 80)
+tabContent.BackgroundTransparency = 1
 
--- Hub Sizes
-local HUB_SZ = UDim2.new(0, 700, 0, 500)
-local MINIMIZED_SZ = UDim2.new(0, 200, 0, 40)
-
--- Tween helper
-local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local function tween(obj, props)
-    local tw = TweenService:Create(obj, tweenInfo, props)
-    tw:Play()
-    return tw
-end
-
--- Rounded corners
-local function round(ui, radius)
-    local c = Instance.new("UICorner", ui)
-    c.CornerRadius = UDim.new(0, radius or 8)
-end
-
--- Main GUI
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CheekyHubGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = guiParent
-
--- Main Frame
-local frame = Instance.new("Frame", screenGui)
-frame.Size = HUB_SZ
-frame.Position = UDim2.new(0.5,0,0.5,0)
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-frame.BorderSizePixel = 0
-round(frame,16)
-
--- Neon Edge
-local edge = Instance.new("UIStroke", frame)
-edge.Color = Color3.fromRGB(0,255,180)
-edge.Thickness = 3
-edge.Transparency = 0.3
-edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
--- Shadow
-local shadow = Instance.new("Frame", screenGui)
-shadow.Size = frame.Size
-shadow.Position = frame.Position
-shadow.AnchorPoint = frame.AnchorPoint
-shadow.BackgroundColor3 = Color3.fromRGB(0,255,180)
-shadow.BackgroundTransparency = 0.95
-shadow.ZIndex = frame.ZIndex - 1
-round(shadow,18)
-
--- Dragging
-local dragging, dragInput, dragStart, startPos
-local function enableDrag(target)
-    target.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = i.Position
-            startPos = frame.Position
-            i.Changed:Connect(function()
-                if i.UserInputState==Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    target.InputChanged:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch then
-            dragInput = i
-        end
-    end)
-end
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset+delta.X,
-            startPos.Y.Scale, startPos.Y.Offset+delta.Y
-        )
-        shadow.Position = frame.Position
-    end
-end)
-enableDrag(frame)
-
--- Top Bar
-local bar = Instance.new("Frame", frame)
-bar.Size = UDim2.new(1,0,0,40)
-bar.Position = UDim2.new(0,0,0,0)
-bar.BackgroundColor3 = Color3.fromRGB(25,25,25)
-bar.BorderSizePixel = 0
-round(bar,16)
-enableDrag(bar)
-
-local title = Instance.new("TextLabel", bar)
-title.Size = UDim2.new(1,-80,1,0)
-title.Position = UDim2.new(0,15,0,0)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.Text = "Cheeky Hub V1.0"
-title.TextColor3 = Color3.fromRGB(0,255,180)
-title.TextXAlignment = Enum.TextXAlignment.Left
-
--- Close & Minimize
-local closeBtn = Instance.new("TextButton", bar)
-closeBtn.Size = UDim2.new(0,30,0,30)
-closeBtn.Position = UDim2.new(1,-40,0,5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(180,50,50)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
-round(closeBtn,6)
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
-
-local minBtn = Instance.new("TextButton", bar)
-minBtn.Size = UDim2.new(0,30,0,30)
-minBtn.Position = UDim2.new(1,-80,0,5)
-minBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-minBtn.Font = Enum.Font.GothamBold
-minBtn.TextSize = 18
-minBtn.Text = "-"
-minBtn.TextColor3 = Color3.fromRGB(255,255,255)
-round(minBtn,6)
-minBtn.MouseButton1Click:Connect(function()
-    if frame.Size == HUB_SZ then
-        tween(frame, {Size = MINIMIZED_SZ})
-        tween(shadow, {Size = MINIMIZED_SZ})
-    else
-        tween(frame, {Size = HUB_SZ})
-        tween(shadow, {Size = HUB_SZ})
-    end
-end)
-
--- Content Frame
-local contentFrame = Instance.new("Frame", frame)
-contentFrame.Size = UDim2.new(1,-20,1,-60)
-contentFrame.Position = UDim2.new(0,10,0,50)
-contentFrame.BackgroundTransparency = 1
-
--- Tabs container
-local tabsFrame = Instance.new("Frame", contentFrame)
-tabsFrame.Size = UDim2.new(1,0,1,0)
-tabsFrame.BackgroundTransparency = 1
-local UIListLayout = Instance.new("UIListLayout", tabsFrame)
-UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-UIListLayout.Padding = UDim.new(0,6)
-
--- Helpers
-local function createSlider(parent, text, min, max, default, callback)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1,0,0,40)
-    frame.BackgroundTransparency = 0.6
-    frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    round(frame,6)
-
-    local label = Instance.new("TextLabel", frame)
-    label.Size = UDim2.new(0.5,0,1,0)
-    label.Position = UDim2.new(0,5,0,0)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 18
-    label.Text = text
-    label.TextColor3 = Color3.fromRGB(0,255,180)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    local slider = Instance.new("TextBox", frame)
-    slider.Size = UDim2.new(0.4,-10,0,25)
-    slider.Position = UDim2.new(0.55,0,0.5,-12)
-    slider.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    slider.TextColor3 = Color3.fromRGB(0,255,180)
-    slider.Font = Enum.Font.Gotham
-    slider.TextSize = 16
-    slider.Text = tostring(default)
-    slider.ClearTextOnFocus = false
-    round(slider,4)
-    slider.FocusLost:Connect(function()
-        local val = tonumber(slider.Text)
-        if val then
-            val = math.clamp(val,min,max)
-            slider.Text = tostring(val)
-            callback(val)
-        end
-    end)
-    return slider
-end
-
-local function createToggle(parent, text, default)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1,0,0,30)
-    btn.BackgroundColor3 = default and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
+-- Helper function to create tabs
+local function createTab(name)
+    local btn = Instance.new("TextButton", tabFrame)
+    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Position = UDim2.new(0, (#tabFrame:GetChildren()-1)*125, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.Text = name
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 16
-    btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     round(btn,6)
-    local state = default
+
+    local page = Instance.new("Frame", tabContent)
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.BackgroundColor3 = state and Color3.fromRGB(0,150,0) or Color3.fromRGB(60,60,60)
+        for _,p in ipairs(tabContent:GetChildren()) do
+            if p:IsA("Frame") then p.Visible = false end
+        end
+        page.Visible = true
     end)
-    return btn, function() return state end
+
+    return page
 end
 
--- ----------------------
--- PLAYER TAB
--- ----------------------
-local playerTab = Instance.new("Frame", tabsFrame)
-playerTab.Size = UDim2.new(1,0,0,450)
-playerTab.BackgroundTransparency = 1
-local label = Instance.new("TextLabel", playerTab)
-label.Size = UDim2.new(1,0,0,30)
-label.Text = "Player Features"
-label.BackgroundTransparency = 1
-label.Font = Enum.Font.GothamBold
-label.TextSize = 20
-label.TextColor3 = Color3.fromRGB(0,255,180)
-
--- WalkSpeed
-createSlider(playerTab, "WalkSpeed (16-300)", 16, 300, 16, function(v)
-    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if hum then pcall(function() hum.WalkSpeed = v end) end
-end)
-
--- JumpPower
-createSlider(playerTab, "JumpPower (50-500)", 50, 500, 50, function(v)
-    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if hum then pcall(function() hum.JumpPower = v end) end
-end)
-
--- Infinite Jump
-local infBtn, infGet = createToggle(playerTab, "Infinite Jump", false)
-UserInputService.JumpRequest:Connect(function()
-    if infGet() then
-        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-        if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
-    end
-end)
-
--- Fly
-local flyBtn, flyGet = createToggle(playerTab, "Fly", false)
-local flySpeed = 80
-createSlider(playerTab, "Fly Speed (50-300)", 50, 300, 80, function(v) flySpeed = v end)
-local flyVel
-RunService.RenderStepped:Connect(function()
-    if flyGet() and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = player.Character.HumanoidRootPart
-        if not flyVel or not flyVel.Parent then
-            flyVel = Instance.new("BodyVelocity")
-            flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
-            flyVel.Velocity = Vector3.new(0,0,0)
-            flyVel.Parent = hrp
-        end
-        local dir = Vector3.new()
-        local cam = workspace.CurrentCamera.CFrame
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.RightVector end
-        if dir.Magnitude > 0.1 then
-            flyVel.Velocity = dir.Unit * flySpeed
-        else
-            flyVel.Velocity = Vector3.new(0,0,0)
-        end
-    else
-        if flyVel and flyVel.Parent then flyVel:Destroy(); flyVel = nil end
-    end
-end)
-
--- Noclip
-local noclipBtn, noclipGet = createToggle(playerTab, "Noclip", false)
-RunService.Stepped:Connect(function()
-    if noclipGet() and player.Character then
-        for _,p in ipairs(player.Character:GetDescendants()) do
-            if p:IsA("BasePart") then p.CanCollide = false end
-        end
-    end
-end)
-
--- Anti-AFK
-spawn(function()
-    while true do
-        VirtualUser:CaptureController()
-        VirtualUser:ClickButton1(Vector2.new())
-        task.wait(60)
-    end
-end)
-
--- ----------------------
--- FUN TAB
--- ----------------------
-local funTab = Instance.new("Frame", tabsFrame)
-funTab.Size = UDim2.new(1,0,0,450)
-funTab.BackgroundTransparency = 1
-local funLabel = Instance.new("TextLabel", funTab)
-funLabel.Size = UDim2.new(1,0,0,30)
-funLabel.Text = "Fun & Utility"
-funLabel.BackgroundTransparency = 1
-funLabel.Font = Enum.Font.GothamBold
-funLabel.TextSize = 20
-funLabel.TextColor3 = Color3.fromRGB(0,255,180)
-
--- Rainbow Trail
-local trailBtn, trailGet = createToggle(funTab, "Rainbow Trail", false)
-spawn(function()
-    local colors = {Color3.fromRGB(255,0,0), Color3.fromRGB(255,255,0), Color3.fromRGB(0,255,0), Color3.fromRGB(0,255,255), Color3.fromRGB(0,0,255), Color3.fromRGB(255,0,255)}
-    local i = 1
-    while true do
-        if trailGet() and player.Character then
-            for _, part in ipairs(player.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Color = colors[i]
-                end
-            end
-            i = i + 1
-            if i > #colors then i = 1 end
-        end
-        task.wait(0.5)
-    end
-end)
-
--- Auto Chat
-local chatBtn, chatGet = createToggle(funTab, "Auto Chat 'Hello!'", false)
-spawn(function()
-    while true do
-        if chatGet() then
-            pcall(function() player.Chatted:Connect(function() end) game:GetService("Players"):Chat("Hello!") end)
-        end
-        task.wait(5)
-    end
-end)
-
--- Day / Night toggle
-local dayBtn, dayGet = createToggle(funTab, "Day/Night Toggle", false)
-spawn(function()
-    while true do
-        if dayGet() then
-            Lighting.TimeOfDay = Lighting.TimeOfDay == "14:00:00" and "02:00:00" or "14:00:00"
-        end
-        task.wait(10)
-    end
-end)
-
--- ----------------------
--- ESP / Highlights
--- ----------------------
-local espBtn, espGet = createToggle(funTab, "Player ESP", false)
-spawn(function()
-    while true do
-        if espGet() then
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr ~= player then
-                    if not plr.Character:FindFirstChild("CheekyESP") then
-                        local box = Instance.new("BoxHandleAdornment")
-                        box.Name = "CheekyESP"
-                        box.Adornee = plr.Character.HumanoidRootPart
-                        box.Color3 = Color3.fromRGB(0,255,0)
-                        box.Size = Vector3.new(2,2,1)
-                        box.AlwaysOnTop = true
-                        box.Parent = plr.Character.HumanoidRootPart
-                    end
-                end
-            end
-        else
-            for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local esp = plr.Character.HumanoidRootPart:FindFirstChild("CheekyESP")
-                    if esp then esp:Destroy() end
-                end
-            end
-        end
-        task.wait(1)
-    end
-end)
-
-print("Cheeky Hub V1.0 Ultimate loaded successfully!")
+-- Create universal tab
+local universalTab = createTab("Universal")
+-- Move existing universal toggles here
+universalSec.Parent = universalTab
+universalSec.Position = UDim2.new(0,0,0,0)
