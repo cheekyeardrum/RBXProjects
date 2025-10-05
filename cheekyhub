@@ -1,4 +1,4 @@
--- Cheeky Hub V1.2 (Fully Fixed + WalkSpeed)
+-- Cheeky Hub V1.3 (Fixed Layout + WalkSpeed Slider + Universal Toggles)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -106,7 +106,7 @@ title.Position = UDim2.new(0,15,0,0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
 title.TextSize = 22
-title.Text = "Cheeky Hub V1.2"
+title.Text = "Cheeky Hub V1.3"
 title.TextColor3 = Color3.fromRGB(0,255,180)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -189,11 +189,15 @@ local playerTab = createTab("Player")
 local miscTab = createTab("Misc")
 universalTab.Visible = true
 
+-- --- UIListLayout for proper spacing ---
+local layout = Instance.new("UIListLayout", universalTab)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 10)
+
 -- --- UNIVERSAL FEATURES ---
 local function createToggle(parent, text)
     local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
+    btn.Size = UDim2.new(1,0,0,30)
     btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 16
@@ -208,38 +212,34 @@ local function createToggle(parent, text)
     return function() return state end
 end
 
+-- --- WalkSpeed Slider ---
 local currentWalkSpeed = 16
-
-local currentWalkSpeed = 16
-
 local function createSlider(parent, text, min, max, default, callback)
     local sliderFrame = Instance.new("Frame", parent)
-    sliderFrame.Size = UDim2.new(1, -20, 0, 30)
-    sliderFrame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
-    sliderFrame.BackgroundTransparency = 1 -- make the frame transparent
-    --round(sliderFrame,6)
+    sliderFrame.Size = UDim2.new(1,0,0,40)
+    sliderFrame.BackgroundTransparency = 1
 
     local label = Instance.new("TextLabel", sliderFrame)
-    label.Size = UDim2.new(1,0,0,15) -- smaller height for text
-    label.Position = UDim2.new(0,0,0,0) -- at top
+    label.Size = UDim2.new(1,0,0,15)
+    label.Position = UDim2.new(0,0,0,0)
     label.BackgroundTransparency = 1
     label.Font = Enum.Font.GothamBold
     label.TextSize = 14
     label.TextColor3 = Color3.fromRGB(0,255,180)
     label.TextXAlignment = Enum.TextXAlignment.Left
     label.Text = text .. ": " .. default
-    label.ZIndex = 3 -- ensure it's above the handle
+    label.ZIndex = 3
 
     local bar = Instance.new("Frame", sliderFrame)
-    bar.Size = UDim2.new(1, -10, 0, 6)
-    bar.Position = UDim2.new(0, 5, 0, 20) -- slightly below text
+    bar.Size = UDim2.new(1,-10,0,6)
+    bar.Position = UDim2.new(0,5,0,20)
     bar.BackgroundColor3 = Color3.fromRGB(0,255,180)
     round(bar,3)
     bar.ZIndex = 1
 
     local handle = Instance.new("TextButton", sliderFrame)
     handle.Size = UDim2.new(default/(max-min),0,1,0)
-    handle.Position = UDim2.new(0,0,0,20) -- align with bar
+    handle.Position = UDim2.new(0,0,0,20)
     handle.BackgroundColor3 = Color3.fromRGB(0,180,255)
     round(handle,6)
     handle.Text = ""
@@ -247,14 +247,10 @@ local function createSlider(parent, text, min, max, default, callback)
 
     local dragging = false
     handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
     end)
     handle.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
@@ -273,11 +269,7 @@ local function createSlider(parent, text, min, max, default, callback)
 end
 
 -- WalkSpeed Slider
-createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val)
-    if player.Character and player.Character:FindFirstChild("Humanoid") then
-        player.Character.Humanoid.WalkSpeed = currentWalkSpeed
-    end
-end)
+createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val) end)
 
 -- Infinite Jump
 local infJumpToggle = createToggle(universalTab, "Infinite Jump")
