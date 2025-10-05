@@ -260,50 +260,92 @@ local honeyLayout = Instance.new("UIListLayout", honeyPage)
 honeyLayout.SortOrder = Enum.SortOrder.LayoutOrder
 honeyLayout.Padding = UDim.new(0, 12)
 
--- ===== Hive Section (Extract Honey) =====
-local hiveSection = Instance.new("Frame", honeyPage)
-hiveSection.Size = UDim2.new(1, -24, 0, 50)
-hiveSection.BackgroundTransparency = 1
+-- ===== Smart Extract Section =====
+local smartExtractSection = Instance.new("Frame", honeyPage)
+smartExtractSection.Size = UDim2.new(1, -24, 0, 120)
+smartExtractSection.BackgroundTransparency = 1
+local smartExtractLayout = Instance.new("UIListLayout", smartExtractSection)
+smartExtractLayout.SortOrder = Enum.SortOrder.LayoutOrder
+smartExtractLayout.Padding = UDim.new(0, 8)
 
-local extractBtn = Instance.new("TextButton", hiveSection)
-extractBtn.Size = UDim2.new(1, 0, 1, 0)
-extractBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-extractBtn.TextColor3 = Color3.new(1, 1, 1)
-extractBtn.Font = Enum.Font.GothamBold
-extractBtn.TextSize = 14
-extractBtn.Text = "Start Extract"
+local smartLoopExtract = false
+local smartExtractDelay = 5 -- seconds between each full cycle
 
-local loopExtract = false
-local extractDelay = 5
+local smartExtractBtn = Instance.new("TextButton", smartExtractSection)
+smartExtractBtn.Size = UDim2.new(1, 0, 0, 30)
+smartExtractBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+smartExtractBtn.TextColor3 = Color3.new(1, 1, 1)
+smartExtractBtn.Font = Enum.Font.GothamBold
+smartExtractBtn.TextSize = 14
+smartExtractBtn.Text = "Start Smart Extract"
 
-extractBtn.MouseButton1Click:Connect(function()
-    loopExtract = not loopExtract
-    extractBtn.Text = loopExtract and "Stop Extract" or "Start Extract"
+local statusLabel = Instance.new("TextLabel", smartExtractSection)
+statusLabel.Size = UDim2.new(1, 0, 0, 20)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 12
+statusLabel.Text = "Idle"
 
-    if loopExtract then
-        spawn(function()
-            while loopExtract do
-                local HiveRemote = game:GetService("ReplicatedStorage")
-                    :WaitForChild("Framework"):WaitForChild("Features")
-                    :WaitForChild("HoneySystem"):WaitForChild("HiveUtil")
-                    :WaitForChild("RemoteEvent")
+local function getPlayerPlot(player)
+	local framework = game:GetService("ReplicatedStorage"):WaitForChild("Framework")
+	local plotsUtil = framework:WaitForChild("Modules"):WaitForChild("PlotsUtil")
+	if plotsUtil and plotsUtil:FindFirstChild("GetPlayerPlot") then
+		-- call the function if it’s a ModuleScript (optional)
+		return require(plotsUtil):GetPlayerPlot(player)
+	end
 
-                local plot = workspace.Plots:GetChildren()[2] -- replace with correct plot index
-                if plot and plot:FindFirstChild("Hives") then
-                    local hives = {}
-                    for i = 1, 30 do
-                        local hive = plot.Hives:FindFirstChild(tostring(i))
-                        if hive then table.insert(hives, hive) end
-                    end
-                    pcall(function()
-                        HiveRemote:FireServer("ExtractHoney", hives)
-                    end)
-                end
-                task.wait(extractDelay)
-            end
-        end)
-    end
+	-- fallback search if not callable
+	for _, plot in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
+		if plot:FindFirstChild("Owner") and plot.Owner.Value == player then
+			return plot
+		end
+	end
+	return nil
+end
+
+smartExtractBtn.MouseButton1Click:Connect(function()
+	smartLoopExtract = not smartLoopExtract
+	smartExtractBtn.Text = smartLoopExtract and "Stop Smart Extract" or "Start Smart Extract"
+
+	if smartLoopExtract then
+		task.spawn(function()
+			local player = game.Players.LocalPlayer
+			local framework = game:GetService("ReplicatedStorage"):WaitForChild("Framework")
+			local hiveRemote = framework:WaitForChild("Features"):WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
+
+			while smartLoopExtract do
+				local plot = getPlayerPlot(player)
+				if not plot or not plot:FindFirstChild("Hives") then
+					statusLabel.Text = "⚠️ Could not find your plot."
+					task.wait(3)
+					continue
+				end
+
+				local builtHives = {}
+				for _, hive in pairs(plot.Hives:GetChildren()) do
+					if hive:GetAttribute("IsBuilt") then
+						table.insert(builtHives, hive)
+					end
+				end
+
+				if #builtHives > 0 then
+					statusLabel.Text = "Extracting from " .. tostring(#builtHives) .. " hives..."
+					pcall(function()
+						hiveRemote:FireServer("ExtractHoney", builtHives)
+					end)
+				else
+					statusLabel.Text = "No built hives found."
+				end
+
+				task.wait(smartExtractDelay)
+			end
+
+			statusLabel.Text = "Stopped"
+		end)
+	end
 end)
+
 
 -- ===== Flower Section (Buy All Flowers) =====
 local flowerSection = Instance.new("Frame", honeyPage)
