@@ -352,4 +352,4 @@ sellBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-print("Cheeky Hub V1.
+print("Cheeky Hub V1.0)
