@@ -1,67 +1,226 @@
 -- ---------------------
--- ADVANCED UNIVERSAL CHEATS
+-- CHEEKY HUB V1.0 PREMIUM – FULL TOOLS
 -- ---------------------
 
--- Fly toggle + speed slider
-local flyEnabled = false
-local flySpeed = 80
-local flyVel = nil
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local VirtualUser = game:GetService("VirtualUser")
+local player = Players.LocalPlayer
+local guiParent = game:GetService("CoreGui")
 
-createToggle(universalSec,"Fly",false,function(enabled)
-    flyEnabled = enabled
-    if not enabled and flyVel and flyVel.Parent then
-        flyVel:Destroy()
-        flyVel = nil
+-- Sizes
+local HUB_SZ = UDim2.new(0,700,0,500)
+local MINIMIZED_SZ = UDim2.new(0,200,0,40)
+
+-- Tween helper
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+local function tween(obj, props)
+    local tw = TweenService:Create(obj, tweenInfo, props)
+    tw:Play()
+    return tw
+end
+
+-- Rounded corners
+local function round(ui,radius)
+    local c = Instance.new("UICorner", ui)
+    c.CornerRadius = UDim.new(0,radius or 8)
+end
+
+-- Helper for buttons
+local function createButton(parent, text, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.fromRGB(0,255,180)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.Text = text
+    round(btn,6)
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- Helper for toggles
+local function createToggle(parent, text, default, callback)
+    local enabled = default
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1,0,0,30)
+    btn.BackgroundColor3 = enabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(40,40,40)
+    btn.TextColor3 = Color3.fromRGB(0,255,180)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.Text = text
+    round(btn,6)
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        btn.BackgroundColor3 = enabled and Color3.fromRGB(0,150,0) or Color3.fromRGB(40,40,40)
+        if callback then callback(enabled) end
+    end)
+    return btn, function() return enabled end
+end
+
+-- Helper for sliders
+local function createSlider(parent, text, min, max, default, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1,0,0,30)
+    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    round(frame,6)
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(0.4,0,1,0)
+    label.Position = UDim2.new(0,5,0,0)
+    label.Text = text..": "..default
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 16
+    label.TextColor3 = Color3.fromRGB(0,255,180)
+    label.BackgroundTransparency = 1
+
+    local slider = Instance.new("Frame", frame)
+    slider.Size = UDim2.new(0.5,0,1,0)
+    slider.Position = UDim2.new(0.45,0,0,0)
+    slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
+    local dragging = false
+    slider.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+    slider.InputEnded:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType==Enum.UserInputType.MouseMovement then
+            local rel = math.clamp((i.Position.X-frame.AbsolutePosition.X)/frame.AbsoluteSize.X,0,1)
+            local val = math.floor(min + (max-min)*rel)
+            slider.Size = UDim2.new(rel,0,1,0)
+            if callback then callback(val) end
+            label.Text = text..": "..val
+        end
+    end)
+    return slider
+end
+
+-- ---------------------
+-- REUSE YOUR HUB FRAME & TOPBAR CODE
+-- ---------------------
+-- (Paste your previous frame, topbar, minimize, close code here)
+-- ContentFrame is assumed to exist
+
+-- ---------------------
+-- TAB SYSTEM (Collapsible Sections)
+-- ---------------------
+local sections = {}
+
+local function createSection(titleText)
+    local sec = Instance.new("Frame", contentFrame)
+    sec.Size = UDim2.new(1,0,0,40)
+    sec.BackgroundTransparency = 1
+
+    local header = Instance.new("TextButton", sec)
+    header.Size = UDim2.new(1,0,0,40)
+    header.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    header.Text = titleText.." ▼"
+    header.Font = Enum.Font.GothamBold
+    header.TextSize = 18
+    header.TextColor3 = Color3.fromRGB(0,255,180)
+    round(header,6)
+
+    local container = Instance.new("Frame", sec)
+    container.Size = UDim2.new(1,0,0,0)
+    container.Position = UDim2.new(0,0,0,40)
+    container.BackgroundTransparency = 1
+    local layout = Instance.new("UIListLayout", container)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0,6)
+
+    header.MouseButton1Click:Connect(function()
+        if container.Size.Y.Offset==0 then
+            container.Size = UDim2.new(1,0,0,layout.AbsoluteContentSize.Y+10)
+            header.Text = titleText.." ▲"
+        else
+            container.Size = UDim2.new(1,0,0,0)
+            header.Text = titleText.." ▼"
+        end
+    end)
+
+    sections[titleText] = container
+    return container
+end
+
+local universalSec = createSection("Universal Utilities")
+local scriptsSec = createSection("Scripts")
+local cheatsSec = createSection("Cheats")
+
+-- ---------------------
+-- UNIVERSAL UTILITIES
+-- ---------------------
+-- WalkSpeed slider
+local walkSpeed = 16
+createSlider(universalSec,"WalkSpeed",16,500,16,function(v)
+    walkSpeed=v
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then pcall(function() hum.WalkSpeed=v end) end
+end)
+
+-- JumpPower slider
+local jumpPower = 50
+createSlider(universalSec,"JumpPower",50,500,50,function(v)
+    jumpPower=v
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if hum then pcall(function() hum.JumpPower=v end) end
+end)
+
+-- Infinite Jump toggle
+createToggle(universalSec,"Infinite Jump",false,function(enabled)
+    if enabled then
+        player.CharacterAdded:Connect(function(char)
+            local hum = char:WaitForChild("Humanoid")
+            hum.Jumping:Connect(function() if enabled then hum:ChangeState(Enum.HumanoidStateType.Jumping) end end)
+        end)
     end
 end)
 
-createSlider(universalSec,"Fly Speed",50,500,80,function(v)
-    flySpeed = v
+-- ---------------------
+-- SCRIPTS
+-- ---------------------
+-- Rejoin Game button
+createButton(scriptsSec,"Rejoin Game",function()
+    local tele = game:GetService("TeleportService")
+    tele:TeleportToPlaceInstance(game.PlaceId, game.JobId, player)
 end)
 
--- Noclip toggle
-local noclipEnabled = false
-createToggle(universalSec,"Noclip",false,function(enabled)
-    noclipEnabled = enabled
+-- Server Hop button
+createButton(scriptsSec,"Server Hop",function()
+    -- placeholder: complex logic can go here
+    print("Server Hop triggered")
 end)
 
--- Fly/Noclip logic
-RunService.RenderStepped:Connect(function()
-    local char = player.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hrp and hum then
-            -- Noclip
-            if noclipEnabled then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
-                end
+-- ---------------------
+-- CHEATS
+-- ---------------------
+-- Click Teleport (to mouse location)
+createToggle(cheatsSec,"Click Teleport",false,function(enabled)
+    if enabled then
+        local mouse = player:GetMouse()
+        mouse.Button1Down:Connect(function()
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                hrp.CFrame = CFrame.new(mouse.Hit.p + Vector3.new(0,5,0))
             end
+        end)
+    end
+end)
 
-            -- Fly
-            if flyEnabled then
-                if not flyVel or not flyVel.Parent then
-                    flyVel = Instance.new("BodyVelocity")
-                    flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
-                    flyVel.Velocity = Vector3.new(0,0,0)
-                    flyVel.Parent = hrp
-                end
-                local dir = Vector3.new()
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + workspace.CurrentCamera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - workspace.CurrentCamera.CFrame.LookVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - workspace.CurrentCamera.CFrame.RightVector end
-                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + workspace.CurrentCamera.CFrame.RightVector end
-                if dir.Magnitude > 0.1 then
-                    flyVel.Velocity = dir.Unit * flySpeed
-                else
-                    flyVel.Velocity = Vector3.new(0,0,0)
-                end
-            elseif flyVel and flyVel.Parent then
-                flyVel:Destroy()
-                flyVel = nil
+-- Fullbright toggle
+createToggle(cheatsSec,"Fullbright",false,function(enabled)
+    if enabled then
+        for _, light in ipairs(game.Lighting:GetChildren()) do
+            if light:IsA("SunRaysEffect") or light:IsA("ColorCorrectionEffect") then
+                light.Enabled = false
             end
         end
     end
