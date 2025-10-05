@@ -1,8 +1,4 @@
--- Cheeky Hub V1.0
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetS-- Cheeky Hub V1.0
+-- Cheeky Hub V1.0 (Universal Features Added)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -22,7 +18,7 @@ local function tween(obj, props)
     return tw
 end
 
--- Rounded corners
+-- Rounded corners helper
 local function round(ui, radius)
     local c = Instance.new("UICorner", ui)
     c.CornerRadius = UDim.new(0, radius or 8)
@@ -148,181 +144,172 @@ minBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Content Frame (ready for tabs later)
-local contentFrame = Instance.new("Frame", frame)
-contentFrame.Size = UDim2.new(1,-20,1,-60)
-contentFrame.Position = UDim2.new(0,10,0,50)
-contentFrame.BackgroundTransparency = 1
+-- Tab Frame
+local tabFrame = Instance.new("Frame", frame)
+tabFrame.Size = UDim2.new(1, -20, 0, 30)
+tabFrame.Position = UDim2.new(0, 10, 0, 45)
+tabFrame.BackgroundTransparency = 1
 
--- Optional: subtle neon lines in content area
-local topLine = Instance.new("Frame", contentFrame)
-topLine.Size = UDim2.new(1,0,0,2)
-topLine.Position = UDim2.new(0,0,0,0)
-topLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-topLine.BackgroundTransparency = 0.5
+-- Content container for tabs
+local tabContent = Instance.new("Frame", frame)
+tabContent.Size = UDim2.new(1, -20, 1, -80)
+tabContent.Position = UDim2.new(0, 10, 0, 80)
+tabContent.BackgroundTransparency = 1
 
-local bottomLine = Instance.new("Frame", contentFrame)
-bottomLine.Size = UDim2.new(1,0,0,2)
-bottomLine.Position = UDim2.new(0,0,1,-2)
-bottomLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-bottomLine.BackgroundTransparency = 0.5
-ervice("RunService")
-local player = Players.LocalPlayer
-local guiParent = game:GetService("CoreGui")
+-- Tab creation function
+local function createTab(name)
+    local btn = Instance.new("TextButton", tabFrame)
+    btn.Size = UDim2.new(0, 120, 1, 0)
+    btn.Position = UDim2.new(0, (#tabFrame:GetChildren()-1)*125, 0, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.Text = name
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    round(btn,6)
 
--- Hub Sizes
-local HUB_SZ = UDim2.new(0, 700, 0, 450)
-local MINIMIZED_SZ = UDim2.new(0, 200, 0, 40)
+    local page = Instance.new("Frame", tabContent)
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
 
--- Tween helper
-local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local function tween(obj, props)
-    local tw = TweenService:Create(obj, tweenInfo, props)
-    tw:Play()
-    return tw
+    btn.MouseButton1Click:Connect(function()
+        for _,p in ipairs(tabContent:GetChildren()) do
+            if p:IsA("Frame") then p.Visible = false end
+        end
+        page.Visible = true
+    end)
+
+    return page
 end
 
--- Rounded corners
-local function round(ui, radius)
-    local c = Instance.new("UICorner", ui)
-    c.CornerRadius = UDim.new(0, radius or 8)
+-- Example Tabs
+local universalTab = createTab("Universal")
+local playerTab = createTab("Player")
+local miscTab = createTab("Misc")
+
+-- Show default tab
+universalTab.Visible = true
+
+-- --- UNIVERSAL FEATURES ---
+local function createToggle(parent, text)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -20, 0, 30)
+    btn.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
+    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.TextColor3 = Color3.fromRGB(0,255,180)
+    btn.Text = text .. ": OFF"
+    round(btn,6)
+    local state = false
+    btn.MouseButton1Click:Connect(function()
+        state = not state
+        btn.Text = text .. (state and ": ON" or ": OFF")
+    end)
+    return function() return state end
 end
 
--- ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "CheekyHubGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = guiParent
+local function createSlider(parent, text, min, max, default, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -20, 0, 30)
+    frame.Position = UDim2.new(0, 10, 0, (#parent:GetChildren()-1)*35)
+    frame.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    round(frame,6)
 
--- Main Frame
-local frame = Instance.new("Frame", screenGui)
-frame.Name = "MainFrame"
-frame.Size = HUB_SZ
-frame.Position = UDim2.new(0.5,0,0.5,0)
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
-frame.BorderSizePixel = 0
-round(frame, 16)
+    local label = Instance.new("TextLabel", frame)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 14
+    label.TextColor3 = Color3.fromRGB(0,255,180)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Text = text .. ": " .. default
 
--- Neon Edge Glow
-local edge = Instance.new("UIStroke", frame)
-edge.Color = Color3.fromRGB(0,255,180)
-edge.Thickness = 3
-edge.Transparency = 0.3
-edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    local slider = Instance.new("TextButton", frame)
+    slider.Size = UDim2.new(0,0,1,0)
+    slider.BackgroundColor3 = Color3.fromRGB(0,255,180)
+    round(slider,6)
+    slider.Position = UDim2.new(0,0,0,0)
 
--- Shadow/Glow behind frame
-local shadow = Instance.new("Frame", screenGui)
-shadow.Size = frame.Size
-shadow.Position = frame.Position
-shadow.AnchorPoint = frame.AnchorPoint
-shadow.BackgroundColor3 = Color3.fromRGB(0,255,180)
-shadow.BackgroundTransparency = 0.95
-shadow.ZIndex = frame.ZIndex - 1
-round(shadow, 18)
+    local dragging = false
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+    end)
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mouseX = input.Position.X - frame.AbsolutePosition.X
+            mouseX = math.clamp(mouseX,0,frame.AbsoluteSize.X)
+            slider.Size = UDim2.new(mouseX/frame.AbsoluteSize.X,0,1,0)
+            local value = math.floor((mouseX/frame.AbsoluteSize.X)*(max-min)+min)
+            label.Text = text .. ": " .. value
+            callback(value)
+        end
+    end)
+end
 
--- Dragging
-local dragging, dragInput, dragStart, startPos
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset+delta.X,
-            startPos.Y.Scale, startPos.Y.Offset+delta.Y
-        )
-        shadow.Position = frame.Position
+-- Walk Speed Slider
+createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.WalkSpeed = val
     end
 end)
 
-local function enableDrag(target)
-    target.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = i.Position
-            startPos = frame.Position
-            i.Changed:Connect(function()
-                if i.UserInputState==Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    target.InputChanged:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch then
-            dragInput = i
-        end
-    end)
-end
-enableDrag(frame)
-
--- Top Bar
-local bar = Instance.new("Frame", frame)
-bar.Size = UDim2.new(1,0,0,40)
-bar.Position = UDim2.new(0,0,0,0)
-bar.BackgroundColor3 = Color3.fromRGB(25,25,25)
-bar.BorderSizePixel = 0
-round(bar,16)
-enableDrag(bar)
-
-local title = Instance.new("TextLabel", bar)
-title.Size = UDim2.new(1,-80,1,0)
-title.Position = UDim2.new(0,15,0,0)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.Text = "Cheeky Hub V1.0"
-title.TextColor3 = Color3.fromRGB(0,255,180)
-title.TextXAlignment = Enum.TextXAlignment.Left
-
--- Close Button
-local closeBtn = Instance.new("TextButton", bar)
-closeBtn.Size = UDim2.new(0,30,0,30)
-closeBtn.Position = UDim2.new(1,-40,0,5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(180,50,50)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
-round(closeBtn,6)
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
-
--- Minimize Button
-local minBtn = Instance.new("TextButton", bar)
-minBtn.Size = UDim2.new(0,30,0,30)
-minBtn.Position = UDim2.new(1,-80,0,5)
-minBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-minBtn.Font = Enum.Font.GothamBold
-minBtn.TextSize = 18
-minBtn.Text = "-"
-minBtn.TextColor3 = Color3.fromRGB(255,255,255)
-round(minBtn,6)
-minBtn.MouseButton1Click:Connect(function()
-    if frame.Size == HUB_SZ then
-        tween(frame, {Size = MINIMIZED_SZ})
-        tween(shadow, {Size = MINIMIZED_SZ})
-    else
-        tween(frame, {Size = HUB_SZ})
-        tween(shadow, {Size = HUB_SZ})
+-- Infinite Jump Toggle
+local infJumpToggle = createToggle(universalTab, "Infinite Jump")
+RunService.Stepped:Connect(function()
+    if infJumpToggle() and player.Character and player.Character:FindFirstChild("Humanoid") then
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType==Enum.UserInputType.Keyboard and input.KeyCode==Enum.KeyCode.Space then
+                player.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end)
     end
 end)
 
--- Content Frame (ready for tabs later)
-local contentFrame = Instance.new("Frame", frame)
-contentFrame.Size = UDim2.new(1,-20,1,-60)
-contentFrame.Position = UDim2.new(0,10,0,50)
-contentFrame.BackgroundTransparency = 1
+-- Noclip Toggle
+local noclipToggle = createToggle(universalTab, "Noclip")
+RunService.Stepped:Connect(function()
+    if player.Character and noclipToggle() then
+        for _,part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    elseif player.Character then
+        for _,part in pairs(player.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
+            end
+        end
+    end
+end)
 
--- Optional: subtle neon lines in content area
-local topLine = Instance.new("Frame", contentFrame)
-topLine.Size = UDim2.new(1,0,0,2)
-topLine.Position = UDim2.new(0,0,0,0)
-topLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-topLine.BackgroundTransparency = 0.5
-
-local bottomLine = Instance.new("Frame", contentFrame)
-bottomLine.Size = UDim2.new(1,0,0,2)
-bottomLine.Position = UDim2.new(0,0,1,-2)
-bottomLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-bottomLine.BackgroundTransparency = 0.5
+-- Fly Toggle
+local flyToggle = createToggle(universalTab, "Fly")
+local flySpeed = 50
+local flying = false
+local bodyVelocity
+RunService.RenderStepped:Connect(function()
+    if flyToggle() and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if not flying then
+            bodyVelocity = Instance.new("BodyVelocity", player.Character.HumanoidRootPart)
+            bodyVelocity.MaxForce = Vector3.new(1e5,1e5,1e5)
+            flying = true
+        end
+        local move = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - workspace.CurrentCamera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - workspace.CurrentCamera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + workspace.CurrentCamera.CFrame.RightVector end
+        move = move.Unit * flySpeed
+        if move ~= move then move = Vector3.new() end -- handle NaN
+        bodyVelocity.Velocity = move
+    elseif flying then
+        if bodyVelocity then bodyVelocity:Destroy() end
+        flying = false
+    end
+end)
