@@ -288,14 +288,18 @@ statusLabel.TextSize = 12
 statusLabel.Text = "Idle"
 
 local function getPlayerPlot(player)
-	local framework = game:GetService("ReplicatedStorage"):WaitForChild("Framework")
-	local plotsUtil = framework:WaitForChild("Modules"):WaitForChild("PlotsUtil")
-	if plotsUtil and plotsUtil:FindFirstChild("GetPlayerPlot") then
-		-- call the function if it’s a ModuleScript (optional)
-		return require(plotsUtil):GetPlayerPlot(player)
+	local plotsUtil = game:GetService("ReplicatedStorage")
+		:WaitForChild("Framework")
+		:WaitForChild("Features")
+		:WaitForChild("PlotSystem")
+		:WaitForChild("PlotsUtil")
+
+	local success, module = pcall(require, plotsUtil)
+	if success and typeof(module) == "table" and module.GetPlayerPlot then
+		return module:GetPlayerPlot(player)
 	end
 
-	-- fallback search if not callable
+	-- fallback just in case
 	for _, plot in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
 		if plot:FindFirstChild("Owner") and plot.Owner.Value == player then
 			return plot
