@@ -756,23 +756,4 @@ do
     end)
 end
 
--- Finish: Add small footer
-local footer = Instance.new("TextLabel", main)
-footer.Size = UDim2.new(1, -24, 0, 20)
-footer.Position = UDim2.new(0, 12, 1, -26)
-footer.BackgroundTransparency = 1
-footer.Font = Enum.Font.Gotham
-footer.TextSize = 12
-footer.TextColor3 = Color3.fromRGB(170, 170, 170)
-footer.Text = "Cheeky Hub V1.0 — Advanced Animated Edition • Stealthy & Universal"
-footer.TextXAlignment = Enum.TextXAlignment.Left
 
--- ensure glow size tracks main
-main:GetPropertyChangedSignal("Size"):Connect(function()
-    glow.Size = main.Size
-end)
-main:GetPropertyChangedSignal("Position"):Connect(function()
-    glow.Position = main.Position
-end)
-
-print("Cheeky Hub V1.0 - Advanced Animated Edition loaded.")
