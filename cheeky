@@ -1,4 +1,4 @@
--- Cheeky Hub V1.0 (Standalone GUI with Interactive Matrix Background)
+-- Cheeky Hub V1.0
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -144,13 +144,13 @@ minBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Content Frame
+-- Content Frame (ready for tabs later)
 local contentFrame = Instance.new("Frame", frame)
 contentFrame.Size = UDim2.new(1,-20,1,-60)
 contentFrame.Position = UDim2.new(0,10,0,50)
 contentFrame.BackgroundTransparency = 1
 
--- Optional: subtle neon lines
+-- Optional: subtle neon lines in content area
 local topLine = Instance.new("Frame", contentFrame)
 topLine.Size = UDim2.new(1,0,0,2)
 topLine.Position = UDim2.new(0,0,0,0)
@@ -162,63 +162,3 @@ bottomLine.Size = UDim2.new(1,0,0,2)
 bottomLine.Position = UDim2.new(0,0,1,-2)
 bottomLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
 bottomLine.BackgroundTransparency = 0.5
-
--- MATRIX DIGITAL RAIN BACKGROUND (Interactive)
-local function createInteractiveMatrix(parent, hubFrame)
-    local screenSize = parent.AbsoluteSize
-    local columns = math.floor(screenSize.X / 18)
-    local rows = math.floor(screenSize.Y / 18)
-
-    local matrixFrame = Instance.new("Frame")
-    matrixFrame.Size = UDim2.new(1,0,1,0)
-    matrixFrame.Position = UDim2.new(0,0,0,0)
-    matrixFrame.BackgroundTransparency = 1
-    matrixFrame.ZIndex = 0 -- behind everything
-    matrixFrame.Parent = parent
-
-    local letters = {}
-    for i=1,columns do
-        letters[i] = {}
-        for j=1,rows do
-            local lbl = Instance.new("TextLabel")
-            lbl.Size = UDim2.new(0,18,0,18)
-            lbl.Position = UDim2.new(0,(i-1)*18,0,(j-1)*18)
-            lbl.Text = tostring(math.random(0,1))
-            lbl.TextColor3 = Color3.fromRGB(0,255,70)
-            lbl.BackgroundTransparency = 1
-            lbl.Font = Enum.Font.Code
-            lbl.TextSize = 16
-            lbl.Parent = matrixFrame
-            letters[i][j] = lbl
-        end
-    end
-
-    -- Hover detection
-    local mouseOver = false
-    hubFrame.MouseEnter:Connect(function() mouseOver = true end)
-    hubFrame.MouseLeave:Connect(function() mouseOver = false end)
-
-    -- Animate the "rain"
-    spawn(function()
-        while true do
-            for i=1,#letters do
-                table.insert(letters[i], 1, table.remove(letters[i]))
-                for j=1,#letters[i] do
-                    letters[i][j].Position = UDim2.new(0,(i-1)*18,0,(j-1)*18)
-                    letters[i][j].Text = tostring(math.random(0,1))
-
-                    -- interactive brightness
-                    if mouseOver then
-                        letters[i][j].TextColor3 = Color3.fromRGB(0,255,180) -- brighter when hovered
-                    else
-                        letters[i][j].TextColor3 = Color3.fromRGB(0,255,70)
-                    end
-                end
-            end
-            task.wait(0.1)
-        end
-    end)
-end
-
--- CALL MATRIX behind hub
-createInteractiveMatrix(screenGui, frame)
