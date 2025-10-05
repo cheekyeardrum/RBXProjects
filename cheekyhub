@@ -1,44 +1,68 @@
--- Tab Frame (buttons)
-local tabFrame = Instance.new("Frame", frame)
-tabFrame.Size = UDim2.new(1, -20, 0, 30)
-tabFrame.Position = UDim2.new(0, 10, 0, 45)
-tabFrame.BackgroundTransparency = 1
+-- ---------------------
+-- ADVANCED UNIVERSAL CHEATS
+-- ---------------------
 
--- Content container
-local tabContent = Instance.new("Frame", frame)
-tabContent.Size = UDim2.new(1, -20, 1, -80)
-tabContent.Position = UDim2.new(0, 10, 0, 80)
-tabContent.BackgroundTransparency = 1
+-- Fly toggle + speed slider
+local flyEnabled = false
+local flySpeed = 80
+local flyVel = nil
 
--- Helper function to create tabs
-local function createTab(name)
-    local btn = Instance.new("TextButton", tabFrame)
-    btn.Size = UDim2.new(0, 120, 1, 0)
-    btn.Position = UDim2.new(0, (#tabFrame:GetChildren()-1)*125, 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    btn.Text = name
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    round(btn,6)
+createToggle(universalSec,"Fly",false,function(enabled)
+    flyEnabled = enabled
+    if not enabled and flyVel and flyVel.Parent then
+        flyVel:Destroy()
+        flyVel = nil
+    end
+end)
 
-    local page = Instance.new("Frame", tabContent)
-    page.Size = UDim2.new(1,0,1,0)
-    page.BackgroundTransparency = 1
-    page.Visible = false
+createSlider(universalSec,"Fly Speed",50,500,80,function(v)
+    flySpeed = v
+end)
 
-    btn.MouseButton1Click:Connect(function()
-        for _,p in ipairs(tabContent:GetChildren()) do
-            if p:IsA("Frame") then p.Visible = false end
+-- Noclip toggle
+local noclipEnabled = false
+createToggle(universalSec,"Noclip",false,function(enabled)
+    noclipEnabled = enabled
+end)
+
+-- Fly/Noclip logic
+RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hrp and hum then
+            -- Noclip
+            if noclipEnabled then
+                for _, part in ipairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+
+            -- Fly
+            if flyEnabled then
+                if not flyVel or not flyVel.Parent then
+                    flyVel = Instance.new("BodyVelocity")
+                    flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
+                    flyVel.Velocity = Vector3.new(0,0,0)
+                    flyVel.Parent = hrp
+                end
+                local dir = Vector3.new()
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + workspace.CurrentCamera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - workspace.CurrentCamera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - workspace.CurrentCamera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + workspace.CurrentCamera.CFrame.RightVector end
+                if dir.Magnitude > 0.1 then
+                    flyVel.Velocity = dir.Unit * flySpeed
+                else
+                    flyVel.Velocity = Vector3.new(0,0,0)
+                end
+            elseif flyVel and flyVel.Parent then
+                flyVel:Destroy()
+                flyVel = nil
+            end
         end
-        page.Visible = true
-    end)
-
-    return page
-end
-
--- Create universal tab
-local universalTab = createTab("Universal")
--- Move existing universal toggles here
-universalSec.Parent = universalTab
-universalSec.Position = UDim2.new(0,0,0,0)
+    end
+end)
