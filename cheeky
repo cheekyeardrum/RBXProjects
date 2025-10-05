@@ -299,17 +299,56 @@ sellBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Buy Flower
-local flowerBtn = Instance.new("TextButton", honeyPage)
-flowerBtn.Size = UDim2.new(1,0,0,30)
-flowerBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
-flowerBtn.TextColor3 = Color3.new(1,1,1)
+-- Flower Section (Buy All Flowers)
+local flowerSection = Instance.new("Frame", honeyPage)
+flowerSection.Size = UDim2.new(1, -24, 0, 80)
+flowerSection.BackgroundTransparency = 1
+local flowerLayout = Instance.new("UIListLayout", flowerSection)
+flowerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+flowerLayout.Padding = UDim.new(0, 8)
+
+local flowerBtn = Instance.new("TextButton", flowerSection)
+flowerBtn.Size = UDim2.new(1, 0, 0, 30)
+flowerBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+flowerBtn.TextColor3 = Color3.new(1, 1, 1)
 flowerBtn.Font = Enum.Font.GothamBold
 flowerBtn.TextSize = 14
-flowerBtn.Text = "Buy Dahlia"
-round(flowerBtn,6)
+flowerBtn.Text = "Buy All Flowers"
+
 flowerBtn.MouseButton1Click:Connect(function()
-    pcall(function() FlowerRemote:InvokeServer("BuyFlower","Dahlia") end)
+    local FlowerRemote = game:GetService("ReplicatedStorage")
+        :WaitForChild("Framework"):WaitForChild("Features")
+        :WaitForChild("HoneySystem"):WaitForChild("FlowerUtil")
+        :WaitForChild("RemoteEvent")
+    local player = game:GetService("Players").LocalPlayer
+    local flowerList = {
+        player.FlowerShopScript.AquilegiaCoerulea,
+        player.FlowerShopScript.Bamboo,
+        player.FlowerShopScript.Bluebell,
+        player.FlowerShopScript.Cactus,
+        player.FlowerShopScript.Clover,
+        player.FlowerShopScript.Dahlia,
+        player.FlowerShopScript.Daisy,
+        player.FlowerShopScript.FireBlossom,
+        player.FlowerShopScript.KniphofiaUvaria,
+        player.FlowerShopScript.Lavender,
+        player.FlowerShopScript.Lily,
+        player.FlowerShopScript.MorningGlory,
+        player.FlowerShopScript.RedRose,
+        player.FlowerShopScript.Sunflower,
+        player.FlowerShopScript.Tulip,
+        player.FlowerShopScript.VenusFlyTrap,
+    }
+
+    for _, flower in ipairs(flowerList) do
+        local args = {"BuyFlower", flower}
+        pcall(function()
+            FlowerRemote:FireServer(unpack(args))
+        end)
+        task.wait(0.1) -- small delay to avoid server spam
+    end
 end)
+
 
 -- Default open tab
 tabs["Player"].Button.BackgroundColor3 = THEME_BG
