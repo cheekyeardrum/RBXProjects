@@ -251,7 +251,7 @@ local function createSlider(parent, text, min, max, default, callback)
     end)
 end
 
--- Walk Speed Slider
+-- Walk Speed Slider (Fixed)
 createSlider(universalTab, "WalkSpeed", 16, 500, 16, function(val)
     if player.Character and player.Character:FindFirstChild("Humanoid") then
         player.Character.Humanoid.WalkSpeed = val
