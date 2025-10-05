@@ -1,4 +1,4 @@
--- Cheeky Hub V1.0 - Advanced Animated Edition
+-- Cheeky Hub V1.0 - Advanced Animated Edition (with Honey System)
 -- All-in-one universal hub (copy/paste into executor)
 
 -- Services
@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
@@ -16,7 +15,6 @@ local THEME_ACCENT = Color3.fromRGB(0, 255, 180)
 local THEME_BG = Color3.fromRGB(12, 12, 14)
 local PANEL_BG = Color3.fromRGB(20, 20, 22)
 local TRANS = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-local TAB_TRANS = TweenInfo.new(0.28, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out)
 
 local HUB_W, HUB_H = 760, 520
 local MINIMIZED = UDim2.new(0, 260, 0, 44)
@@ -34,18 +32,6 @@ local function tween(obj, props, time)
     local tw = TweenService:Create(obj, ti, props)
     tw:Play()
     return tw
-end
-
-local function safeFire(remoteName, ...)
-    local ok, err = pcall(function()
-        local rems = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
-        if rems and rems:FindFirstChild(remoteName) then
-            rems[remoteName]:FireServer(...)
-        elseif ReplicatedStorage:FindFirstChild(remoteName) then
-            ReplicatedStorage[remoteName]:FireServer(...)
-        end
-    end)
-    return ok, err
 end
 
 -- Prevent duplicates
@@ -115,16 +101,17 @@ subtitle.Text = "Advanced Animated Edition"
 subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
 subtitle.TextXAlignment = Enum.TextXAlignment.Right
 
--- Minimize / Close buttons
+-- Minimize / Close
 local btnClose = Instance.new("TextButton", topBar)
 btnClose.Size = UDim2.new(0, 36, 0, 32)
 btnClose.Position = UDim2.new(1, -46, 0, 8)
 btnClose.Text = "✖"
 btnClose.Font = Enum.Font.GothamBold
 btnClose.TextSize = 18
-btnClose.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnClose.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
-round(btnClose, 8)
+btnClose.TextColor3 = Color3.fromRGB(255,255,255)
+btnClose.BackgroundColor3 = Color3.fromRGB(180,50,50)
+round(btnClose,8)
+btnClose.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
 local btnMin = Instance.new("TextButton", topBar)
 btnMin.Size = UDim2.new(0, 36, 0, 32)
@@ -132,9 +119,9 @@ btnMin.Position = UDim2.new(1, -92, 0, 8)
 btnMin.Text = "—"
 btnMin.Font = Enum.Font.GothamBold
 btnMin.TextSize = 18
-btnMin.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnMin.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
-round(btnMin, 8)
+btnMin.TextColor3 = Color3.fromRGB(255,255,255)
+btnMin.BackgroundColor3 = Color3.fromRGB(75,75,75)
+round(btnMin,8)
 
 local isMinimized = false
 btnMin.MouseButton1Click:Connect(function()
@@ -143,29 +130,28 @@ btnMin.MouseButton1Click:Connect(function()
         tween(main, {Size = MINIMIZED}, TweenInfo.new(0.28))
         tween(glow, {Size = MINIMIZED}, TweenInfo.new(0.28))
     else
-        tween(main, {Size = UDim2.new(0, HUB_W, 0, HUB_H)}, TweenInfo.new(0.28))
-        tween(glow, {Size = UDim2.new(0, HUB_W, 0, HUB_H)}, TweenInfo.new(0.28))
+        tween(main, {Size = UDim2.new(0,HUB_W,0,HUB_H)}, TweenInfo.new(0.28))
+        tween(glow, {Size = UDim2.new(0,HUB_W,0,HUB_H)}, TweenInfo.new(0.28))
     end
 end)
-btnClose.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
 -- Drag
-local dragging, dragInput, dragStart, startPos = false, nil, nil, nil
+local dragging, dragInput, dragStart, startPos = false,nil,nil,nil
 topBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType==Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
         startPos = main.Position
         input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            if input.UserInputState==Enum.UserInputState.End then dragging=false end
         end)
     end
 end)
 topBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+    if input.UserInputType==Enum.UserInputType.MouseMovement then dragInput=input end
 end)
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input == dragInput then
+    if dragging and input==dragInput then
         local delta = input.Position - dragStart
         main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         glow.Position = main.Position
@@ -174,15 +160,15 @@ end)
 
 -- Left panel / tabs
 local leftPanel = Instance.new("Frame", main)
-leftPanel.Size = UDim2.new(0, 160, 1, -60)
-leftPanel.Position = UDim2.new(0, 12, 0, 56)
+leftPanel.Size = UDim2.new(0,160,1,-60)
+leftPanel.Position = UDim2.new(0,12,0,56)
 leftPanel.BackgroundColor3 = PANEL_BG
 leftPanel.BorderSizePixel = 0
-round(leftPanel, 12)
+round(leftPanel,12)
 
 local logo = Instance.new("TextLabel", leftPanel)
-logo.Size = UDim2.new(1, -24, 0, 80)
-logo.Position = UDim2.new(0, 12, 0, 12)
+logo.Size = UDim2.new(1,-24,0,80)
+logo.Position = UDim2.new(0,12,0,12)
 logo.BackgroundTransparency = 1
 logo.Text = "👑 Cheeky"
 logo.Font = Enum.Font.GothamBold
@@ -191,56 +177,47 @@ logo.TextColor3 = THEME_ACCENT
 logo.TextXAlignment = Enum.TextXAlignment.Left
 
 local leftList = Instance.new("Frame", leftPanel)
-leftList.Size = UDim2.new(1, -24, 1, -112)
-leftList.Position = UDim2.new(0, 12, 0, 104)
+leftList.Size = UDim2.new(1,-24,1,-112)
+leftList.Position = UDim2.new(0,12,0,104)
 leftList.BackgroundTransparency = 1
 local leftLayout = Instance.new("UIListLayout", leftList)
 leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
-leftLayout.Padding = UDim.new(0, 10)
+leftLayout.Padding = UDim.new(0,10)
 
 -- Content area
 local contentArea = Instance.new("Frame", main)
-contentArea.Size = UDim2.new(1, -200, 1, -60)
-contentArea.Position = UDim2.new(0, 180, 0, 56)
-contentArea.BackgroundColor3 = Color3.fromRGB(8, 8, 9)
-round(contentArea, 10)
+contentArea.Size = UDim2.new(1,-200,1,-60)
+contentArea.Position = UDim2.new(0,180,0,56)
+contentArea.BackgroundColor3 = Color3.fromRGB(8,8,9)
+round(contentArea,10)
 local contentLayout = Instance.new("UIListLayout", contentArea)
 contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-contentLayout.Padding = UDim.new(0, 12)
+contentLayout.Padding = UDim.new(0,12)
 
 -- Tabs management
 local tabs = {}
 local activeTab = nil
 local function createTab(name, emoji)
     local btn = Instance.new("TextButton", leftList)
-    btn.Size = UDim2.new(1, 0, 0, 44)
-    btn.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
-    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Size = UDim2.new(1,0,0,44)
+    btn.BackgroundColor3 = Color3.fromRGB(24,24,26)
+    btn.TextColor3 = Color3.new(1,1,1)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 16
     btn.AutoButtonColor = false
     btn.Text = (" %s   %s"):format(emoji or "•", name)
-    round(btn, 8)
-
-    btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = Color3.fromRGB(30, 30, 34)}, TRANS) end)
-    btn.MouseLeave:Connect(function()
-        if activeTab == name then
-            tween(btn, {BackgroundColor3 = THEME_BG}, TRANS)
-        else
-            tween(btn, {BackgroundColor3 = Color3.fromRGB(24, 24, 26)}, TRANS)
-        end
-    end)
+    round(btn,8)
 
     local page = Instance.new("Frame", contentArea)
-    page.Size = UDim2.new(1, -24, 1, 0)
+    page.Size = UDim2.new(1,-24,1,0)
     page.BackgroundTransparency = 1
     page.Visible = false
 
     tabs[name] = {Button = btn, Page = page}
     btn.MouseButton1Click:Connect(function()
-        for n, t in pairs(tabs) do
+        for n,t in pairs(tabs) do
             t.Page.Visible = false
-            tween(t.Button, {BackgroundColor3 = Color3.fromRGB(24, 24, 26)}, TRANS)
+            tween(t.Button, {BackgroundColor3 = Color3.fromRGB(24,24,26)}, TRANS)
         end
         page.Visible = true
         activeTab = name
@@ -250,7 +227,7 @@ local function createTab(name, emoji)
     return page
 end
 
--- Create main tabs
+-- Main tabs
 local playerPage = createTab("Player", "🧍")
 local autoPage = createTab("Auto", "⚙️")
 local tpPage = createTab("Teleports", "📍")
@@ -264,12 +241,12 @@ activeTab = "Player"
 
 -- Footer
 local footer = Instance.new("TextLabel", main)
-footer.Size = UDim2.new(1, -24, 0, 20)
-footer.Position = UDim2.new(0, 12, 1, -26)
+footer.Size = UDim2.new(1,-24,0,20)
+footer.Position = UDim2.new(0,12,1,-26)
 footer.BackgroundTransparency = 1
 footer.Font = Enum.Font.Gotham
 footer.TextSize = 12
-footer.TextColor3 = Color3.fromRGB(170, 170, 170)
+footer.TextColor3 = Color3.fromRGB(170,170,170)
 footer.Text = "Cheeky Hub V1.0 — Advanced Animated Edition • Stealthy & Universal"
 footer.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -279,4 +256,100 @@ RunService.RenderStepped:Connect(function()
     glow.Size = main.Size
 end)
 
-print("Cheeky Hub V1.0 - Advanced Animated Edition loaded.")
+-- ======================
+-- Honey System Tab
+-- ======================
+
+local honeyPage = createTab("Honey", "🍯")
+
+-- Hive Section
+local hiveSection = Instance.new("Frame", honeyPage)
+hiveSection.Size = UDim2.new(1,-24,0,120)
+hiveSection.BackgroundTransparency = 1
+local hiveLayout = Instance.new("UIListLayout", hiveSection)
+hiveLayout.SortOrder = Enum.SortOrder.LayoutOrder
+hiveLayout.Padding = UDim.new(0,8)
+
+local loopExtract = false
+local extractDelay = 5
+
+local extractBtn = Instance.new("TextButton", hiveSection)
+extractBtn.Size = UDim2.new(1,0,0,30)
+extractBtn.BackgroundColor3 = Color3.fromRGB(0,170,255)
+extractBtn.TextColor3 = Color3.new(1,1,1)
+extractBtn.Font = Enum.Font.GothamBold
+extractBtn.TextSize = 14
+extractBtn.Text = "Start Extract"
+
+extractBtn.MouseButton1Click:Connect(function()
+    loopExtract = not loopExtract
+    extractBtn.Text = loopExtract and "Stop Extract" or "Start Extract"
+    if loopExtract then
+        spawn(function()
+            while loopExtract do
+                local plot = workspace.Plots:GetChildren()[2]
+                local hives = {}
+                for i=1,30 do
+                    local hive = plot:FindFirstChild("Hives"):FindFirstChild(tostring(i))
+                    if hive then table.insert(hives,hive) end
+                end
+                pcall(function() HiveRemote:FireServer("ExtractHoney",hives) end)
+                task.wait(extractDelay)
+            end
+        end)
+    end
+end)
+
+-- Flower Section
+local flowerSection = Instance.new("Frame", honeyPage)
+flowerSection.Size = UDim2.new(1,-24,0,80)
+flowerSection.BackgroundTransparency = 1
+local flowerLayout = Instance.new("UIListLayout", flowerSection)
+flowerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+flowerLayout.Padding = UDim.new(0,8)
+
+local flowerBtn = Instance.new("TextButton", flowerSection)
+flowerBtn.Size = UDim2.new(1,0,0,30)
+flowerBtn.BackgroundColor3 = Color3.fromRGB(255,170,0)
+flowerBtn.TextColor3 = Color3.new(1,1,1)
+flowerBtn.Font = Enum.Font.GothamBold
+flowerBtn.TextSize = 14
+flowerBtn.Text = "Buy Dahlia"
+
+flowerBtn.MouseButton1Click:Connect(function()
+    pcall(function() FlowerRemote:InvokeServer("BuyFlower","Dahlia") end)
+end)
+
+-- Sell Section
+local sellSection = Instance.new("Frame", honeyPage)
+sellSection.Size = UDim2.new(1,-24,0,80)
+sellSection.BackgroundTransparency = 1
+local sellLayout = Instance.new("UIListLayout", sellSection)
+sellLayout.SortOrder = Enum.SortOrder.LayoutOrder
+sellLayout.Padding = UDim.new(0,8)
+
+local loopSell = false
+local sellDelay = 5
+
+local sellBtn = Instance.new("TextButton", sellSection)
+sellBtn.Size = UDim2.new(1,0,0,30)
+sellBtn.BackgroundColor3 = Color3.fromRGB(0,255,127)
+sellBtn.TextColor3 = Color3.new(1,1,1)
+sellBtn.Font = Enum.Font.GothamBold
+sellBtn.TextSize = 14
+sellBtn.Text = "Start Sell"
+
+sellBtn.MouseButton1Click:Connect(function()
+    loopSell = not loopSell
+    sellBtn.Text = loopSell and "Stop Sell" or "Start Sell"
+    if loopSell then
+        spawn(function()
+            while loopSell do
+                pcall(function() HoneyRemote:FireServer("SellHoney","Honey") end)
+                task.wait(sellDelay)
+            end
+        end)
+    end
+end)
+
+print("Cheeky Hub V1.
