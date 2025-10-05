@@ -1,32 +1,29 @@
--- Cheeky Hub V1.0 Ultimate
+-- Cheeky Hub V1.0 Ultimate with Tabs
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser")
 local player = Players.LocalPlayer
 local guiParent = game:GetService("CoreGui")
 
--- Hub Sizes
+-- Sizes
 local HUB_SZ = UDim2.new(0,700,0,450)
 local MINIMIZED_SZ = UDim2.new(0,200,0,40)
-
--- Tween helper
 local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+-- Helper Functions
 local function tween(obj,props)
     local tw = TweenService:Create(obj,tweenInfo,props)
     tw:Play()
     return tw
 end
-
--- Rounded corners
 local function round(ui,radius)
     local c = Instance.new("UICorner",ui)
     c.CornerRadius = UDim.new(0,radius or 8)
 end
 
--- Create ScreenGui
+-- ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "CheekyHubGui"
 screenGui.ResetOnSpawn = false
@@ -41,14 +38,13 @@ frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
 frame.BorderSizePixel = 0
 round(frame,16)
 
--- Neon Edge
+-- Neon Edge & Shadow
 local edge = Instance.new("UIStroke",frame)
 edge.Color = Color3.fromRGB(0,255,180)
 edge.Thickness = 3
 edge.Transparency = 0.3
 edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Shadow behind frame
 local shadow = Instance.new("Frame",screenGui)
 shadow.Size = frame.Size
 shadow.Position = frame.Position
@@ -63,10 +59,7 @@ local dragging, dragInput, dragStart, startPos
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,startPos.X.Offset+delta.X,
-            startPos.Y.Scale,startPos.Y.Offset+delta.Y
-        )
+        frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
         shadow.Position = frame.Position
     end
 end)
@@ -101,7 +94,7 @@ round(bar,16)
 enableDrag(bar)
 
 local title = Instance.new("TextLabel",bar)
-title.Size = UDim2.new(1,-80,1,0)
+title.Size = UDim2.new(1,-160,1,0)
 title.Position = UDim2.new(0,15,0,0)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
@@ -110,38 +103,23 @@ title.Text = "Cheeky Hub V1.0 Ultimate"
 title.TextColor3 = Color3.fromRGB(0,255,180)
 title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Close Button
-local closeBtn = Instance.new("TextButton",bar)
-closeBtn.Size = UDim2.new(0,30,0,30)
-closeBtn.Position = UDim2.new(1,-40,0,5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(180,50,50)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
-round(closeBtn,6)
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
-
--- Minimize Button
-local minBtn = Instance.new("TextButton",bar)
-minBtn.Size = UDim2.new(0,30,0,30)
-minBtn.Position = UDim2.new(1,-80,0,5)
-minBtn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-minBtn.Font = Enum.Font.GothamBold
-minBtn.TextSize = 18
-minBtn.Text = "-"
-minBtn.TextColor3 = Color3.fromRGB(255,255,255)
-round(minBtn,6)
-minBtn.MouseButton1Click:Connect(function()
-    if frame.Size == HUB_SZ then
-        tween(frame,{Size=MINIMIZED_SZ})
-        tween(shadow,{Size=MINIMIZED_SZ})
-    else
-        tween(frame,{Size=HUB_SZ})
-        tween(shadow,{Size=HUB_SZ})
-    end
+-- Close & Minimize
+local function createButton(parent,text,posX,color,callback)
+    local btn = Instance.new("TextButton",parent)
+    btn.Size = UDim2.new(0,30,0,30)
+    btn.Position = UDim2.new(1,posX,0,5)
+    btn.BackgroundColor3 = color
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 18
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    round(btn,6)
+    btn.MouseButton1Click:Connect(callback)
+end
+createButton(bar,"X",-40,Color3.fromRGB(180,50,50),function() screenGui:Destroy() end)
+createButton(bar,"-",-80,Color3.fromRGB(80,80,80),function()
+    if frame.Size==HUB_SZ then tween(frame,{Size=MINIMIZED_SZ}) tween(shadow,{Size=MINIMIZED_SZ})
+    else tween(frame,{Size=HUB_SZ}) tween(shadow,{Size=HUB_SZ}) end
 end)
 
 -- Content Frame
@@ -150,21 +128,77 @@ contentFrame.Size = UDim2.new(1,-20,1,-60)
 contentFrame.Position = UDim2.new(0,10,0,50)
 contentFrame.BackgroundTransparency = 1
 
--- Neon Lines
-local topLine = Instance.new("Frame",contentFrame)
-topLine.Size = UDim2.new(1,0,0,2)
-topLine.Position = UDim2.new(0,0,0,0)
-topLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-topLine.BackgroundTransparency = 0.5
-local bottomLine = Instance.new("Frame",contentFrame)
-bottomLine.Size = UDim2.new(1,0,0,2)
-bottomLine.Position = UDim2.new(0,0,1,-2)
-bottomLine.BackgroundColor3 = Color3.fromRGB(0,255,180)
-bottomLine.BackgroundTransparency = 0.5
+-- Tabs Frame
+local tabsFrame = Instance.new("Frame",frame)
+tabsFrame.Size = UDim2.new(1,-20,0,30)
+tabsFrame.Position = UDim2.new(0,10,0,10)
+tabsFrame.BackgroundTransparency = 1
+
+local tabs = {}
+local pages = {}
+local activePage
+
+local function createTab(name)
+    local idx = #tabs + 1
+    local btn = Instance.new("TextButton",tabsFrame)
+    btn.Size = UDim2.new(0,140,1,0)
+    btn.Position = UDim2.new(0,(idx-1)*145,0,0)
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(0,255,180)
+    round(btn,6)
+    local page = Instance.new("Frame",contentFrame)
+    page.Size = UDim2.new(1,0,1,0)
+    page.Position = UDim2.new(0,0,0,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+    tabs[name] = btn
+    pages[name] = page
+    btn.MouseButton1Click:Connect(function()
+        if activePage then activePage.Visible=false end
+        page.Visible=true
+        activePage=page
+    end)
+    return page
+end
+
+-- Create Pages
+local playerPage = createTab("Player")
+local autoPage = createTab("Auto")
+local teleportPage = createTab("Teleports")
+local miscPage = createTab("Misc")
+tabs["Player"]:GetPropertyChangedSignal("Text") -- just to avoid linter warnings
 
 -- ----------------------
--- UTILITY FUNCTIONS
+-- PLAYER PAGE CONTROLS
 -- ----------------------
+local function createSlider(parent,text,min,max,default,callback)
+    local sliderLbl = Instance.new("TextLabel",parent)
+    sliderLbl.Size = UDim2.new(0,200,0,20)
+    sliderLbl.Position = UDim2.new(0,10,#parent:GetChildren()*25)
+    sliderLbl.Text = text.." "..default
+    sliderLbl.BackgroundTransparency = 1
+    sliderLbl.Font = Enum.Font.Gotham
+    sliderLbl.TextSize = 16
+    sliderLbl.TextColor3 = Color3.fromRGB(0,255,180)
+    local slider = Instance.new("TextBox",parent)
+    slider.Size = UDim2.new(0,200,0,20)
+    slider.Position = UDim2.new(0,10,#parent:GetChildren()*25)
+    slider.Text = tostring(default)
+    slider.TextColor3 = Color3.fromRGB(0,255,180)
+    slider.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    round(slider,6)
+    slider.FocusLost:Connect(function()
+        local v = tonumber(slider.Text) or default
+        if v<min then v=min end
+        if v>max then v=max end
+        sliderLbl.Text = text.." "..v
+        callback(v)
+    end)
+end
+
 local function createToggle(parent,text,default)
     local btn = Instance.new("TextButton",parent)
     btn.Size = UDim2.new(0,200,0,30)
@@ -184,53 +218,23 @@ local function createToggle(parent,text,default)
     return btn,function() return state end
 end
 
-local function createSlider(parent,text,min,max,default,callback)
-    local sliderLbl = Instance.new("TextLabel",parent)
-    sliderLbl.Size = UDim2.new(0,200,0,20)
-    sliderLbl.Position = UDim2.new(0,10,#parent:GetChildren()*35)
-    sliderLbl.Text = text.." "..default
-    sliderLbl.BackgroundTransparency = 1
-    sliderLbl.Font = Enum.Font.Gotham
-    sliderLbl.TextSize = 16
-    sliderLbl.TextColor3 = Color3.fromRGB(0,255,180)
-    local slider = Instance.new("TextBox",parent)
-    slider.Size = UDim2.new(0,200,0,20)
-    slider.Position = UDim2.new(0,10,#parent:GetChildren()*35)
-    slider.Text = tostring(default)
-    slider.TextColor3 = Color3.fromRGB(0,255,180)
-    slider.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    round(slider,6)
-    slider.FocusLost:Connect(function()
-        local v = tonumber(slider.Text) or default
-        if v < min then v=min end
-        if v > max then v=max end
-        sliderLbl.Text = text.." "..v
-        callback(v)
-    end)
-end
-
--- ----------------------
--- LOCAL PLAYER PAGE
--- ----------------------
-local walkSlider = createSlider(contentFrame,"WalkSpeed",16,300,16,function(v)
+-- Player Page Sliders
+createSlider(playerPage,"WalkSpeed",16,300,16,function(v)
     local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if hum then pcall(function() hum.WalkSpeed=v end) end
 end)
-
-local jumpSlider = createSlider(contentFrame,"JumpPower",50,500,50,function(v)
+createSlider(playerPage,"JumpPower",50,500,50,function(v)
     local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if hum then pcall(function() hum.JumpPower=v end) end
 end)
-
-local infBtn,infGet = createToggle(contentFrame,"Infinite Jump",false)
+local infBtn,infGet = createToggle(playerPage,"Infinite Jump",false)
 UserInputService.JumpRequest:Connect(function()
     if infGet() then
         local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
         if hum then pcall(function() hum:ChangeState(Enum.HumanoidStateType.Jumping) end) end
     end
 end)
-
-local noclipBtn,noclipGet = createToggle(contentFrame,"Noclip",false)
+local noclipBtn,noclipGet = createToggle(playerPage,"Noclip",false)
 RunService.Stepped:Connect(function()
     if noclipGet() and player.Character then
         for _,p in ipairs(player.Character:GetDescendants()) do
@@ -240,13 +244,13 @@ RunService.Stepped:Connect(function()
 end)
 
 -- Fly
-local flyBtn,flyGet = createToggle(contentFrame,"Fly",false)
+local flyBtn,flyGet = createToggle(playerPage,"Fly",false)
 local flySpeed = 80
-local flySlider = createSlider(contentFrame,"Fly Speed",50,300,80,function(v) flySpeed=v end)
+createSlider(playerPage,"Fly Speed",50,300,80,function(v) flySpeed=v end)
 local flyVel
 RunService.RenderStepped:Connect(function()
     if flyGet() and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp=player.Character.HumanoidRootPart
+        local hrp = player.Character.HumanoidRootPart
         if not flyVel or not flyVel.Parent then
             flyVel = Instance.new("BodyVelocity")
             flyVel.MaxForce = Vector3.new(1e5,1e5,1e5)
@@ -265,12 +269,11 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- ----------------------
--- AUTO FEATURES
+-- AUTO PAGE CONTROLS
 -- ----------------------
--- Auto Clicker
-local clickBtn,clickGet = createToggle(contentFrame,"Auto Clicker",false)
+local clickBtn,clickGet = createToggle(autoPage,"Auto Clicker",false)
 local clickSpeed = 5
-createSlider(contentFrame,"Click Speed",1,50,5,function(v) clickSpeed=v end)
+createSlider(autoPage,"Click Speed",1,50,5,function(v) clickSpeed=v end)
 spawn(function()
     while true do
         if clickGet() then
@@ -284,8 +287,7 @@ spawn(function()
     end
 end)
 
--- Auto Collect
-local collectBtn,collectGet = createToggle(contentFrame,"Auto Collect",false)
+local collectBtn,collectGet = createToggle(autoPage,"Auto Collect",false)
 spawn(function()
     while true do
         if collectGet() and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -299,8 +301,10 @@ spawn(function()
     end
 end)
 
--- Teleport to nearest player
-local tpBtn,tpGet = createToggle(contentFrame,"Teleport to Player",false)
+-- ----------------------
+-- TELEPORT PAGE CONTROLS
+-- ----------------------
+local tpBtn,tpGet = createToggle(teleportPage,"Teleport to Player",false)
 spawn(function()
     while true do
         if tpGet() then
@@ -308,7 +312,7 @@ spawn(function()
             for _,plr in ipairs(Players:GetPlayers()) do
                 if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local d = (plr.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                    if d < dist then nearest=plr; dist=d end
+                    if d<dist then nearest=plr; dist=d end
                 end
             end
             if nearest then
@@ -319,8 +323,7 @@ spawn(function()
     end
 end)
 
--- Server Hop
-local hopBtn,hopGet = createToggle(contentFrame,"Server Hop",false)
+local hopBtn,hopGet = createToggle(teleportPage,"Server Hop",false)
 spawn(function()
     while true do
         if hopGet() then
@@ -329,3 +332,14 @@ spawn(function()
         task.wait(5)
     end
 end)
+
+-- ----------------------
+-- MISC PAGE CONTROLS (AFK/ESP etc)
+-- ----------------------
+local afkBtn,afkGet = createToggle(miscPage,"Anti AFK",true)
+Players.LocalPlayer.Idled:Connect(function()
+    if afkGet() then VirtualUser:CaptureController(); VirtualUser:ClickButton2(Vector2.new()) end
+end)
+
+-- Activate first tab by default
+tabs["Player"]:MouseButton1Click()
