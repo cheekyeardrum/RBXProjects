@@ -340,6 +340,9 @@ end)
 -- ===== Honey Tab =====
 local honeyPage = createTab("Honey", "🍯")
 
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
 -- === Utility: Create Button + Slider Pair ===
 local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, defaultDelay)
 	local frame = Instance.new("Frame", parent)
@@ -356,36 +359,46 @@ local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, d
 	btn.AutoButtonColor = true
 	btn.Name = text:gsub(" ", "")
 
-	local slider = Instance.new("TextButton", frame)
+	local slider = Instance.new("Frame", frame)
 	slider.Size = UDim2.new(0.4, -4, 1, 0)
 	slider.Position = UDim2.new(0.6, 4, 0, 0)
 	slider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	slider.TextColor3 = Color3.new(1, 1, 1)
-	slider.Font = Enum.Font.Gotham
-	slider.TextSize = 12
-	slider.Text = tostring(defaultDelay) .. "s"
 	slider.Name = "DelaySlider"
 
-	local UserInputService = game:GetService("UserInputService")
-	local delayValue = defaultDelay
+	local valueLabel = Instance.new("TextLabel", slider)
+	valueLabel.Size = UDim2.new(1, 0, 1, 0)
+	valueLabel.BackgroundTransparency = 1
+	valueLabel.TextColor3 = Color3.new(1, 1, 1)
+	valueLabel.Font = Enum.Font.Gotham
+	valueLabel.TextSize = 12
+	valueLabel.Text = tostring(defaultDelay) .. "s"
 
+	local delayValue = defaultDelay
 	local dragging = false
-	slider.MouseButton1Down:Connect(function()
-		dragging = true
+
+	slider.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+		end
 	end)
+
 	UserInputService.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = false
 		end
 	end)
-	game:GetService("RunService").RenderStepped:Connect(function()
-		if dragging then
-			local mouseX = UserInputService:GetMouseLocation().X
-			local sliderAbsPos = slider.AbsolutePosition.X
-			local sliderAbsSize = slider.AbsoluteSize.X
-			local percent = math.clamp((mouseX - sliderAbsPos) / sliderAbsSize, 0, 1)
-			delayValue = math.floor(minDelay + (maxDelay - minDelay) * percent)
-			slider.Text = tostring(delayValue) .. "s"
+
+	task.spawn(function()
+		while true do
+			if dragging then
+				local mouseX = UserInputService:GetMouseLocation().X
+				local absPos = slider.AbsolutePosition.X
+				local absSize = slider.AbsoluteSize.X
+				local percent = math.clamp((mouseX - absPos) / absSize, 0, 1)
+				delayValue = math.floor(minDelay + (maxDelay - minDelay) * percent)
+				valueLabel.Text = tostring(delayValue) .. "s"
+			end
+			task.wait(0.05) -- light loop, not frame-bound
 		end
 	end)
 
@@ -409,7 +422,6 @@ local function getPlayerPlot(player)
 		return module:GetPlayerPlot(player)
 	end
 
-	-- fallback
 	for _, plot in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
 		if plot:FindFirstChild("Owner") and plot.Owner.Value == player then
 			return plot
@@ -488,10 +500,6 @@ buyBtn.MouseButton1Click:Connect(function()
 		end)
 	end
 end)
-
------------------------------------------------------------------
--- Done
------------------------------------------------------------------
 
 
 
