@@ -340,7 +340,7 @@ end)
 -- ===== Honey Tab =====
 local honeyPage = createTab("Honey", "🍯")
 
--- Layout for stacking buttons
+-- Layout
 local layout = Instance.new("UIListLayout", honeyPage)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 8)
@@ -394,68 +394,70 @@ local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, d
 	return btn, function() return delayValue end
 end
 
--- ===== Buttons =====
-local smartExtractBtn, getExtractDelay = createButtonWithSlider(honeyPage, "Smart Extract", Color3.fromRGB(0,200,255), 1, 20, 5)
-local autoSellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Auto Sell", Color3.fromRGB(255,150,0), 1, 20, 5)
-local autoBuyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Auto Buy", Color3.fromRGB(0,255,100), 1, 20, 5)
-
--- ===== Functionality =====
-local smartLoop = false
-smartExtractBtn.MouseButton1Click:Connect(function()
-	smartLoop = not smartLoop
-	smartExtractBtn.Text = smartLoop and "Stop Extract" or "Smart Extract"
-
-	if smartLoop then
-		task.spawn(function()
-			local player = game.Players.LocalPlayer
-			local hiveRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
-				:WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
-			while smartLoop do
-				local plot = nil
-				for _,p in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
-					if p:FindFirstChild("Owner") and p.Owner.Value == player then plot = p end
-				end
-				if plot and plot:FindFirstChild("Hives") then
-					local builtHives = {}
-					for _,h in pairs(plot.Hives:GetChildren()) do
-						if h:GetAttribute("IsBuilt") then table.insert(builtHives,h) end
-					end
-					if #builtHives > 0 then
-						pcall(function() hiveRemote:FireServer("ExtractHoney", builtHives) end)
-					end
-				end
-				task.wait(getExtractDelay())
-			end
-		end)
+-- ===== Buy All Flowers Button =====
+local flowerSection = Instance.new("Frame", honeyPage)
+flowerSection.Size = UDim2.new(1, -24, 0, 50)
+flowerSection.BackgroundTransparency = 1
+local flowerBtn = Instance.new("TextButton", flowerSection)
+flowerBtn.Size = UDim2.new(1, 0, 1, 0)
+flowerBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
+flowerBtn.TextColor3 = Color3.new(1, 1, 1)
+flowerBtn.Font = Enum.Font.GothamBold
+flowerBtn.TextSize = 14
+flowerBtn.Text = "Buy All Flowers"
+flowerBtn.MouseButton1Click:Connect(function()
+	local FlowerRemote = game:GetService("ReplicatedStorage")
+		:WaitForChild("Framework"):WaitForChild("Features")
+		:WaitForChild("HoneySystem"):WaitForChild("FlowerUtil")
+		:WaitForChild("RemoteEvent")
+	local flowerList = {
+		"AquilegiaCoerulea","Bamboo","Bluebell","Cactus","Clover","Dahlia","Daisy",
+		"FireBlossom","KniphofiaUvaria","Lavender","Lily","MorningGlory","RedRose",
+		"Sunflower","Tulip","VenusFlyTrap",
+	}
+	for _, flowerName in ipairs(flowerList) do
+		pcall(function() FlowerRemote:FireServer("BuyFlower", flowerName) end)
+		task.wait(0.1)
 	end
 end)
 
-local selling = false
-autoSellBtn.MouseButton1Click:Connect(function()
-	selling = not selling
-	autoSellBtn.Text = selling and "Stop Selling" or "Auto Sell"
-	if selling then
+-- ===== Auto Sell Button + Slider =====
+local sellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Start Sell", Color3.fromRGB(0, 255, 127), 1, 20, 5)
+local loopSell = false
+sellBtn.MouseButton1Click:Connect(function()
+	loopSell = not loopSell
+	sellBtn.Text = loopSell and "Stop Sell" or "Start Sell"
+	if loopSell then
 		task.spawn(function()
-			local sellEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SellHoney")
-			while selling do
-				pcall(function() sellEvent:FireServer() end)
+			while loopSell do
+				local HoneyRemote = game:GetService("ReplicatedStorage")
+					:WaitForChild("Framework"):WaitForChild("Features")
+					:WaitForChild("HoneySystem"):WaitForChild("HoneyUtil")
+					:WaitForChild("RemoteEvent")
+				pcall(function() HoneyRemote:FireServer("SellHoney", "Honey") end)
 				task.wait(getSellDelay())
 			end
 		end)
 	end
 end)
 
-local buying = false
-autoBuyBtn.MouseButton1Click:Connect(function()
-	buying = not buying
-	autoBuyBtn.Text = buying and "Stop Buying" or "Auto Buy"
-	if buying then
+-- ===== Auto Buy Button + Slider =====
+local buyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Start Buy", Color3.fromRGB(0, 200, 255), 1, 20, 5)
+local loopBuy = false
+buyBtn.MouseButton1Click:Connect(function()
+	loopBuy = not loopBuy
+	buyBtn.Text = loopBuy and "Stop Buy" or "Start Buy"
+	if loopBuy then
 		task.spawn(function()
-			local buyEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("BuyItem")
-			while buying do
-				pcall(function() buyEvent:FireServer("RandomItem") end)
+			while loopBuy do
+				local BuyRemote = game:GetService("ReplicatedStorage")
+					:WaitForChild("Remotes"):WaitForChild("BuyItem")
+				pcall(function() BuyRemote:FireServer("RandomItem") end)
 				task.wait(getBuyDelay())
 			end
 		end)
 	end
 end)
+
+print("Cheeky Hub V1.0 - Honey Tab loaded successfully.")
+
