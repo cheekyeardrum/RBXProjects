@@ -340,124 +340,156 @@ end)
 -- ===== Honey Tab =====
 local honeyPage = createTab("Honey", "🍯")
 
--- Layout
-local layout = Instance.new("UIListLayout", honeyPage)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 8)
-
--- Utility: Button + Slider
+-- Utility: Create Button + Slider
 local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, defaultDelay)
-	local frame = Instance.new("Frame")
-	frame.Size = UDim2.new(1, -24, 0, 40)
-	frame.BackgroundTransparency = 1
-	frame.Parent = parent
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -24, 0, 40)
+    frame.BackgroundTransparency = 1
 
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(0.6, -4, 1, 0)
-	btn.BackgroundColor3 = color
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.GothamBold
-	btn.TextSize = 14
-	btn.Text = text
-	round(btn, 6)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.6, -4, 1, 0)
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.Text = text
+    btn.AutoButtonColor = true
 
-	local slider = Instance.new("TextButton", frame)
-	slider.Size = UDim2.new(0.4, -4, 1, 0)
-	slider.Position = UDim2.new(0.6, 4, 0, 0)
-	slider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	slider.TextColor3 = Color3.new(1, 1, 1)
-	slider.Font = Enum.Font.Gotham
-	slider.TextSize = 12
-	slider.Text = tostring(defaultDelay).."s"
-	round(slider, 6)
+    local slider = Instance.new("TextButton", frame)
+    slider.Size = UDim2.new(0.4, -4, 1, 0)
+    slider.Position = UDim2.new(0.6, 4, 0, 0)
+    slider.BackgroundColor3 = Color3.fromRGB(40,40,40)
+    slider.TextColor3 = Color3.new(1,1,1)
+    slider.Font = Enum.Font.Gotham
+    slider.TextSize = 12
+    slider.Text = tostring(defaultDelay).."s"
 
-	local UserInputService = game:GetService("UserInputService")
-	local delayValue = defaultDelay
-	local dragging = false
+    local UserInputService = game:GetService("UserInputService")
+    local RunService = game:GetService("RunService")
+    local delayValue = defaultDelay
+    local dragging = false
 
-	slider.MouseButton1Down:Connect(function() dragging = true end)
-	UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-	end)
+    slider.MouseButton1Down:Connect(function() dragging = true end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging then
+            local mouseX = UserInputService:GetMouseLocation().X
+            local sliderPos = slider.AbsolutePosition.X
+            local sliderSize = slider.AbsoluteSize.X
+            local percent = math.clamp((mouseX - sliderPos) / sliderSize, 0, 1)
+            delayValue = math.floor(minDelay + (maxDelay - minDelay) * percent)
+            slider.Text = tostring(delayValue).."s"
+        end
+    end)
 
-	game:GetService("RunService").RenderStepped:Connect(function()
-		if dragging then
-			local mouseX = UserInputService:GetMouseLocation().X
-			local sliderPos = slider.AbsolutePosition.X
-			local sliderSize = slider.AbsoluteSize.X
-			local percent = math.clamp((mouseX - sliderPos) / sliderSize, 0, 1)
-			delayValue = math.floor(minDelay + (maxDelay - minDelay) * percent)
-			slider.Text = tostring(delayValue).."s"
-		end
-	end)
-
-	return btn, function() return delayValue end
+    return btn, function() return delayValue end
 end
 
--- ===== Buy All Flowers Button =====
-local flowerSection = Instance.new("Frame", honeyPage)
-flowerSection.Size = UDim2.new(1, -24, 0, 50)
-flowerSection.BackgroundTransparency = 1
-local flowerBtn = Instance.new("TextButton", flowerSection)
-flowerBtn.Size = UDim2.new(1, 0, 1, 0)
-flowerBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
-flowerBtn.TextColor3 = Color3.new(1, 1, 1)
-flowerBtn.Font = Enum.Font.GothamBold
-flowerBtn.TextSize = 14
-flowerBtn.Text = "Buy All Flowers"
-flowerBtn.MouseButton1Click:Connect(function()
-	local FlowerRemote = game:GetService("ReplicatedStorage")
-		:WaitForChild("Framework"):WaitForChild("Features")
-		:WaitForChild("HoneySystem"):WaitForChild("FlowerUtil")
-		:WaitForChild("RemoteEvent")
-	local flowerList = {
-		"AquilegiaCoerulea","Bamboo","Bluebell","Cactus","Clover","Dahlia","Daisy",
-		"FireBlossom","KniphofiaUvaria","Lavender","Lily","MorningGlory","RedRose",
-		"Sunflower","Tulip","VenusFlyTrap",
-	}
-	for _, flowerName in ipairs(flowerList) do
-		pcall(function() FlowerRemote:FireServer("BuyFlower", flowerName) end)
-		task.wait(0.1)
-	end
-end)
-
--- ===== Auto Sell Button + Slider =====
-local sellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Start Sell", Color3.fromRGB(0, 255, 127), 1, 20, 5)
+-----------------------------------------------------------------
+-- Auto Sell
+-----------------------------------------------------------------
+local sellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Start Sell", Color3.fromRGB(0,255,127), 1,20,5)
 local loopSell = false
+local HoneyRemote = game:GetService("ReplicatedStorage")
+    :WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("HoneyUtil")
+    :WaitForChild("RemoteEvent")
+
 sellBtn.MouseButton1Click:Connect(function()
-	loopSell = not loopSell
-	sellBtn.Text = loopSell and "Stop Sell" or "Start Sell"
-	if loopSell then
-		task.spawn(function()
-			while loopSell do
-				local HoneyRemote = game:GetService("ReplicatedStorage")
-					:WaitForChild("Framework"):WaitForChild("Features")
-					:WaitForChild("HoneySystem"):WaitForChild("HoneyUtil")
-					:WaitForChild("RemoteEvent")
-				pcall(function() HoneyRemote:FireServer("SellHoney", "Honey") end)
-				task.wait(getSellDelay())
-			end
-		end)
-	end
+    loopSell = not loopSell
+    sellBtn.Text = loopSell and "Stop Sell" or "Start Sell"
+    if loopSell then
+        task.spawn(function()
+            while loopSell do
+                pcall(function()
+                    HoneyRemote:FireServer("SellHoney","Honey")
+                end)
+                task.wait(getSellDelay())
+            end
+        end)
+    end
 end)
 
--- ===== Auto Buy Button + Slider =====
-local buyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Start Buy", Color3.fromRGB(0, 200, 255), 1, 20, 5)
+-----------------------------------------------------------------
+-- Auto Buy (All Flowers x10)
+-----------------------------------------------------------------
+local buyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Start Buy", Color3.fromRGB(255,170,0), 1,20,5)
 local loopBuy = false
+local FlowerRemote = game:GetService("ReplicatedStorage")
+    :WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("FlowerUtil")
+    :WaitForChild("RemoteEvent")
+local flowerList = {"AquilegiaCoerulea","Bamboo","Bluebell","Cactus","Clover","Dahlia","Daisy",
+                    "FireBlossom","KniphofiaUvaria","Lavender","Lily","MorningGlory","RedRose",
+                    "Sunflower","Tulip","VenusFlyTrap"}
+
 buyBtn.MouseButton1Click:Connect(function()
-	loopBuy = not loopBuy
-	buyBtn.Text = loopBuy and "Stop Buy" or "Start Buy"
-	if loopBuy then
-		task.spawn(function()
-			while loopBuy do
-				local BuyRemote = game:GetService("ReplicatedStorage")
-					:WaitForChild("Remotes"):WaitForChild("BuyItem")
-				pcall(function() BuyRemote:FireServer("RandomItem") end)
-				task.wait(getBuyDelay())
-			end
-		end)
-	end
+    loopBuy = not loopBuy
+    buyBtn.Text = loopBuy and "Stop Buy" or "Start Buy"
+    if loopBuy then
+        task.spawn(function()
+            while loopBuy do
+                for _, flowerName in ipairs(flowerList) do
+                    for i = 1,10 do
+                        pcall(function()
+                            FlowerRemote:FireServer("BuyFlower", flowerName)
+                        end)
+                        task.wait(0.05)
+                    end
+                end
+                task.wait(getBuyDelay())
+            end
+        end)
+    end
 end)
 
-print("Cheeky Hub V1.0 - Honey Tab loaded successfully.")
+-----------------------------------------------------------------
+-- Smart Extract
+-----------------------------------------------------------------
+local extractBtn, getExtractDelay = createButtonWithSlider(honeyPage, "Start Extract", Color3.fromRGB(0,200,255), 1,20,5)
+local loopExtract = false
+local HiveRemote = game:GetService("ReplicatedStorage")
+    :WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("HiveUtil")
+    :WaitForChild("RemoteEvent")
+
+local function getPlayerPlot(player)
+    for _, plot in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
+        if plot:FindFirstChild("Owner") and plot.Owner.Value == player then
+            return plot
+        end
+    end
+    return nil
+end
+
+extractBtn.MouseButton1Click:Connect(function()
+    loopExtract = not loopExtract
+    extractBtn.Text = loopExtract and "Stop Extract" or "Start Extract"
+    if loopExtract then
+        task.spawn(function()
+            local player = game.Players.LocalPlayer
+            while loopExtract do
+                local plot = getPlayerPlot(player)
+                if plot and plot:FindFirstChild("Hives") then
+                    local builtHives = {}
+                    for _, hive in pairs(plot.Hives:GetChildren()) do
+                        if hive:GetAttribute("IsBuilt") then
+                            table.insert(builtHives, hive)
+                        end
+                    end
+                    if #builtHives > 0 then
+                        pcall(function()
+                            HiveRemote:FireServer("ExtractHoney", builtHives)
+                        end)
+                    end
+                end
+                task.wait(getExtractDelay())
+            end
+        end)
+    end
+end)
+
+print("✅ Cheeky Hub V1.0 - Honey Tab loaded successfully.")
 
