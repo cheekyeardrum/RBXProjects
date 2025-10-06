@@ -338,10 +338,7 @@ end)
 
 
 -- ===== Honey Tab =====
-local honeyPage = createTab("Honey", "🍯") -- ✅ integrated into tab system
-local listLayout = Instance.new("UIListLayout", honeyPage)
-listLayout.Padding = UDim.new(0, 8)
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+local honeyPage = createTab("Honey", "🍯")
 
 -- === Utility: Create Button + Slider Pair ===
 local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, defaultDelay)
