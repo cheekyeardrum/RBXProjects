@@ -338,12 +338,7 @@ end)
 
 
 -- ===== Honey Tab =====
-local honeyPage = Instance.new("Frame")
-honeyPage.Name = "HoneyPage"
-honeyPage.Size = UDim2.new(1, 0, 1, 0)
-honeyPage.BackgroundTransparency = 1
-honeyPage.Visible = true -- toggle this via your tab system
-
+local honeyPage = createTab("Honey", "🍯") -- ✅ integrated into tab system
 local listLayout = Instance.new("UIListLayout", honeyPage)
 listLayout.Padding = UDim.new(0, 8)
 listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -500,6 +495,6 @@ end)
 -----------------------------------------------------------------
 -- Done
 -----------------------------------------------------------------
-return honeyPage
+
 
 
