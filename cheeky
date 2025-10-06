@@ -339,6 +339,12 @@ end)
 
 -- ===== Honey Tab =====
 local honeyPage = createTab("Honey", "🍯")
+honeyPage.BackgroundTransparency = 1
+
+-- Add layout to stack buttons vertically
+local listLayout = Instance.new("UIListLayout", honeyPage)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 8)
 
 -- Utility: Create Button + Slider
 local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, defaultDelay)
@@ -387,9 +393,7 @@ local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, d
     return btn, function() return delayValue end
 end
 
------------------------------------------------------------------
--- Auto Sell
------------------------------------------------------------------
+-- ================== Auto Sell ==================
 local sellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Start Sell", Color3.fromRGB(0,255,127), 1,20,5)
 local loopSell = false
 local HoneyRemote = game:GetService("ReplicatedStorage")
@@ -403,18 +407,14 @@ sellBtn.MouseButton1Click:Connect(function()
     if loopSell then
         task.spawn(function()
             while loopSell do
-                pcall(function()
-                    HoneyRemote:FireServer("SellHoney","Honey")
-                end)
+                pcall(function() HoneyRemote:FireServer("SellHoney","Honey") end)
                 task.wait(getSellDelay())
             end
         end)
     end
 end)
 
------------------------------------------------------------------
--- Auto Buy (All Flowers x10)
------------------------------------------------------------------
+-- ================== Auto Buy ==================
 local buyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Start Buy", Color3.fromRGB(255,170,0), 1,20,5)
 local loopBuy = false
 local FlowerRemote = game:GetService("ReplicatedStorage")
@@ -432,7 +432,7 @@ buyBtn.MouseButton1Click:Connect(function()
         task.spawn(function()
             while loopBuy do
                 for _, flowerName in ipairs(flowerList) do
-                    for i = 1,10 do
+                    for i=1,10 do
                         pcall(function()
                             FlowerRemote:FireServer("BuyFlower", flowerName)
                         end)
@@ -445,9 +445,7 @@ buyBtn.MouseButton1Click:Connect(function()
     end
 end)
 
------------------------------------------------------------------
--- Smart Extract
------------------------------------------------------------------
+-- ================== Smart Extract ==================
 local extractBtn, getExtractDelay = createButtonWithSlider(honeyPage, "Start Extract", Color3.fromRGB(0,200,255), 1,20,5)
 local loopExtract = false
 local HiveRemote = game:GetService("ReplicatedStorage")
