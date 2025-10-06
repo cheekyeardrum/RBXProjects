@@ -249,74 +249,77 @@ local serverPage = createTab("Server", "🌐")
 
 
 
--- ===== Visuals Tab - Anti-Lag Mode =====
-
-local antiLagSection = Instance.new("Frame", visualsPage)
-antiLagSection.Size = UDim2.new(1, -24, 0, 50)
-antiLagSection.BackgroundTransparency = 1
-
-local antiLagBtn = Instance.new("TextButton", antiLagSection)
-antiLagBtn.Size = UDim2.new(1, 0, 1, 0)
-antiLagBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
-antiLagBtn.TextColor3 = Color3.new(1, 1, 1)
-antiLagBtn.Font = Enum.Font.GothamBold
-antiLagBtn.TextSize = 14
-antiLagBtn.Text = "Toggle Anti-Lag Mode"
-antiLagBtn.AutoButtonColor = true
-antiLagBtn.TextWrapped = true
-
+-- Visiuals ===== Anti-Lag Function =====
 local antiLagActive = false
 
--- Services
-local Workspace = game:GetService("Workspace")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-
--- Wait for Plots folder
-local plotsFolder = Workspace:WaitForChild("Plots", 10)
-if not plotsFolder then
-    warn("⚠️ No 'Plots' folder found in Workspace.")
-end
-
--- Function to get player's plot (using Owner)
 local function getPlayerPlot()
+    local plotsFolder = workspace:FindFirstChild("Plots")
     if not plotsFolder then return nil end
+
     for _, plot in pairs(plotsFolder:GetChildren()) do
         local owner = plot:FindFirstChild("Owner")
-        if owner then
-            if owner.Value == LocalPlayer or owner.Value == LocalPlayer.Name then
-                return plot
-            end
+        if owner and (owner.Value == LocalPlayer or owner.Value == LocalPlayer.Name) then
+            return plot
         end
     end
     return nil
 end
 
--- Function to disable visual-heavy effects
 local function applyAntiLag(plot)
     if not plot then return end
 
     for _, part in pairs(plot:GetDescendants()) do
+        -- Disable particle emitters
         if part:IsA("ParticleEmitter") then
             part.Enabled = false
-        elseif part:IsA("AnimationController") or part:IsA("Animator") then
+
+        -- Stop and remove animation controllers safely
+        elseif part:IsA("AnimationController") then
+            local animTracks = {}
+            local success, tracks = pcall(function()
+                animTracks = part:GetPlayingAnimationTracks()
+            end)
+            if success then
+                for _, track in pairs(animTracks) do
+                    track:Stop()
+                end
+            end
             part:Destroy()
+
+        -- Stop and remove Animator safely
+        elseif part:IsA("Animator") then
+            local parentHumanoid = part.Parent:FindFirstChildOfClass("Humanoid")
+            if parentHumanoid then
+                local animTracks = {}
+                local success, tracks = pcall(function()
+                    animTracks = part:GetPlayingAnimationTracks()
+                end)
+                if success then
+                    for _, track in pairs(animTracks) do
+                        track:Stop()
+                    end
+                end
+            end
+            part:Destroy()
+
+        -- Make accessories invisible
         elseif part:IsA("Accessory") then
             if part:FindFirstChild("Handle") then
                 part.Handle.Transparency = 1
             end
+
+        -- Remove Motor6D joints
         elseif part:IsA("Motor6D") then
             part:Destroy()
         end
     end
 end
 
--- Button click toggle
+-- Toggle button logic
 antiLagBtn.MouseButton1Click:Connect(function()
     antiLagActive = not antiLagActive
     antiLagBtn.Text = antiLagActive and "Anti-Lag Mode: ON" or "Toggle Anti-Lag Mode"
-    antiLagBtn.BackgroundColor3 = antiLagActive and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(255, 100, 0)
+    antiLagBtn.BackgroundColor3 = antiLagActive and Color3.fromRGB(0,170,0) or Color3.fromRGB(255,100,0)
 
     if antiLagActive then
         print("✅ Anti-Lag Enabled")
