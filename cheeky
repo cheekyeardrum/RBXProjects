@@ -340,14 +340,17 @@ end)
 -- ===== Honey Tab =====
 local honeyPage = createTab("Honey", "🍯")
 
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+-- Layout for stacking buttons
+local layout = Instance.new("UIListLayout", honeyPage)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 8)
 
--- === Utility: Create Button + Slider Pair ===
+-- Utility: Button + Slider
 local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, defaultDelay)
-	local frame = Instance.new("Frame", parent)
+	local frame = Instance.new("Frame")
 	frame.Size = UDim2.new(1, -24, 0, 40)
 	frame.BackgroundTransparency = 1
+	frame.Parent = parent
 
 	local btn = Instance.new("TextButton", frame)
 	btn.Size = UDim2.new(0.6, -4, 1, 0)
@@ -356,103 +359,69 @@ local function createButtonWithSlider(parent, text, color, minDelay, maxDelay, d
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 14
 	btn.Text = text
-	btn.AutoButtonColor = true
-	btn.Name = text:gsub(" ", "")
+	round(btn, 6)
 
-	local slider = Instance.new("Frame", frame)
+	local slider = Instance.new("TextButton", frame)
 	slider.Size = UDim2.new(0.4, -4, 1, 0)
 	slider.Position = UDim2.new(0.6, 4, 0, 0)
 	slider.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	slider.Name = "DelaySlider"
+	slider.TextColor3 = Color3.new(1, 1, 1)
+	slider.Font = Enum.Font.Gotham
+	slider.TextSize = 12
+	slider.Text = tostring(defaultDelay).."s"
+	round(slider, 6)
 
-	local valueLabel = Instance.new("TextLabel", slider)
-	valueLabel.Size = UDim2.new(1, 0, 1, 0)
-	valueLabel.BackgroundTransparency = 1
-	valueLabel.TextColor3 = Color3.new(1, 1, 1)
-	valueLabel.Font = Enum.Font.Gotham
-	valueLabel.TextSize = 12
-	valueLabel.Text = tostring(defaultDelay) .. "s"
-
+	local UserInputService = game:GetService("UserInputService")
 	local delayValue = defaultDelay
 	local dragging = false
 
-	slider.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = true
-		end
-	end)
-
+	slider.MouseButton1Down:Connect(function() dragging = true end)
 	UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
-			dragging = false
-		end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
 	end)
 
-	task.spawn(function()
-		while true do
-			if dragging then
-				local mouseX = UserInputService:GetMouseLocation().X
-				local absPos = slider.AbsolutePosition.X
-				local absSize = slider.AbsoluteSize.X
-				local percent = math.clamp((mouseX - absPos) / absSize, 0, 1)
-				delayValue = math.floor(minDelay + (maxDelay - minDelay) * percent)
-				valueLabel.Text = tostring(delayValue) .. "s"
-			end
-			task.wait(0.05) -- light loop, not frame-bound
+	game:GetService("RunService").RenderStepped:Connect(function()
+		if dragging then
+			local mouseX = UserInputService:GetMouseLocation().X
+			local sliderPos = slider.AbsolutePosition.X
+			local sliderSize = slider.AbsoluteSize.X
+			local percent = math.clamp((mouseX - sliderPos) / sliderSize, 0, 1)
+			delayValue = math.floor(minDelay + (maxDelay - minDelay) * percent)
+			slider.Text = tostring(delayValue).."s"
 		end
 	end)
 
 	return btn, function() return delayValue end
 end
 
------------------------------------------------------------------
--- ===== Smart Extract Section =====
------------------------------------------------------------------
-local smartExtractBtn, getExtractDelay = createButtonWithSlider(honeyPage, "Smart Extract", Color3.fromRGB(0, 200, 255), 1, 20, 5)
-local smartLoopExtract = false
+-- ===== Buttons =====
+local smartExtractBtn, getExtractDelay = createButtonWithSlider(honeyPage, "Smart Extract", Color3.fromRGB(0,200,255), 1, 20, 5)
+local autoSellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Auto Sell", Color3.fromRGB(255,150,0), 1, 20, 5)
+local autoBuyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Auto Buy", Color3.fromRGB(0,255,100), 1, 20, 5)
 
-local function getPlayerPlot(player)
-	local plotsUtil = game:GetService("ReplicatedStorage")
-		:WaitForChild("Framework")
-		:WaitForChild("Features")
-		:WaitForChild("PlotSystem")
-		:WaitForChild("PlotsUtil")
-	local success, module = pcall(require, plotsUtil)
-	if success and typeof(module) == "table" and module.GetPlayerPlot then
-		return module:GetPlayerPlot(player)
-	end
-
-	for _, plot in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
-		if plot:FindFirstChild("Owner") and plot.Owner.Value == player then
-			return plot
-		end
-	end
-	return nil
-end
-
+-- ===== Functionality =====
+local smartLoop = false
 smartExtractBtn.MouseButton1Click:Connect(function()
-	smartLoopExtract = not smartLoopExtract
-	smartExtractBtn.Text = smartLoopExtract and "Stop Extract" or "Smart Extract"
+	smartLoop = not smartLoop
+	smartExtractBtn.Text = smartLoop and "Stop Extract" or "Smart Extract"
 
-	if smartLoopExtract then
+	if smartLoop then
 		task.spawn(function()
 			local player = game.Players.LocalPlayer
-			local framework = game:GetService("ReplicatedStorage"):WaitForChild("Framework")
-			local hiveRemote = framework:WaitForChild("Features"):WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
-
-			while smartLoopExtract do
-				local plot = getPlayerPlot(player)
+			local hiveRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+				:WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
+			while smartLoop do
+				local plot = nil
+				for _,p in pairs(workspace:WaitForChild("Plots"):GetChildren()) do
+					if p:FindFirstChild("Owner") and p.Owner.Value == player then plot = p end
+				end
 				if plot and plot:FindFirstChild("Hives") then
 					local builtHives = {}
-					for _, hive in pairs(plot.Hives:GetChildren()) do
-						if hive:GetAttribute("IsBuilt") then
-							table.insert(builtHives, hive)
-						end
+					for _,h in pairs(plot.Hives:GetChildren()) do
+						if h:GetAttribute("IsBuilt") then table.insert(builtHives,h) end
 					end
 					if #builtHives > 0 then
-						pcall(function()
-							hiveRemote:FireServer("ExtractHoney", builtHives)
-						end)
+						pcall(function() hiveRemote:FireServer("ExtractHoney", builtHives) end)
 					end
 				end
 				task.wait(getExtractDelay())
@@ -461,18 +430,13 @@ smartExtractBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
------------------------------------------------------------------
--- ===== Auto Sell Section =====
------------------------------------------------------------------
-local sellBtn, getSellDelay = createButtonWithSlider(honeyPage, "Auto Sell", Color3.fromRGB(255, 150, 0), 1, 20, 5)
 local selling = false
-
-sellBtn.MouseButton1Click:Connect(function()
+autoSellBtn.MouseButton1Click:Connect(function()
 	selling = not selling
-	sellBtn.Text = selling and "Stop Selling" or "Auto Sell"
+	autoSellBtn.Text = selling and "Stop Selling" or "Auto Sell"
 	if selling then
 		task.spawn(function()
-			local sellEvent = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("SellHoney")
+			local sellEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SellHoney")
 			while selling do
 				pcall(function() sellEvent:FireServer() end)
 				task.wait(getSellDelay())
@@ -481,18 +445,13 @@ sellBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
------------------------------------------------------------------
--- ===== Auto Buy Section =====
------------------------------------------------------------------
-local buyBtn, getBuyDelay = createButtonWithSlider(honeyPage, "Auto Buy", Color3.fromRGB(0, 255, 100), 1, 20, 5)
 local buying = false
-
-buyBtn.MouseButton1Click:Connect(function()
+autoBuyBtn.MouseButton1Click:Connect(function()
 	buying = not buying
-	buyBtn.Text = buying and "Stop Buying" or "Auto Buy"
+	autoBuyBtn.Text = buying and "Stop Buying" or "Auto Buy"
 	if buying then
 		task.spawn(function()
-			local buyEvent = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("BuyItem")
+			local buyEvent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("BuyItem")
 			while buying do
 				pcall(function() buyEvent:FireServer("RandomItem") end)
 				task.wait(getBuyDelay())
@@ -500,6 +459,3 @@ buyBtn.MouseButton1Click:Connect(function()
 		end)
 	end
 end)
-
-
-
