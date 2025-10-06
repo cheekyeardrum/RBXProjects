@@ -249,11 +249,29 @@ local serverPage = createTab("Server", "🌐")
 
 
 
--- Visiuals ===== Anti-Lag Function =====
-local antiLagActive = false
+-- ===== Visuals Tab - Anti-Lag (Bees Only) =====
+local antiLagSection = Instance.new("Frame", visualsPage)
+antiLagSection.Size = UDim2.new(1, -24, 0, 50)
+antiLagSection.BackgroundTransparency = 1
 
+local antiLagBtn = Instance.new("TextButton", antiLagSection)
+antiLagBtn.Size = UDim2.new(1, 0, 1, 0)
+antiLagBtn.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+antiLagBtn.TextColor3 = Color3.new(1, 1, 1)
+antiLagBtn.Font = Enum.Font.GothamBold
+antiLagBtn.TextSize = 14
+antiLagBtn.Text = "Toggle Anti-Lag (Bees Only)"
+antiLagBtn.AutoButtonColor = true
+antiLagBtn.TextWrapped = true
+
+local antiLagActive = false
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Function to get player's plot
 local function getPlayerPlot()
-    local plotsFolder = workspace:FindFirstChild("Plots")
+    local plotsFolder = Workspace:FindFirstChild("Plots")
     if not plotsFolder then return nil end
 
     for _, plot in pairs(plotsFolder:GetChildren()) do
@@ -265,79 +283,46 @@ local function getPlayerPlot()
     return nil
 end
 
+-- Anti-Lag function (Bees Only)
 local function applyAntiLag(plot)
     if not plot then return end
 
     for _, part in pairs(plot:GetDescendants()) do
-        -- Disable particle emitters
+        -- Skip FlowerRenderer completely
+        if part.Name == "FlowerRenderer" then
+            if part:IsA("Script") or part:IsA("LocalScript") then
+                part.Disabled = true
+            end
+            continue
+        end
+
+        -- Disable visual-heavy stuff
         if part:IsA("ParticleEmitter") then
             part.Enabled = false
-
-        -- Stop and remove animation controllers safely
-        elseif part:IsA("AnimationController") then
-            local animTracks = {}
-            local success, tracks = pcall(function()
-                animTracks = part:GetPlayingAnimationTracks()
-            end)
-            if success then
-                for _, track in pairs(animTracks) do
-                    track:Stop()
-                end
-            end
-            part:Destroy()
-
-        -- Stop and remove Animator safely
-        elseif part:IsA("Animator") then
-            local parentHumanoid = part.Parent:FindFirstChildOfClass("Humanoid")
-            if parentHumanoid then
-                local animTracks = {}
-                local success, tracks = pcall(function()
-                    animTracks = part:GetPlayingAnimationTracks()
-                end)
-                if success then
-                    for _, track in pairs(animTracks) do
-                        track:Stop()
-                    end
-                end
-            end
-            part:Destroy()
-
-        -- Make accessories invisible
         elseif part:IsA("Accessory") then
             if part:FindFirstChild("Handle") then
                 part.Handle.Transparency = 1
             end
-
-        -- Remove Motor6D joints
         elseif part:IsA("Motor6D") then
             part:Destroy()
         end
     end
 end
 
--- Toggle button logic
+-- Button toggle
 antiLagBtn.MouseButton1Click:Connect(function()
     antiLagActive = not antiLagActive
-    antiLagBtn.Text = antiLagActive and "Anti-Lag Mode: ON" or "Toggle Anti-Lag Mode"
+    antiLagBtn.Text = antiLagActive and "Anti-Lag (Bees Only): ON" or "Toggle Anti-Lag (Bees Only)"
     antiLagBtn.BackgroundColor3 = antiLagActive and Color3.fromRGB(0,170,0) or Color3.fromRGB(255,100,0)
 
     if antiLagActive then
-        print("✅ Anti-Lag Enabled")
         local plot = getPlayerPlot()
         applyAntiLag(plot)
+        print("✅ Anti-Lag applied: Bees dropped and hidden.")
     else
-        print("❌ Anti-Lag Disabled — rejoin to restore visuals")
+        print("❌ Anti-Lag disabled — rejoin to restore visuals")
     end
 end)
-
--- Continuously apply while active
-RunService.Heartbeat:Connect(function()
-    if antiLagActive then
-        local plot = getPlayerPlot()
-        applyAntiLag(plot)
-    end
-end)
-
 
 
 -- ===== Honey Tab =====
