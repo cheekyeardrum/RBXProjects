@@ -85,36 +85,21 @@ mainTab:CreateToggle({
     end
 })
 
--- ===== Auto Buy Flowers (with Dropdown Selection) =====
+-- ===== Auto Buy Flowers (Multi-Select + 10s Loop) =====
 local selectedFlowers = {}
-local buyDelay = 5
 local loopBuy = false
+local buyDelay = 10 -- seconds between loops
 
--- Slider for delay
-mainTab:CreateSlider({
-    Name = "Buy Delay (s)",
-    Range = {1,60},
-    Increment = 1,
-    Suffix = "s",
-    CurrentValue = buyDelay,
-    Callback = function(value)
-        buyDelay = value
-    end
-})
-
--- Dropdown for selecting flowers
 mainTab:CreateDropdown({
-    Name = "Select Flowers to Buy",
+    Name = "Select Flowers to Auto Buy",
     Options = flowerList,
     MultiSelection = true,
     CurrentOption = {},
-    Flag = "SelectedFlowers",
-    Callback = function(option)
-        selectedFlowers = option
+    Callback = function(options)
+        selectedFlowers = options
     end
 })
 
--- Toggle for loop
 mainTab:CreateToggle({
     Name = "Auto Buy Selected Flowers x10",
     CurrentValue = false,
