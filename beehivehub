@@ -125,6 +125,7 @@ mainTab:CreateToggle({
     end
 })
 
+
 -- Extract
 local extractDelay = 5
 local loopExtract = false
