@@ -85,28 +85,16 @@ mainTab:CreateToggle({
     end
 })
 
--- ===== Auto Buy Flowers (with Dropdown Selection) =====
+-- ===== Auto Buy Flowers =====
 local selectedFlowers = {}
-local buyDelay = 5
 local loopBuy = false
-
--- Slider for delay
-mainTab:CreateSlider({
-    Name = "Buy Delay (s)",
-    Range = {1,60},
-    Increment = 1,
-    Suffix = "s",
-    CurrentValue = buyDelay,
-    Callback = function(value)
-        buyDelay = value
-    end
-})
+local buyDelay = 10 -- always every 10 seconds (no slider)
 
 -- Dropdown for selecting flowers
 mainTab:CreateDropdown({
     Name = "Select Flowers to Buy",
     Options = flowerList,
-    MultiSelection = true,
+    MultiSelection = true, -- ✅ allows selecting more than one flower
     CurrentOption = {},
     Flag = "SelectedFlowers",
     Callback = function(option)
@@ -116,7 +104,7 @@ mainTab:CreateDropdown({
 
 -- Toggle for loop
 mainTab:CreateToggle({
-    Name = "Auto Buy Selected Flowers x10",
+    Name = "Auto Buy Selected Flowers x10 (every 10s)",
     CurrentValue = false,
     Callback = function(state)
         loopBuy = state
@@ -139,108 +127,6 @@ mainTab:CreateToggle({
         end
     end
 })
-
-
-        -- "Close" button
-        local closeBtn = Instance.new("TextButton", frame)
-        closeBtn.Size = UDim2.new(1, -10, 0, 30)
-        closeBtn.Position = UDim2.new(0, 5, 1, -35)
-        closeBtn.Text = "Close"
-        closeBtn.Font = Enum.Font.SourceSansBold
-        closeBtn.TextSize = 16
-        closeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        closeBtn.TextColor3 = Color3.new(1,1,1)
-        closeBtn.BorderSizePixel = 0
-        closeBtn.MouseButton1Click:Connect(function()
-            gui:Destroy()
-        end)
-    end)
-end
-
--- Rayfield button that opens selector
-mainTab:CreateButton({
-    Name = "Select Flowers to Auto Buy",
-    Callback = openFlowerSelector
-})
-
--- Auto-buy toggle
-mainTab:CreateToggle({
-    Name = "Auto Buy Selected Flowers x10",
-    CurrentValue = false,
-    Callback = function(state)
-        loopBuy = state
-        if loopBuy then
-            task.spawn(function()
-                while loopBuy do
-                    local chosen = {}
-                    for name, active in pairs(selectedFlowers) do
-                        if active then table.insert(chosen, name) end
-                    end
-
-                    if #chosen > 0 then
-                        for _, flowerName in ipairs(chosen) do
-                            for i = 1, 10 do
-                                pcall(function()
-                                    FlowerRemote:FireServer("BuyFlower", flowerName)
-                                end)
-                                task.wait(0.05)
-                            end
-                        end
-                    end
-                    task.wait(buyDelay)
-                end
-            end)
-        end
-    end
-})
-
-        -- Close button
-        local closeBtn = Instance.new("TextButton", frame)
-        closeBtn.Size = UDim2.new(1, -10, 0, 30)
-        closeBtn.Position = UDim2.new(0, 5, 1, -35)
-        closeBtn.Text = "Close"
-        closeBtn.Font = Enum.Font.SourceSansBold
-        closeBtn.TextSize = 16
-        closeBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
-        closeBtn.TextColor3 = Color3.new(1,1,1)
-        closeBtn.BorderSizePixel = 0
-        closeBtn.MouseButton1Click:Connect(function()
-            gui:Destroy()
-        end)
-    end
-})
-
--- Auto-buy loop toggle
-mainTab:CreateToggle({
-    Name = "Auto Buy Selected Flowers x10",
-    CurrentValue = false,
-    Callback = function(state)
-        loopBuy = state
-        if loopBuy then
-            task.spawn(function()
-                while loopBuy do
-                    local chosen = {}
-                    for name, active in pairs(selectedFlowers) do
-                        if active then table.insert(chosen, name) end
-                    end
-
-                    if #chosen > 0 then
-                        for _, flowerName in ipairs(chosen) do
-                            for i = 1, 10 do
-                                pcall(function()
-                                    FlowerRemote:FireServer("BuyFlower", flowerName)
-                                end)
-                                task.wait(0.05)
-                            end
-                        end
-                    end
-                    task.wait(buyDelay)
-                end
-            end)
-        end
-    end
-})
-
 
 -- Extract
 local extractDelay = 5
