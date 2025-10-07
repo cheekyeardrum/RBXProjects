@@ -1,10 +1,10 @@
--- BeeHiveHub - Rayfield Gen2 Edition (Main + Visuals Tabs) by Cheeky
+-- BeeHiveHub - Miso UI Edition by Cheeky
 
--- Load Rayfield Gen2
-local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/RayfieldGen2/main/source.lua"))()
+-- Load Miso UI
+local Miso = loadstring(game:HttpGet("https://raw.githubusercontent.com/InstantMiso/miso/main/source.lua"))()
 
--- Create Rayfield Window
-local Window = Rayfield:CreateWindow({
+-- Create Miso Window
+local Window = Miso:CreateWindow({
     Name = "BeeHiveHub",
     LoadingTitle = "BeeHiveHub",
     LoadingSubtitle = "by Cheeky",
@@ -231,16 +231,16 @@ visualsTab:CreateToggle({
                     end
                 end
             end
-            Rayfield:Notify({Title="BeeHiveHub", Content="Anti-Lag enabled!", Duration=4})
+            Miso:Notify({Title="BeeHiveHub", Content="Anti-Lag enabled!", Duration=4})
         else
-            Rayfield:Notify({Title="BeeHiveHub", Content="Anti-Lag disabled — rejoin to restore visuals.", Duration=4})
+            Miso:Notify({Title="BeeHiveHub", Content="Anti-Lag disabled — rejoin to restore visuals.", Duration=4})
         end
     end
 })
 
 -- Final Notification
-Rayfield:Notify({
+Miso:Notify({
     Title = "BeeHiveHub",
-    Content = "BeeHiveHub loaded (Rayfield Gen2).",
+    Content = "BeeHiveHub loaded (Miso UI).",
     Duration = 5
 })
