@@ -1,10 +1,10 @@
--- BeeHiveHub - Miso UI Edition by Cheeky
+-- BeeHiveHub V2.2 - Rayfield Edition (Main + Visuals Tabs) by Cheeky
 
--- Load Miso UI
-local Miso = loadstring(game:HttpGet("https://raw.githubusercontent.com/InstantMiso/miso/main/source.lua"))()
+-- Load Rayfield
+local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua"))()
 
--- Create Miso Window
-local Window = Miso:CreateWindow({
+-- Create Window
+local Window = Rayfield:CreateWindow({
     Name = "BeeHiveHub",
     LoadingTitle = "BeeHiveHub",
     LoadingSubtitle = "by Cheeky",
@@ -24,9 +24,8 @@ local Tabs = {
 -- Services
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
 
 -- Remotes
 local HoneyRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
@@ -37,8 +36,8 @@ local HiveRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Fea
     :WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
 
 local flowerList = {"AquilegiaCoerulea","Bamboo","Bluebell","Cactus","Clover","Dahlia","Daisy",
-                    "FireBlossom","KniphofiaUvaria","Lavender","Lily","MorningGlory","RedRose",
-                    "Sunflower","Tulip","VenusFlyTrap"}
+    "FireBlossom","KniphofiaUvaria","Lavender","Lily","MorningGlory","RedRose",
+    "Sunflower","Tulip","VenusFlyTrap"}
 
 -- ===== Utility Function: Get Player Plot =====
 local function getPlayerPlot()
@@ -58,7 +57,7 @@ local mainTab = Tabs.Main
 
 -- Sell
 local sellDelay = 5
-local loopSell = false
+local loopSell, sellTask = false, nil
 mainTab:CreateSlider({
     Name = "Sell Delay (s)",
     Range = {1,60},
@@ -73,103 +72,55 @@ mainTab:CreateToggle({
     Callback = function(state)
         loopSell = state
         if loopSell then
-            task.spawn(function()
+            sellTask = task.spawn(function()
                 while loopSell do
-                    pcall(function()
-                        HoneyRemote:FireServer("SellHoney","Honey")
-                    end)
+                    pcall(function() HoneyRemote:FireServer("SellHoney","Honey") end)
                     task.wait(sellDelay)
                 end
             end)
+        else
+            if sellTask then task.cancel(sellTask) end
         end
     end
 })
 
--- Auto Buy Flowers
-local selectedFlowers = {} -- table or list depending on UI
-local loopBuy = false
-local buyDelay = 30 -- fixed 30 seconds as requested
-
--- Helper to normalize selection into an array of names
-local function normalizeSelection(sel)
-    if not sel then return {} end
-    -- If sel is a table of strings (array-style), return copy
-    local t = {}
-    local isArray = true
-    local idx = 1
-    for k,v in pairs(sel) do
-        if type(k) ~= "number" then isArray = false break end
-        idx = idx + 1
-    end
-    if isArray then
-        for _,v in ipairs(sel) do
-            if type(v) == "string" then table.insert(t, v) end
-        end
-        return t
-    end
-    -- If sel is a map (name -> bool), collect keys with truthy value
-    for k,v in pairs(sel) do
-        if v and type(k) == "string" then table.insert(t, k) end
-    end
-    return t
-end
-
--- Create Dropdown for Flower Selection
-local flowerDropdown = mainTab:CreateDropdown({
-    Name = "Select Flowers to Auto Buy",
-    Options = flowerList,
-    CurrentOption = selectedFlowers,
-    MultipleOptions = true,
-    Flag = "SelectedFlowers",
-    Callback = function(options)
-        selectedFlowers = options
-    end
+-- Buy
+local buyDelay = 5
+local loopBuy, buyTask = false, nil
+mainTab:CreateSlider({
+    Name = "Buy Delay (s)",
+    Range = {1,60},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = buyDelay,
+    Callback = function(value) buyDelay = value end
 })
-
--- Auto-buy loop toggle (buys 10 of each selected flower every 30s)
 mainTab:CreateToggle({
-    Name = "Auto Buy Selected Flowers x10 (every 30s)",
+    Name = "Auto Buy Flowers x10",
     CurrentValue = false,
     Callback = function(state)
         loopBuy = state
         if loopBuy then
-            task.spawn(function()
+            buyTask = task.spawn(function()
                 while loopBuy do
-                    local chosen = {}
-                    -- ensure selectedFlowers is an array of strings
-                    if type(selectedFlowers) == "table" then
-                        -- if it's an array-style table, use it
-                        for _,v in ipairs(selectedFlowers) do
-                            if type(v) == "string" then table.insert(chosen, v) end
-                        end
-                        -- if no array entries found, also accept map style
-                        if #chosen == 0 then
-                            for k,v in pairs(selectedFlowers) do
-                                if v and type(k) == "string" then table.insert(chosen, k) end
-                            end
-                        end
-                    end
-
-                    if #chosen > 0 then
-                        for _, flowerName in ipairs(chosen) do
-                            for i = 1, 10 do
-                                pcall(function()
-                                    FlowerRemote:FireServer("BuyFlower", flowerName)
-                                end)
-                                task.wait(0.05)
-                            end
+                    for _, flowerName in ipairs(flowerList) do
+                        for i = 1, 10 do
+                            pcall(function() FlowerRemote:FireServer("BuyFlower", flowerName) end)
+                            task.wait(0.05)
                         end
                     end
                     task.wait(buyDelay)
                 end
             end)
+        else
+            if buyTask then task.cancel(buyTask) end
         end
     end
 })
 
 -- Extract
 local extractDelay = 5
-local loopExtract = false
+local loopExtract, extractTask = false, nil
 mainTab:CreateSlider({
     Name = "Extract Delay (s)",
     Range = {1,60},
@@ -184,7 +135,7 @@ mainTab:CreateToggle({
     Callback = function(state)
         loopExtract = state
         if loopExtract then
-            task.spawn(function()
+            extractTask = task.spawn(function()
                 while loopExtract do
                     local plot = getPlayerPlot()
                     if plot and plot:FindFirstChild("Hives") then
@@ -195,14 +146,14 @@ mainTab:CreateToggle({
                             end
                         end
                         if #builtHives > 0 then
-                            pcall(function()
-                                HiveRemote:FireServer("ExtractHoney", builtHives)
-                            end)
+                            pcall(function() HiveRemote:FireServer("ExtractHoney", builtHives) end)
                         end
                     end
                     task.wait(extractDelay)
                 end
             end)
+        else
+            if extractTask then task.cancel(extractTask) end
         end
     end
 })
@@ -210,37 +161,47 @@ mainTab:CreateToggle({
 -- ===== Visuals Tab: Anti-Lag (Bees Only) =====
 local visualsTab = Tabs.Visuals
 local antiLagActive = false
+local originalStates = {}
 
 visualsTab:CreateToggle({
     Name = "Anti-Lag (Bees Only)",
     CurrentValue = false,
     Callback = function(state)
         antiLagActive = state
-        if antiLagActive then
-            local plot = getPlayerPlot()
-            if plot then
-                for _, part in pairs(plot:GetDescendants()) do
-                    if part.Name == "FlowerRenderer" and (part:IsA("Script") or part:IsA("LocalScript")) then
+        local plot = getPlayerPlot()
+        if plot then
+            for _, part in pairs(plot:GetDescendants()) do
+                if state then
+                    if part:IsA("Script") or part:IsA("LocalScript") and part.Name == "FlowerRenderer" then
                         part.Disabled = true
                     elseif part:IsA("ParticleEmitter") then
+                        originalStates[part] = part.Enabled
                         part.Enabled = false
                     elseif part:IsA("Accessory") and part:FindFirstChild("Handle") then
+                        originalStates[part] = part.Handle.Transparency
                         part.Handle.Transparency = 1
                     elseif part:IsA("Motor6D") then
                         part:Destroy()
                     end
+                else
+                    -- Restore
+                    if part:IsA("ParticleEmitter") and originalStates[part] ~= nil then
+                        part.Enabled = originalStates[part]
+                    elseif part:IsA("Accessory") and part:FindFirstChild("Handle") and originalStates[part] ~= nil then
+                        part.Handle.Transparency = originalStates[part]
+                    end
                 end
             end
-            Miso:Notify({Title="BeeHiveHub", Content="Anti-Lag enabled!", Duration=4})
+            Rayfield:Notify({Title="BeeHiveHub", Content="Anti-Lag " .. (state and "enabled" or "disabled") .. "!", Duration=4})
         else
-            Miso:Notify({Title="BeeHiveHub", Content="Anti-Lag disabled — rejoin to restore visuals.", Duration=4})
+            Rayfield:Notify({Title="BeeHiveHub", Content="No plot found for Anti-Lag.", Duration=4})
         end
     end
 })
 
 -- Final Notification
-Miso:Notify({
+Rayfield:Notify({
     Title = "BeeHiveHub",
-    Content = "BeeHiveHub loaded (Miso UI).",
+    Content = "Main + Visuals tabs loaded successfully!",
     Duration = 5
 })
