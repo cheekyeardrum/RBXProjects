@@ -85,31 +85,52 @@ mainTab:CreateToggle({
     end
 })
 
--- Buy
+-- ===== Auto Buy Flowers (with Dropdown Selection) =====
+local selectedFlowers = {}
 local buyDelay = 5
 local loopBuy = false
+
+-- Slider for delay
 mainTab:CreateSlider({
     Name = "Buy Delay (s)",
     Range = {1,60},
     Increment = 1,
     Suffix = "s",
     CurrentValue = buyDelay,
-    Callback = function(value) buyDelay = value end
+    Callback = function(value)
+        buyDelay = value
+    end
 })
+
+-- Dropdown for selecting flowers
+mainTab:CreateDropdown({
+    Name = "Select Flowers to Buy",
+    Options = flowerList,
+    MultiSelection = true,
+    CurrentOption = {},
+    Flag = "SelectedFlowers",
+    Callback = function(option)
+        selectedFlowers = option
+    end
+})
+
+-- Toggle for loop
 mainTab:CreateToggle({
-    Name = "Auto Buy Flowers x10",
+    Name = "Auto Buy Selected Flowers x10",
     CurrentValue = false,
     Callback = function(state)
         loopBuy = state
         if loopBuy then
             task.spawn(function()
                 while loopBuy do
-                    for _, flowerName in ipairs(flowerList) do
-                        for i = 1, 10 do
-                            pcall(function()
-                                FlowerRemote:FireServer("BuyFlower", flowerName)
-                            end)
-                            task.wait(0.05)
+                    if #selectedFlowers > 0 then
+                        for _, flowerName in ipairs(selectedFlowers) do
+                            for i = 1, 10 do
+                                pcall(function()
+                                    FlowerRemote:FireServer("BuyFlower", flowerName)
+                                end)
+                                task.wait(0.05)
+                            end
                         end
                     end
                     task.wait(buyDelay)
