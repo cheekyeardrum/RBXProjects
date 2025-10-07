@@ -85,18 +85,18 @@ mainTab:CreateToggle({
     end
 })
 
--- ===== Auto Buy Flowers (Multi-Select + 10s Loop) =====
+-- ===== Auto Buy Flowers (Proper Multi-Select + 10s Loop) =====
 local selectedFlowers = {}
 local loopBuy = false
-local buyDelay = 10 -- seconds between loops
+local buyDelay = 10 -- seconds
 
 mainTab:CreateDropdown({
     Name = "Select Flowers to Auto Buy",
     Options = flowerList,
-    MultiSelection = true,
-    CurrentOption = {},
-    Callback = function(options)
-        selectedFlowers = options
+    MultiSelection = true, -- ✅ allows selecting more than one
+    CurrentOption = {}, -- ✅ must start as an empty table
+    Callback = function(selected)
+        selectedFlowers = selected -- Table of selected flower names
     end
 })
 
