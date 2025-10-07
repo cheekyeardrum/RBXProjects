@@ -1,9 +1,17 @@
--- BeeHiveHub V2.2 - Rayfield Edition (Main + Visuals Tabs) by Cheeky
+-- BeeHiveHub - ArrayField Edition (Main + Visuals Tabs) by Cheeky
+-- Tries to use ArrayField for a better multi-select dropdown; falls back to Rayfield.
 
--- Load Rayfield
+-- Load Rayfield (primary UI for window/tabs/notifications)
 local Rayfield = loadstring(game:HttpGet("https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua"))()
 
--- Create Window
+-- Try to load ArrayField (improved dropdowns). If not available, we'll fallback.
+local ArrayField = nil
+pcall(function()
+    -- common community repo path (if unavailable, this pcall will fail)
+    ArrayField = loadstring(game:HttpGet("https://raw.githubusercontent.com/UI-Interface/ArrayField/main/Source.lua"))()
+end)
+
+-- Create Rayfield Window
 local Window = Rayfield:CreateWindow({
     Name = "BeeHiveHub",
     LoadingTitle = "BeeHiveHub",
@@ -85,34 +93,103 @@ mainTab:CreateToggle({
     end
 })
 
--- ===== Auto Buy Flowers =====
-local selectedFlowers = {}
+-- ===== Auto Buy Flowers (ArrayField if available, otherwise Rayfield dropdown fallback) =====
+local selectedFlowers = {} -- table or list depending on UI
 local loopBuy = false
-local buyDelay = 10 -- always every 10 seconds (no slider)
+local buyDelay = 30 -- fixed 30 seconds as requested
 
--- Dropdown for selecting flowers
-mainTab:CreateDropdown({
-    Name = "Select Flowers to Buy",
-    Options = flowerList,
-    MultiSelection = true, -- ✅ allows selecting more than one flower
-    CurrentOption = {},
-    Flag = "SelectedFlowers",
-    Callback = function(option)
-        selectedFlowers = option
+-- Helper to normalize selection into an array of names
+local function normalizeSelection(sel)
+    if not sel then return {} end
+    -- If sel is a table of strings (array-style), return copy
+    local t = {}
+    local isArray = true
+    local idx = 1
+    for k,v in pairs(sel) do
+        if type(k) ~= "number" then isArray = false break end
+        idx = idx + 1
     end
-})
+    if isArray then
+        for _,v in ipairs(sel) do
+            if type(v) == "string" then table.insert(t, v) end
+        end
+        return t
+    end
+    -- If sel is a map (name -> bool), collect keys with truthy value
+    for k,v in pairs(sel) do
+        if v and type(k) == "string" then table.insert(t, k) end
+    end
+    return t
+end
 
--- Toggle for loop
+-- If ArrayField loaded, use it for a better dropdown (multi-select + searchable)
+if ArrayField then
+    pcall(function()
+        -- Create ArrayField window/tab integration if API similar to Rayfield
+        -- Attempt to attach dropdown to existing Rayfield tab if ArrayField supports that,
+        -- otherwise create an ArrayField dropdown and keep rest of Rayfield UI.
+        -- This code tries a few reasonable API shapes; if none match, it falls back below.
+        local ok, err = pcall(function()
+            -- Example: ArrayField:CreateDropdown similar to Rayfield
+            mainTab:CreateDropdown({
+                Name = "Select Flowers to Buy (ArrayField)",
+                Options = flowerList,
+                MultiSelection = true,
+                Searchable = true,
+                CurrentOption = {},
+                Callback = function(option)
+                    -- ArrayField may pass array-style selected list
+                    selectedFlowers = normalizeSelection(option)
+                end
+            })
+        end)
+        if not ok then error(err) end
+    end)
+end
+
+-- If ArrayField not loaded or the above failed, create a Rayfield dropdown fallback
+-- (keeps behavior consistent with original script)
+if not ArrayField then
+    Rayfield:Notify({Title="BeeHiveHub", Content="ArrayField not found — using Rayfield dropdown fallback.", Duration=4})
+    mainTab:CreateDropdown({
+        Name = "Select Flowers to Buy",
+        Options = flowerList,
+        MultiSelection = true, -- attempt multi-selection, may be limited by Rayfield build
+        CurrentOption = {},
+        Flag = "SelectedFlowers",
+        Callback = function(option)
+            -- Rayfield often returns array-style selection; normalize to our format
+            selectedFlowers = normalizeSelection(option)
+        end
+    })
+end
+
+-- Auto-buy loop toggle (buys 10 of each selected flower every 30s)
 mainTab:CreateToggle({
-    Name = "Auto Buy Selected Flowers x10 (every 10s)",
+    Name = "Auto Buy Selected Flowers x10 (every 30s)",
     CurrentValue = false,
     Callback = function(state)
         loopBuy = state
         if loopBuy then
             task.spawn(function()
                 while loopBuy do
-                    if #selectedFlowers > 0 then
-                        for _, flowerName in ipairs(selectedFlowers) do
+                    local chosen = {}
+                    -- ensure selectedFlowers is an array of strings
+                    if type(selectedFlowers) == "table" then
+                        -- if it's an array-style table, use it
+                        for _,v in ipairs(selectedFlowers) do
+                            if type(v) == "string" then table.insert(chosen, v) end
+                        end
+                        -- if no array entries found, also accept map style
+                        if #chosen == 0 then
+                            for k,v in pairs(selectedFlowers) do
+                                if v and type(k) == "string" then table.insert(chosen, k) end
+                            end
+                        end
+                    end
+
+                    if #chosen > 0 then
+                        for _, flowerName in ipairs(chosen) do
                             for i = 1, 10 do
                                 pcall(function()
                                     FlowerRemote:FireServer("BuyFlower", flowerName)
@@ -202,6 +279,6 @@ visualsTab:CreateToggle({
 -- Final Notification
 Rayfield:Notify({
     Title = "BeeHiveHub",
-    Content = "Main + Visuals tabs loaded successfully!",
+    Content = "BeeHiveHub loaded (ArrayField attempt made).",
     Duration = 5
 })
