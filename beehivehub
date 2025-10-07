@@ -85,72 +85,46 @@ mainTab:CreateToggle({
     end
 })
 
--- ===== Auto Buy Flowers (Multi-Select inside Rayfield + 10s Loop) =====
+-- ===== Auto Buy Flowers (with Dropdown Selection) =====
 local selectedFlowers = {}
+local buyDelay = 5
 local loopBuy = false
-local buyDelay = 10 -- seconds
 
-local sectionExpanded = false
-local flowerSectionObjects = {}
-
--- Create main button to show/hide flower list
-local flowerDropdownButton = mainTab:CreateButton({
-    Name = "Show/Hide Flower List",
-    Callback = function()
-        sectionExpanded = not sectionExpanded
-
-        if sectionExpanded then
-            Rayfield:Notify({
-                Title = "BeeHiveHub",
-                Content = "Flower list expanded.",
-                Duration = 2
-            })
-            -- Create toggles for each flower
-            for _, flowerName in ipairs(flowerList) do
-                local toggle = mainTab:CreateToggle({
-                    Name = flowerName,
-                    CurrentValue = selectedFlowers[flowerName] or false,
-                    Callback = function(state)
-                        selectedFlowers[flowerName] = state
-                    end
-                })
-                table.insert(flowerSectionObjects, toggle)
-            end
-        else
-            -- Collapse the section and remove toggles
-            for _, toggle in ipairs(flowerSectionObjects) do
-                if toggle.SetVisible then
-                    toggle:SetVisible(false)
-                elseif toggle.Instance then
-                    toggle.Instance:Destroy()
-                end
-            end
-            table.clear(flowerSectionObjects)
-            Rayfield:Notify({
-                Title = "BeeHiveHub",
-                Content = "Flower list hidden.",
-                Duration = 2
-            })
-        end
+-- Slider for delay
+mainTab:CreateSlider({
+    Name = "Buy Delay (s)",
+    Range = {1,60},
+    Increment = 1,
+    Suffix = "s",
+    CurrentValue = buyDelay,
+    Callback = function(value)
+        buyDelay = value
     end
 })
 
--- Toggle for auto-buy loop
+-- Dropdown for selecting flowers
+mainTab:CreateDropdown({
+    Name = "Select Flowers to Buy",
+    Options = flowerList,
+    MultiSelection = true,
+    CurrentOption = {},
+    Flag = "SelectedFlowers",
+    Callback = function(option)
+        selectedFlowers = option
+    end
+})
+
+-- Toggle for loop
 mainTab:CreateToggle({
-    Name = "Auto Buy Selected Flowers x10 (every 10s)",
+    Name = "Auto Buy Selected Flowers x10",
     CurrentValue = false,
     Callback = function(state)
         loopBuy = state
         if loopBuy then
             task.spawn(function()
                 while loopBuy do
-                    local chosen = {}
-                    for name, active in pairs(selectedFlowers) do
-                        if active then table.insert(chosen, name) end
-                    end
-
-                    if #chosen > 0 then
-                        for _, flowerName in ipairs(chosen) do
+                    if #selectedFlowers > 0 then
+                        for _, flowerName in ipairs(selectedFlowers) do
                             for i = 1, 10 do
                                 pcall(function()
                                     FlowerRemote:FireServer("BuyFlower", flowerName)
