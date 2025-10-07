@@ -1,0 +1,298 @@
+-- CheekyUi
+pcall(function()
+    local existing = game:GetService('CoreGui'):FindFirstChild('CheekyUi')
+    if existing then existing:Destroy() end
+end)
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+
+local Library = {}
+local Player = Players.LocalPlayer
+local Mouse = Player:GetMouse()
+
+function Library:Window(title)
+    local ui = Instance.new("ScreenGui")
+    ui.Name = "CheekyUi"
+    ui.Parent = CoreGui
+    ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ui.IgnoreGuiInset = true
+    ui.ResetOnSpawn = false
+
+    -- Main Frame
+    local Main = Instance.new("Frame")
+    Main.Name = "Main"
+    Main.Parent = ui
+    Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Main.BorderSizePixel = 0
+    Main.Position = UDim2.new(0.377, 0, 0.368, 0)
+    Main.Size = UDim2.new(0, 470, 0, 283)
+    Main.Active = true
+    Main.Selectable = true
+
+    -- Draggable
+    local dragging, dragInput, dragStart, startPos = false
+    local function updateInput(input)
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    Main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Main.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    Main.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then updateInput(input) end
+    end)
+
+    -- Corner
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 6)
+    UICorner.Parent = Main
+
+    -- Shadow
+    local Shadow = Instance.new("ImageLabel")
+    Shadow.Name = "Shadow"
+    Shadow.Parent = Main
+    Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    Shadow.BackgroundTransparency = 1
+    Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Shadow.Size = UDim2.new(1, 30, 1, 30)
+    Shadow.ZIndex = 0
+    Shadow.Image = "rbxassetid://5554236805"
+    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    Shadow.ScaleType = Enum.ScaleType.Slice
+    Shadow.SliceCenter = Rect.new(23, 23, 277, 277)
+
+    -- Top Bar
+    local Top = Instance.new("Frame")
+    Top.Name = "Top"
+    Top.Parent = Main
+    Top.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+    Top.BorderSizePixel = 0
+    Top.Size = UDim2.new(1, 0, 0, 34)
+    local TopCorner = Instance.new("UICorner")
+    TopCorner.CornerRadius = UDim.new(0, 6)
+    TopCorner.Parent = Top
+
+    -- Logo
+    local Logo = Instance.new("ImageLabel")
+    Logo.Name = "Logo"
+    Logo.Parent = Top
+    Logo.AnchorPoint = Vector2.new(0, 0.5)
+    Logo.BackgroundTransparency = 1
+    Logo.Position = UDim2.new(0, 4, 0.5, 0)
+    Logo.Size = UDim2.new(0, 26, 0, 30)
+    Logo.Image = "http://www.roblox.com/asset/?id=7803241868"
+    Logo.ImageColor3 = Color3.fromRGB(232, 17, 85)
+
+    -- Title
+    local GameName = Instance.new("TextLabel")
+    GameName.Name = "GameName"
+    GameName.Parent = Top
+    GameName.AnchorPoint = Vector2.new(0, 0.5)
+    GameName.BackgroundTransparency = 1
+    GameName.Position = UDim2.new(0, 32, 0.5, 0)
+    GameName.Size = UDim2.new(0, 165, 0, 22)
+    GameName.Font = Enum.Font.Gotham
+    GameName.Text = title or "Game Name"
+    GameName.TextColor3 = Color3.fromRGB(232, 17, 85)
+    GameName.TextSize = 14
+    GameName.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Close Button
+    local Close = Instance.new("ImageButton")
+    Close.Name = "Close"
+    Close.Parent = Top
+    Close.AnchorPoint = Vector2.new(1, 0.5)
+    Close.BackgroundTransparency = 1
+    Close.Position = UDim2.new(1, -6, 0.5, 0)
+    Close.Size = UDim2.new(0, 20, 0, 20)
+    Close.Image = "http://www.roblox.com/asset/?id=7755372427"
+    Close.ImageColor3 = Color3.fromRGB(199, 199, 199)
+    Close.MouseButton1Click:Connect(function() ui:Destroy() end)
+    for _, btn in pairs({Close}) do
+        btn.MouseEnter:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+        end)
+        btn.MouseLeave:Connect(function()
+            TweenService:Create(btn, TweenInfo.new(0.2), {ImageColor3 = Color3.fromRGB(166, 166, 166)}):Play()
+        end)
+    end
+
+    -- Tabs Container
+    local Tabs = Instance.new("Frame")
+    Tabs.Name = "Tabs"
+    Tabs.Parent = Main
+    Tabs.BackgroundColor3 = Color3.fromRGB(33, 33, 33)
+    Tabs.BorderSizePixel = 0
+    Tabs.Position = UDim2.new(0, 0, 0, 35)
+    Tabs.Size = UDim2.new(0, 122, 1, -35)
+    local TabsCorner = Instance.new("UICorner")
+    TabsCorner.CornerRadius = UDim.new(0, 6)
+    TabsCorner.Parent = Tabs
+
+    local TabsContainer = Instance.new("Frame")
+    TabsContainer.Name = "TabsContainer"
+    TabsContainer.Parent = Tabs
+    TabsContainer.BackgroundTransparency = 1
+    TabsContainer.Size = UDim2.new(1, 0, 1, 0)
+    local TabsList = Instance.new("UIListLayout")
+    TabsList.Parent = TabsContainer
+    TabsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    TabsList.SortOrder = Enum.SortOrder.LayoutOrder
+    TabsList.Padding = UDim.new(0, 5)
+    local TabsPadding = Instance.new("UIPadding")
+    TabsPadding.Parent = TabsContainer
+    TabsPadding.PaddingTop = UDim.new(0, 5)
+
+    -- Pages
+    local Pages = Instance.new("Frame")
+    Pages.Name = "Pages"
+    Pages.Parent = Main
+    Pages.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Pages.BorderSizePixel = 0
+    Pages.Position = UDim2.new(0, 130, 0, 42)
+    Pages.Size = UDim2.new(1, -138, 1, -50)
+    local PagesCorner = Instance.new("UICorner")
+    PagesCorner.CornerRadius = UDim.new(0, 6)
+    PagesCorner.Parent = Pages
+
+    -- Tab Functions
+    local TabFunctions = {}
+    function TabFunctions:Tab(tabInfo)
+        local title, icon = (type(tabInfo)=="table" and tabInfo[1]) or tabInfo, (type(tabInfo)=="table" and tabInfo[2]) or nil
+
+        local TabButton = Instance.new("TextButton")
+        TabButton.Name = "TabButton"
+        TabButton.Parent = TabsContainer
+        TabButton.BackgroundTransparency = 1
+        TabButton.Size = UDim2.new(1, -12, 0, 30)
+        TabButton.AutoButtonColor = false
+        TabButton.Text = ""
+        TabButton.Font = Enum.Font.Gotham
+        TabButton.TextSize = 14
+
+        local TabCorner = Instance.new("UICorner")
+        TabCorner.CornerRadius = UDim.new(0, 6)
+        TabCorner.Parent = TabButton
+
+        local TabContent = Instance.new("Frame")
+        TabContent.Name = "TabContent"
+        TabContent.Parent = TabButton
+        TabContent.BackgroundTransparency = 1
+        TabContent.Size = UDim2.new(1, 0, 1, 0)
+
+        local TextLabel = Instance.new("TextLabel")
+        TextLabel.Name = "TextLabel"
+        TextLabel.Parent = TabContent
+        TextLabel.BackgroundTransparency = 1
+        TextLabel.Size = UDim2.new(1, 0, 1, 0)
+        TextLabel.Font = Enum.Font.Gotham
+        TextLabel.Text = title
+        TextLabel.TextColor3 = Color3.fromRGB(72,72,72)
+        TextLabel.TextSize = 14
+        TextLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+        if icon then
+            local Icon = Instance.new("ImageLabel")
+            Icon.Name = "Icon"
+            Icon.Parent = TabContent
+            Icon.BackgroundTransparency = 1
+            Icon.Position = UDim2.new(0, 5, 0.5, -10)
+            Icon.Size = UDim2.new(0, 20, 0, 20)
+            Icon.Image = icon
+            Icon.ImageColor3 = Color3.fromRGB(232, 17, 85)
+            TextLabel.Position = UDim2.new(0, 25, 0, 0)
+            TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+        end
+
+        -- Page
+        local Page = Instance.new("ScrollingFrame")
+        Page.Name = "Page"
+        Page.Visible = false
+        Page.Parent = Pages
+        Page.Active = true
+        Page.BackgroundTransparency = 1
+        Page.BorderSizePixel = 0
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.CanvasPosition = Vector2.new(0,0)
+        Page.ScrollBarThickness = 2
+        Page.ScrollBarImageColor3 = Color3.fromRGB(255,24,101)
+        local PageList = Instance.new("UIListLayout")
+        PageList.Parent = Page
+        PageList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        PageList.SortOrder = Enum.SortOrder.LayoutOrder
+        PageList.Padding = UDim.new(0,6)
+        local PagePadding = Instance.new("UIPadding")
+        PagePadding.Parent = Page
+        PagePadding.PaddingTop = UDim.new(0,5)
+        PageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+            Page.CanvasSize = UDim2.new(0,0,0,PageList.AbsoluteContentSize.Y)
+        end)
+
+        -- Tab button click
+        TabButton.MouseButton1Click:Connect(function()
+            for _,v in next, Pages:GetChildren() do
+                if v:IsA("ScrollingFrame") then v.Visible = false end
+            end
+            Page.Visible = true
+            for _,v in next, TabsContainer:GetChildren() do
+                if v.Name == "TabButton" then
+                    TweenService:Create(v, TweenInfo.new(0.2), {BackgroundTransparency=1}):Play()
+                    if v:FindFirstChild("TabContent") and v.TabContent:FindFirstChild("TextLabel") then
+                        TweenService:Create(v.TabContent.TextLabel, TweenInfo.new(0.2), {TextColor3=Color3.fromRGB(72,72,72)}):Play()
+                    end
+                end
+            end
+            TweenService:Create(TabButton, TweenInfo.new(0.2), {BackgroundTransparency=0.6}):Play()
+            TweenService:Create(TextLabel, TweenInfo.new(0.2), {TextColor3=Color3.fromRGB(255,255,255)}):Play()
+        end)
+
+        -- Default first tab
+        if #TabsContainer:GetChildren() == 1 then
+            Page.Visible = true
+            TweenService:Create(TabButton, TweenInfo.new(0.2), {BackgroundTransparency=0.6}):Play()
+            TweenService:Create(TextLabel, TweenInfo.new(0.2), {TextColor3=Color3.fromRGB(255,255,255)}):Play()
+        end
+
+        -- Element functions container
+        local Elements = {}
+
+        -- Example Button
+        function Elements:Button(text, callback)
+            local Button = Instance.new("TextButton")
+            Button.Name = "Button"
+            Button.Parent = Page
+            Button.BackgroundColor3 = Color3.fromRGB(134,10,49)
+            Button.BorderSizePixel = 0
+            Button.Size = UDim2.new(1,-6,0,34)
+            Button.Font = Enum.Font.Gotham
+            Button.Text = text or "Button"
+            Button.TextColor3 = Color3.fromRGB(255,255,255)
+            Button.TextSize = 14
+            local Corner = Instance.new("UICorner", Button)
+            Corner.CornerRadius = UDim.new(0,6)
+            Button.MouseButton1Click:Connect(callback)
+        end
+
+        return Elements
+    end
+
+    return TabFunctions
+end
+
+return Library
