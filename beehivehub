@@ -85,67 +85,87 @@ mainTab:CreateToggle({
     end
 })
 
--- ===== Auto Buy Flowers (Dropdown-Style Multi-Select + 10s Loop) =====
+-- ===== Auto Buy Flowers (Multi-Select inside Rayfield + 10s Loop) =====
 local selectedFlowers = {}
 local loopBuy = false
 local buyDelay = 10 -- seconds
-local PlayerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
 
-local function openFlowerSelector()
-    task.spawn(function()
-        -- destroy old window if already open
-        local existing = PlayerGui:FindFirstChild("BeeHiveFlowerDropdown")
-        if existing then existing:Destroy() end
+local sectionExpanded = false
+local flowerSectionObjects = {}
 
-        -- make GUI
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "BeeHiveFlowerDropdown"
-        gui.ResetOnSpawn = false
-        gui.Parent = PlayerGui
+-- Create main button to show/hide flower list
+local flowerDropdownButton = mainTab:CreateButton({
+    Name = "Show/Hide Flower List",
+    Callback = function()
+        sectionExpanded = not sectionExpanded
 
-        local frame = Instance.new("Frame", gui)
-        frame.Size = UDim2.new(0, 300, 0, 400)
-        frame.Position = UDim2.new(0.5, -150, 0.5, -200)
-        frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-        frame.BorderSizePixel = 0
-        frame.Active = true
-        frame.Draggable = true
+        if sectionExpanded then
+            Rayfield:Notify({
+                Title = "BeeHiveHub",
+                Content = "Flower list expanded.",
+                Duration = 2
+            })
+            -- Create toggles for each flower
+            for _, flowerName in ipairs(flowerList) do
+                local toggle = mainTab:CreateToggle({
+                    Name = flowerName,
+                    CurrentValue = selectedFlowers[flowerName] or false,
+                    Callback = function(state)
+                        selectedFlowers[flowerName] = state
+                    end
+                })
+                table.insert(flowerSectionObjects, toggle)
+            end
+        else
+            -- Collapse the section and remove toggles
+            for _, toggle in ipairs(flowerSectionObjects) do
+                if toggle.SetVisible then
+                    toggle:SetVisible(false)
+                elseif toggle.Instance then
+                    toggle.Instance:Destroy()
+                end
+            end
+            table.clear(flowerSectionObjects)
+            Rayfield:Notify({
+                Title = "BeeHiveHub",
+                Content = "Flower list hidden.",
+                Duration = 2
+            })
+        end
+    end
+})
 
-        local title = Instance.new("TextLabel", frame)
-        title.Size = UDim2.new(1, 0, 0, 30)
-        title.BackgroundTransparency = 1
-        title.Text = "Select Flowers (click to toggle)"
-        title.TextColor3 = Color3.new(1, 1, 1)
-        title.Font = Enum.Font.SourceSansBold
-        title.TextSize = 18
+-- Toggle for auto-buy loop
+mainTab:CreateToggle({
+    Name = "Auto Buy Selected Flowers x10 (every 10s)",
+    CurrentValue = false,
+    Callback = function(state)
+        loopBuy = state
+        if loopBuy then
+            task.spawn(function()
+                while loopBuy do
+                    local chosen = {}
+                    for name, active in pairs(selectedFlowers) do
+                        if active then table.insert(chosen, name) end
+                    end
 
-        local container = Instance.new("ScrollingFrame", frame)
-        container.Size = UDim2.new(1, -10, 1, -80)
-        container.Position = UDim2.new(0, 5, 0, 35)
-        container.CanvasSize = UDim2.new(0, 0, 0, 0)
-        container.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        container.ScrollBarThickness = 6
-        container.BackgroundTransparency = 1
-
-        local layout = Instance.new("UIListLayout", container)
-        layout.Padding = UDim.new(0, 5)
-        layout.SortOrder = Enum.SortOrder.LayoutOrder
-
-        for _, flowerName in ipairs(flowerList) do
-            local btn = Instance.new("TextButton", container)
-            btn.Size = UDim2.new(1, -10, 0, 30)
-            btn.Text = flowerName
-            btn.Font = Enum.Font.SourceSans
-            btn.TextSize = 16
-            btn.BorderSizePixel = 0
-            btn.BackgroundColor3 = selectedFlowers[flowerName] and Color3.fromRGB(0,150,0) or Color3.fromRGB(70,70,70)
-            btn.TextColor3 = Color3.fromRGB(255,255,255)
-
-            btn.MouseButton1Click:Connect(function()
-                selectedFlowers[flowerName] = not selectedFlowers[flowerName]
-                btn.BackgroundColor3 = selectedFlowers[flowerName] and Color3.fromRGB(0,150,0) or Color3.fromRGB(70,70,70)
+                    if #chosen > 0 then
+                        for _, flowerName in ipairs(chosen) do
+                            for i = 1, 10 do
+                                pcall(function()
+                                    FlowerRemote:FireServer("BuyFlower", flowerName)
+                                end)
+                                task.wait(0.05)
+                            end
+                        end
+                    end
+                    task.wait(buyDelay)
+                end
             end)
         end
+    end
+})
+
 
         -- "Close" button
         local closeBtn = Instance.new("TextButton", frame)
