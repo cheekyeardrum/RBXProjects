@@ -735,24 +735,17 @@ function Update:Window(Config)
 		Title.TextTransparency = 0.4;
 		Title.TextSize = 14;
 		Title.TextXAlignment = Enum.TextXAlignment.Left;
-		local IDK = Instance.new("ImageLabel")
-IDK.Name = "IDK"
-IDK.Parent = TabButton
-IDK.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-IDK.BackgroundTransparency = 1
-IDK.ImageTransparency = 0.3
-IDK.Position = UDim2.new(0, 7, 0.5, 0)
-IDK.Size = UDim2.new(0, 15, 0, 15)
-IDK.AnchorPoint = Vector2.new(0, 0.5)
-
--- Safe assignment
-if img and type(img) == "string" and #img > 0 then
-    IDK.Image = img
-else
-    warn("IDK.Image not set because 'img' is invalid")
-end
-
-CreateRounded(TabButton, 6)
+		local IDK = Instance.new("ImageLabel");
+		IDK.Name = "IDK";
+		IDK.Parent = TabButton;
+		IDK.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
+		IDK.BackgroundTransparency = 1;
+		IDK.ImageTransparency = 0.3;
+		IDK.Position = UDim2.new(0, 7, 0.5, 0);
+		IDK.Size = UDim2.new(0, 15, 0, 15);
+		IDK.AnchorPoint = Vector2.new(0, 0.5);
+		IDK.Image = img;
+		CreateRounded(TabButton, 6);
 		local MainFramePage = Instance.new("ScrollingFrame");
 		MainFramePage.Name = text .. "_Page";
 		MainFramePage.Parent = PageList;
@@ -1374,8 +1367,7 @@ CreateRounded(TabButton, 6)
 			Title.Position = UDim2.new(0, 15, 0.5, 0);
 			Title.Size = UDim2.new(1, 0, 0, 30);
 			Title.Font = Enum.Font.Cartoon;
-			Title.Text = tostring(text or "")
-
+			Title.Text = text;
 			Title.AnchorPoint = Vector2.new(0, 0.5);
 			Title.TextColor3 = Color3.fromRGB(255, 255, 255);
 			Title.TextSize = 15;
@@ -1637,6 +1629,4 @@ Grad3.Parent = Sep3;
 	end;
 	return uitab;
 end;
-
 return Update;
-
