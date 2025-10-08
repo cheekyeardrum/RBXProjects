@@ -1,4 +1,5 @@
-local rawUrl = "https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui.lua"
+local rawUrl = "https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/NewUiStellar.lua
+"
 
 local function fetch(url)
     if syn and syn.request then
