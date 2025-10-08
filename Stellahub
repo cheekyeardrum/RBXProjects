@@ -169,6 +169,108 @@ General:Dropdown("Type", {"Option 1", "Option 2", "Option 3"}, nil, function(sel
 end)
 
 
+-- ===== Auto Buy Flowers (x10) =====
+General:Seperator("Auto Buy")
+
+-- Edit this list to the exact flower names used by the game
+local flowerList = {"Sunflower","Rose","Tulip"} -- <-- change as needed
+
+-- Try to find the remote in common locations (ReplicatedStorage, game, etc.)
+local FlowerRemote = nil
+do
+    local rs = game:GetService("ReplicatedStorage")
+    FlowerRemote = rs:FindFirstChild("FlowerRemote") or rs:FindFirstChild("FlowerBuy") or rs:FindFirstChild("Flower")
+    if not FlowerRemote then
+        -- fallback search (scans top-level children)
+        for _,v in pairs(game:GetChildren()) do
+            if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+                local lower = string.lower(v.Name)
+                if lower:find("flower") or lower:find("buyflower") or lower:find("flowerremote") then
+                    FlowerRemote = v
+                    break
+                end
+            end
+        end
+    end
+end
+
+if not FlowerRemote then
+    General:Label("Flower remote not found — edit FlowerRemote lookup.")
+else
+    General:Label("Auto-Buy ready (remote found).")
+end
+
+local buyDelay = 5
+local loopBuy, buyTask = false, nil
+
+-- Slider to set delay
+General:Slider("Buy Delay (s)", 1, 60, buyDelay, function(value)
+    buyDelay = value
+end)
+
+-- Toggle to enable/disable auto-buy
+General:Toggle("Auto Buy Flowers x10", nil, function(state)
+    loopBuy = state
+    if loopBuy then
+        -- spawn loop
+        buyTask = task.spawn(function()
+            while loopBuy do
+                if FlowerRemote then
+                    for _, flowerName in ipairs(flowerList) do
+                        for i = 1, 10 do
+                            pcall(function()
+                                -- signature used in your original script: FireServer("BuyFlower", flowerName)
+                                if FlowerRemote.FireServer then
+                                    FlowerRemote:FireServer("BuyFlower", flowerName)
+                                elseif FlowerRemote.InvokeServer then
+                                    FlowerRemote:InvokeServer("BuyFlower", flowerName)
+                                end
+                            end)
+                            task.wait(0.05)
+                        end
+                    end
+                else
+                    -- no remote found — notify once and stop
+                    StellarLibrary:Notify("Flower remote missing. Auto-buy stopped.", 4)
+                    loopBuy = false
+                    break
+                end
+                task.wait(buyDelay)
+            end
+        end)
+    else
+        -- stop loop safely
+        if buyTask then
+            pcall(function() task.cancel(buyTask) end)
+            buyTask = nil
+        end
+    end
+end)
+
+-- Optional: single-run button (run one buy cycle without toggling)
+General:Button("Run Buy x10 Now", function()
+    if not FlowerRemote then
+        StellarLibrary:Notify("Flower remote not found.", 3)
+        return
+    end
+    task.spawn(function()
+        for _, flowerName in ipairs(flowerList) do
+            for i = 1, 10 do
+                pcall(function()
+                    if FlowerRemote.FireServer then
+                        FlowerRemote:FireServer("BuyFlower", flowerName)
+                    elseif FlowerRemote.InvokeServer then
+                        FlowerRemote:InvokeServer("BuyFlower", flowerName)
+                    end
+                end)
+                task.wait(0.05)
+            end
+        end
+        StellarLibrary:Notify("Bought flowers x10.", 2)
+    end)
+end)
+
+
 -- Toggle
 General:Seperator("Toggle");
 General:Toggle("Type", {"Option 1", "Option 2", "Option 3"}, "Toggle with desc", function(selected)
