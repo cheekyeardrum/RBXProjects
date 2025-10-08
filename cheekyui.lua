@@ -223,110 +223,134 @@ function Update:LoadAnimation()
 	return false;
 end;
 function Update:Window(Config)
-	assert(Config.SubTitle, "v4");
+	assert(Config.SubTitle, "v4")
 	local WindowConfig = {
 		Size = Config.Size,
 		TabWidth = Config.TabWidth
-	};
-	local osfunc = {};
-	local uihide = false;
-	local abc = false;
-	local currentpage = "";
-	local keybind = keybind or Enum.KeyCode.RightControl;
-	local yoo = string.gsub(tostring(keybind), "Enum.KeyCode.", "");
-	local STELLAR = Instance.new("ScreenGui");
-	STELLAR.Name = "STELLAR";
-	STELLAR.Parent = game.CoreGui;
-	STELLAR.DisplayOrder = 999;
-	local OutlineMain = Instance.new("Frame");
-	OutlineMain.Name = "OutlineMain";
-	OutlineMain.Parent = STELLAR;
-	OutlineMain.ClipsDescendants = true;
-	OutlineMain.AnchorPoint = Vector2.new(0.5, 0.5);
-	OutlineMain.BackgroundColor3 = Color3.fromRGB(30, 30, 30);
-	OutlineMain.BackgroundTransparency = 0.4;
-	OutlineMain.Position = UDim2.new(0.5, 0, 0.45, 0);
-	OutlineMain.Size = UDim2.new(0, 0, 0, 0);
-	CreateRounded(OutlineMain, 15);
-	local Main = Instance.new("Frame");
-	Main.Name = "Main";
-	Main.Parent = OutlineMain;
-	Main.ClipsDescendants = true;
-	Main.AnchorPoint = Vector2.new(0.5, 0.5);
-	Main.BackgroundColor3 = Color3.fromRGB(24, 24, 26);
-	Main.BackgroundTransparency = 0;
-	Main.Position = UDim2.new(0.5, 0, 0.5, 0);
-	Main.Size = WindowConfig.Size;
-	OutlineMain:TweenSize(UDim2.new(0, WindowConfig.Size.X.Offset + 15, 0, WindowConfig.Size.Y.Offset + 15), "Out", "Quad", 0.4, true);
-	CreateRounded(Main, 12);
-	local BtnStroke = Instance.new("UIStroke");
-	local DragButton = Instance.new("Frame");
-	DragButton.Name = "DragButton";
-	DragButton.Parent = Main;
-	DragButton.Position = UDim2.new(1, 5, 1, 5);
-	DragButton.AnchorPoint = Vector2.new(1, 1);
-	DragButton.Size = UDim2.new(0, 15, 0, 15);
-	DragButton.BackgroundColor3 = _G.Primary;
-	DragButton.BackgroundTransparency = 1;
-	DragButton.ZIndex = 10;
-	local mouse = game.Players.LocalPlayer:GetMouse();
-	local uis = game:GetService("UserInputService");
-	local CircleDragButton = Instance.new("UICorner");
-	CircleDragButton.Name = "CircleDragButton";
-	CircleDragButton.Parent = DragButton;
-	CircleDragButton.CornerRadius = UDim.new(0, 99);
-	local Top = Instance.new("Frame");
-	Top.Name = "Top";
-	Top.Parent = Main;
-	Top.BackgroundColor3 = Color3.fromRGB(10, 10, 10);
-	Top.Size = UDim2.new(1, 0, 0, 40);
-	Top.BackgroundTransparency = 1;
-	CreateRounded(Top, 5);
-	local NameHub = Instance.new("TextLabel");
-	NameHub.Name = "NameHub";
-	NameHub.Parent = Top;
-	NameHub.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-	NameHub.BackgroundTransparency = 1;
-	NameHub.RichText = true;
-	NameHub.Position = UDim2.new(0, 15, 0.5, 0);
-	NameHub.AnchorPoint = Vector2.new(0, 0.5);
-	NameHub.Size = UDim2.new(0, 1, 0, 25);
-	NameHub.Font = Enum.Font.GothamBold;
-	NameHub.Text = "STELLAR";
-	NameHub.TextSize = 20;
-	NameHub.TextColor3 = Color3.fromRGB(255, 255, 255);
-	NameHub.TextXAlignment = Enum.TextXAlignment.Left;
-	local nameHubSize = (game:GetService("TextService")):GetTextSize(NameHub.Text, NameHub.TextSize, NameHub.Font, Vector2.new(math.huge, math.huge));
-	NameHub.Size = UDim2.new(0, nameHubSize.X, 0, 25);
-	local SubTitle = Instance.new("TextLabel");
-	SubTitle.Name = "SubTitle";
-	SubTitle.Parent = NameHub;
-	SubTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255);
-	SubTitle.BackgroundTransparency = 1;
-	SubTitle.Position = UDim2.new(0, nameHubSize.X + 8, 0.5, 0);
-	SubTitle.Size = UDim2.new(0, 1, 0, 20);
-	SubTitle.Font = Enum.Font.Cartoon;
-	SubTitle.AnchorPoint = Vector2.new(0, 0.5);
-	SubTitle.Text = Config.SubTitle;
-	SubTitle.TextSize = 15;
-	SubTitle.TextColor3 = Color3.fromRGB(150, 150, 150);
-	local SubTitleSize = (game:GetService("TextService")):GetTextSize(SubTitle.Text, SubTitle.TextSize, SubTitle.Font, Vector2.new(math.huge, math.huge));
-	SubTitle.Size = UDim2.new(0, SubTitleSize.X, 0, 25);
-	local CloseButton = Instance.new("ImageButton");
-	CloseButton.Name = "CloseButton";
-	CloseButton.Parent = Top;
-	CloseButton.BackgroundColor3 = _G.Primary;
-	CloseButton.BackgroundTransparency = 1;
-	CloseButton.AnchorPoint = Vector2.new(1, 0.5);
-	CloseButton.Position = UDim2.new(1, -15, 0.5, 0);
-	CloseButton.Size = UDim2.new(0, 20, 0, 20);
-	CloseButton.Image = "rbxassetid://7743878857";
-	CloseButton.ImageTransparency = 0;
-	CloseButton.ImageColor3 = Color3.fromRGB(245, 245, 245);
-	CreateRounded(CloseButton, 3);
-	CloseButton.MouseButton1Click:connect(function()
-		(game.CoreGui:FindFirstChild("STELLAR")).Enabled = not (game.CoreGui:FindFirstChild("STELLAR")).Enabled;
-	end);
+	}
+
+	local osfunc = {}
+	local uihide = false
+	local abc = false
+	local currentpage = ""
+	local keybind = keybind or Enum.KeyCode.RightControl
+	local yoo = string.gsub(tostring(keybind), "Enum.KeyCode.", "")
+
+	-- 🟢 Create Main ScreenGui
+	local CHEEKY = Instance.new("ScreenGui")
+	CHEEKY.Name = "CHEEKY"
+	CHEEKY.Parent = game.CoreGui
+	CHEEKY.DisplayOrder = 999
+
+	-- 🟢 Main outline and window
+	local OutlineMain = Instance.new("Frame")
+	OutlineMain.Name = "OutlineMain"
+	OutlineMain.Parent = CHEEKY
+	OutlineMain.ClipsDescendants = true
+	OutlineMain.AnchorPoint = Vector2.new(0.5, 0.5)
+	OutlineMain.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	OutlineMain.BackgroundTransparency = 0.4
+	OutlineMain.Position = UDim2.new(0.5, 0, 0.45, 0)
+	OutlineMain.Size = UDim2.new(0, 0, 0, 0)
+	CreateRounded(OutlineMain, 15)
+
+	local Main = Instance.new("Frame")
+	Main.Name = "Main"
+	Main.Parent = OutlineMain
+	Main.ClipsDescendants = true
+	Main.AnchorPoint = Vector2.new(0.5, 0.5)
+	Main.BackgroundColor3 = Color3.fromRGB(24, 24, 26)
+	Main.BackgroundTransparency = 0
+	Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+	Main.Size = WindowConfig.Size
+
+	OutlineMain:TweenSize(UDim2.new(0, WindowConfig.Size.X.Offset + 15, 0, WindowConfig.Size.Y.Offset + 15), "Out", "Quad", 0.4, true)
+	CreateRounded(Main, 12)
+
+	-- 🟢 Drag / resize controls
+	local BtnStroke = Instance.new("UIStroke")
+	local DragButton = Instance.new("Frame")
+	DragButton.Name = "DragButton"
+	DragButton.Parent = Main
+	DragButton.Position = UDim2.new(1, 5, 1, 5)
+	DragButton.AnchorPoint = Vector2.new(1, 1)
+	DragButton.Size = UDim2.new(0, 15, 0, 15)
+	DragButton.BackgroundColor3 = _G.Primary
+	DragButton.BackgroundTransparency = 1
+	DragButton.ZIndex = 10
+
+	local mouse = game.Players.LocalPlayer:GetMouse()
+	local uis = game:GetService("UserInputService")
+
+	local CircleDragButton = Instance.new("UICorner")
+	CircleDragButton.Name = "CircleDragButton"
+	CircleDragButton.Parent = DragButton
+	CircleDragButton.CornerRadius = UDim.new(0, 99)
+
+	-- 🟢 Top bar
+	local Top = Instance.new("Frame")
+	Top.Name = "Top"
+	Top.Parent = Main
+	Top.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+	Top.Size = UDim2.new(1, 0, 0, 40)
+	Top.BackgroundTransparency = 1
+	CreateRounded(Top, 5)
+
+	-- 🟢 Title
+	local NameHub = Instance.new("TextLabel")
+	NameHub.Name = "NameHub"
+	NameHub.Parent = Top
+	NameHub.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	NameHub.BackgroundTransparency = 1
+	NameHub.RichText = true
+	NameHub.Position = UDim2.new(0, 15, 0.5, 0)
+	NameHub.AnchorPoint = Vector2.new(0, 0.5)
+	NameHub.Size = UDim2.new(0, 1, 0, 25)
+	NameHub.Font = Enum.Font.GothamBold
+	NameHub.Text = "CHEEKY HUB"
+	NameHub.TextSize = 20
+	NameHub.TextColor3 = Color3.fromRGB(255, 255, 255)
+	NameHub.TextXAlignment = Enum.TextXAlignment.Left
+
+	local nameHubSize = game:GetService("TextService"):GetTextSize(NameHub.Text, NameHub.TextSize, NameHub.Font, Vector2.new(math.huge, math.huge))
+	NameHub.Size = UDim2.new(0, nameHubSize.X, 0, 25)
+
+	local SubTitle = Instance.new("TextLabel")
+	SubTitle.Name = "SubTitle"
+	SubTitle.Parent = NameHub
+	SubTitle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	SubTitle.BackgroundTransparency = 1
+	SubTitle.Position = UDim2.new(0, nameHubSize.X + 8, 0.5, 0)
+	SubTitle.Size = UDim2.new(0, 1, 0, 20)
+	SubTitle.Font = Enum.Font.Cartoon
+	SubTitle.AnchorPoint = Vector2.new(0, 0.5)
+	SubTitle.Text = Config.SubTitle
+	SubTitle.TextSize = 15
+	SubTitle.TextColor3 = Color3.fromRGB(150, 150, 150)
+
+	local SubTitleSize = game:GetService("TextService"):GetTextSize(SubTitle.Text, SubTitle.TextSize, SubTitle.Font, Vector2.new(math.huge, math.huge))
+	SubTitle.Size = UDim2.new(0, SubTitleSize.X, 0, 25)
+
+	-- 🟢 Close button
+	local CloseButton = Instance.new("ImageButton")
+	CloseButton.Name = "CloseButton"
+	CloseButton.Parent = Top
+	CloseButton.BackgroundColor3 = _G.Primary
+	CloseButton.BackgroundTransparency = 1
+	CloseButton.AnchorPoint = Vector2.new(1, 0.5)
+	CloseButton.Position = UDim2.new(1, -15, 0.5, 0)
+	CloseButton.Size = UDim2.new(0, 20, 0, 20)
+	CloseButton.Image = "rbxassetid://7743878857"
+	CloseButton.ImageTransparency = 0
+	CloseButton.ImageColor3 = Color3.fromRGB(245, 245, 245)
+	CreateRounded(CloseButton, 3)
+
+	CloseButton.MouseButton1Click:Connect(function()
+		local gui = game.CoreGui:FindFirstChild("CHEEKY")
+		if gui then
+			gui.Enabled = not gui.Enabled
+		end
+	end)
 	local ResizeButton = Instance.new("ImageButton");
 	ResizeButton.Name = "ResizeButton";
 	ResizeButton.Parent = Top;
