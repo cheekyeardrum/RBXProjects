@@ -1374,7 +1374,8 @@ CreateRounded(TabButton, 6)
 			Title.Position = UDim2.new(0, 15, 0.5, 0);
 			Title.Size = UDim2.new(1, 0, 0, 30);
 			Title.Font = Enum.Font.Cartoon;
-			Title.Text = text;
+			Title.Text = tostring(text or "")
+
 			Title.AnchorPoint = Vector2.new(0, 0.5);
 			Title.TextColor3 = Color3.fromRGB(255, 255, 255);
 			Title.TextSize = 15;
@@ -1638,3 +1639,4 @@ Grad3.Parent = Sep3;
 end;
 
 return Update;
+
