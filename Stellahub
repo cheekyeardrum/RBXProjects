@@ -1,16 +1,16 @@
-local CheekyLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui.lua"))()
+local rawUrl = "https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui.lua"
 
 local function fetch(url)
-    if syn and syn.request then -- common executor fallback
-        return syn.request({ Url = url, Method = "GET" }).Body
+    if syn and syn.request then
+        return syn.request({Url = url, Method = "GET"}).Body
     elseif http and http.request then
-        return http.request({ Url = url, Method = "GET" }).Body
+        return http.request({Url = url, Method = "GET"}).Body
     else
         return game:HttpGet(url)
     end
 end
 
-local ok, libOrErr = pcall(function()
+local ok, CheekyLibrary = pcall(function()
     local body = fetch(rawUrl)
     assert(body and #body > 0, "empty response from HTTP GET")
     local fn = assert(loadstring(body), "loadstring failed (syntax or HTML returned)")
@@ -18,12 +18,11 @@ local ok, libOrErr = pcall(function()
 end)
 
 if not ok then
-    warn("Failed to load Cheeky UI library:", libOrErr)
+    warn("Failed to load Cheeky UI library:", CheekyLibrary)
     return
 end
 
-local CheekyLibrary = libOrErr
-
+-- Optional: run loading animation if it exists
 if CheekyLibrary.LoadAnimation and CheekyLibrary:LoadAnimation() then
     CheekyLibrary:StartLoad()
     CheekyLibrary:Loaded()
@@ -37,13 +36,9 @@ local Window = CheekyLibrary:Window({
     TabWidth = 140
 })
 
--- Example tab (you can duplicate or rename this)
+-- Example tab
 -- local ExampleTab = Window:Tab("Main")
 -- ExampleTab:Label("Welcome to Cheeky Hub!")
 -- ExampleTab:Button("Example Button", function()
 --     print("Button pressed!")
 -- end)
-
--- Add your own tabs and elements below
-
--- End of Cheeky Hub Template
