@@ -1,4 +1,4 @@
-local rawUrl = "https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui.lua" -- <- replace with the actual Raw URL
+local CheekyLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui.lua"))()
 
 local function fetch(url)
     if syn and syn.request then -- common executor fallback
