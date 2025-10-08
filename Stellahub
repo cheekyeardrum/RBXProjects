@@ -1,7 +1,7 @@
 -- Cheeky Hub (Base Template)
 -- Uses your new Cheeky UI library
 
-local CheekyLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui"))()
+local CheekyLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/refs/heads/main/cheekyui"))()
 
 if CheekyLibrary:LoadAnimation() then
     CheekyLibrary:StartLoad()
