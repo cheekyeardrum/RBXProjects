@@ -1,0 +1,416 @@
+-- Services
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Player = Players.LocalPlayer
+
+-- Global Colors
+local _G = {
+    Dark = Color3.fromRGB(24,24,26),
+    Primary = Color3.fromRGB(255,0,0),
+    Third = Color3.fromRGB(255,255,255)
+}
+
+-- Helper Functions
+local function CreateRounded(inst, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,radius or 8)
+    corner.Parent = inst
+end
+
+local function MakeDraggable(Frame)
+    local dragging, dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                   startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    Frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    Frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Remotes
+local HoneyRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("HoneyUtil"):WaitForChild("RemoteEvent")
+local FlowerRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("FlowerUtil"):WaitForChild("RemoteEvent")
+local HiveRemote = ReplicatedStorage:WaitForChild("Framework"):WaitForChild("Features")
+    :WaitForChild("HoneySystem"):WaitForChild("HiveUtil"):WaitForChild("RemoteEvent")
+
+local flowerList = {"AquilegiaCoerulea","Bamboo","Bluebell","Cactus","Clover","Dahlia","Daisy",
+    "FireBlossom","KniphofiaUvaria","Lavender","Lily","MorningGlory","RedRose",
+    "Sunflower","Tulip","VenusFlyTrap"}
+
+local function getPlayerPlot()
+    local plotsFolder = workspace:FindFirstChild("Plots")
+    if not plotsFolder then return nil end
+    for _, plot in pairs(plotsFolder:GetChildren()) do
+        local owner = plot:FindFirstChild("Owner")
+        if owner and owner.Value == Player then
+            return plot
+        end
+    end
+    return nil
+end
+
+-- Main ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "CheekyUi"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main window
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 500, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+MainFrame.BackgroundColor3 = _G.Dark
+MainFrame.BackgroundTransparency = 0.2
+CreateRounded(MainFrame, 15)
+MakeDraggable(MainFrame)
+
+-- Top bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.Size = UDim2.new(1,0,0,40)
+TopBar.Position = UDim2.new(0,0,0,0)
+TopBar.BackgroundColor3 = Color3.fromRGB(20,20,22)
+CreateRounded(TopBar, 10)
+
+local HubTitle = Instance.new("TextLabel")
+HubTitle.Parent = TopBar
+HubTitle.Text = "CheekyUi Hub"
+HubTitle.Size = UDim2.new(1,0,1,0)
+HubTitle.BackgroundTransparency = 1
+HubTitle.TextColor3 = Color3.fromRGB(245,245,245)
+HubTitle.Font = Enum.Font.GothamBold
+HubTitle.TextSize = 18
+
+-- Close button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = TopBar
+CloseButton.Size = UDim2.new(0,30,0,30)
+CloseButton.Position = UDim2.new(1,-35,0.5,-15)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(245,245,245)
+CloseButton.BackgroundColor3 = _G.Primary
+CreateRounded(CloseButton,5)
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui.Enabled = false
+end)
+
+-- Minimize button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Parent = TopBar
+MinimizeButton.Size = UDim2.new(0,30,0,30)
+MinimizeButton.Position = UDim2.new(1,-70,0.5,-15)
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(245,245,245)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(70,70,70)
+CreateRounded(MinimizeButton,5)
+
+local minimized = false
+local originalPagesVisible = {}
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        -- Store original visibility
+        originalPagesVisible = {}
+        for _, page in pairs(PagesFrame:GetChildren()) do
+            if page:IsA("Frame") then
+                originalPagesVisible[page] = page.Visible
+            end
+        end
+        -- Tween to minimized
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,500,0,40)}):Play()
+        for page,_ in pairs(originalPagesVisible) do
+            page.Visible = false
+        end
+    else
+        -- Restore size and pages
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,500,0,350)}):Play()
+        for page, visible in pairs(originalPagesVisible) do
+            page.Visible = visible
+        end
+    end
+end)
+
+-- Tabs container
+local TabsFrame = Instance.new("Frame")
+TabsFrame.Parent = MainFrame
+TabsFrame.Size = UDim2.new(0,120,1,-40)
+TabsFrame.Position = UDim2.new(0,0,0,40)
+TabsFrame.BackgroundTransparency = 1
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = TabsFrame
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0,5)
+
+-- Pages container
+local PagesFrame = Instance.new("Frame")
+PagesFrame.Parent = MainFrame
+PagesFrame.Size = UDim2.new(1,-120,1,-40)
+PagesFrame.Position = UDim2.new(0,120,0,40)
+PagesFrame.BackgroundColor3 = _G.Dark
+CreateRounded(PagesFrame,10)
+
+local currentPage
+
+-- Helper to create a tab
+local function CreateTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Parent = TabsFrame
+    btn.Text = name
+    btn.Size = UDim2.new(1,0,0,35)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,38)
+    btn.TextColor3 = Color3.fromRGB(245,245,245)
+    CreateRounded(btn,5)
+
+    local page = Instance.new("Frame")
+    page.Parent = PagesFrame
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+
+    btn.MouseButton1Click:Connect(function()
+        if currentPage then currentPage.Visible = false end
+        page.Visible = true
+        currentPage = page
+    end)
+
+    return page
+end
+
+-- Tabs
+local MainTab = CreateTab("Main")
+local VisualsTab = CreateTab("Visuals")
+
+-- ===== Main Tab Features: Buy / Sell / Extract =====
+-- Sell
+local sellDelay = 5
+local loopSell, sellTask = false, nil
+local SellLabel = Instance.new("TextLabel")
+SellLabel.Parent = MainTab
+SellLabel.Text = "Sell Delay (s): "..sellDelay
+SellLabel.Size = UDim2.new(0,150,0,20)
+SellLabel.Position = UDim2.new(0,20,0,20)
+SellLabel.TextColor3 = Color3.fromRGB(245,245,245)
+SellLabel.BackgroundTransparency = 1
+
+local SellSlider = Instance.new("TextBox")
+SellSlider.Parent = MainTab
+SellSlider.Size = UDim2.new(0,150,0,20)
+SellSlider.Position = UDim2.new(0,20,0,45)
+SellSlider.BackgroundColor3 = Color3.fromRGB(35,35,38)
+SellSlider.TextColor3 = Color3.fromRGB(245,245,245)
+SellSlider.Text = tostring(sellDelay)
+CreateRounded(SellSlider,5)
+SellSlider.FocusLost:Connect(function()
+    local val = tonumber(SellSlider.Text)
+    if val then sellDelay = math.clamp(val,1,60) end
+    SellLabel.Text = "Sell Delay (s): "..sellDelay
+end)
+
+local AutoSell = Instance.new("TextButton")
+AutoSell.Parent = MainTab
+AutoSell.Size = UDim2.new(0,150,0,30)
+AutoSell.Position = UDim2.new(0,200,0,20)
+AutoSell.BackgroundColor3 = _G.Primary
+AutoSell.TextColor3 = Color3.fromRGB(245,245,245)
+AutoSell.Text = "Auto Sell: OFF"
+CreateRounded(AutoSell,5)
+AutoSell.MouseButton1Click:Connect(function()
+    loopSell = not loopSell
+    AutoSell.Text = "Auto Sell: "..(loopSell and "ON" or "OFF")
+    if loopSell then
+        sellTask = task.spawn(function()
+            while loopSell do
+                pcall(function() HoneyRemote:FireServer("SellHoney","Honey") end)
+                task.wait(sellDelay)
+            end
+        end)
+    else
+        if sellTask then task.cancel(sellTask) end
+    end
+end)
+
+-- Buy
+local buyDelay = 5
+local loopBuy, buyTask = false, nil
+local BuyLabel = Instance.new("TextLabel")
+BuyLabel.Parent = MainTab
+BuyLabel.Text = "Buy Delay (s): "..buyDelay
+BuyLabel.Size = UDim2.new(0,150,0,20)
+BuyLabel.Position = UDim2.new(0,20,0,90)
+BuyLabel.TextColor3 = Color3.fromRGB(245,245,245)
+BuyLabel.BackgroundTransparency = 1
+
+local BuySlider = Instance.new("TextBox")
+BuySlider.Parent = MainTab
+BuySlider.Size = UDim2.new(0,150,0,20)
+BuySlider.Position = UDim2.new(0,20,0,115)
+BuySlider.BackgroundColor3 = Color3.fromRGB(35,35,38)
+BuySlider.TextColor3 = Color3.fromRGB(245,245,245)
+BuySlider.Text = tostring(buyDelay)
+CreateRounded(BuySlider,5)
+BuySlider.FocusLost:Connect(function()
+    local val = tonumber(BuySlider.Text)
+    if val then buyDelay = math.clamp(val,1,60) end
+    BuyLabel.Text = "Buy Delay (s): "..buyDelay
+end)
+
+local AutoBuy = Instance.new("TextButton")
+AutoBuy.Parent = MainTab
+AutoBuy.Size = UDim2.new(0,150,0,30)
+AutoBuy.Position = UDim2.new(0,200,0,90)
+AutoBuy.BackgroundColor3 = _G.Primary
+AutoBuy.TextColor3 = Color3.fromRGB(245,245,245)
+AutoBuy.Text = "Auto Buy: OFF"
+CreateRounded(AutoBuy,5)
+AutoBuy.MouseButton1Click:Connect(function()
+    loopBuy = not loopBuy
+    AutoBuy.Text = "Auto Buy: "..(loopBuy and "ON" or "OFF")
+    if loopBuy then
+        buyTask = task.spawn(function()
+            while loopBuy do
+                for _, flowerName in ipairs(flowerList) do
+                    for i = 1,10 do
+                        pcall(function() FlowerRemote:FireServer("BuyFlower", flowerName) end)
+                        task.wait(0.05)
+                    end
+                end
+                task.wait(buyDelay)
+            end
+        end)
+    else
+        if buyTask then task.cancel(buyTask) end
+    end
+end)
+
+-- Extract
+local extractDelay = 5
+local loopExtract, extractTask = false, nil
+local ExtractLabel = Instance.new("TextLabel")
+ExtractLabel.Parent = MainTab
+ExtractLabel.Text = "Extract Delay (s): "..extractDelay
+ExtractLabel.Size = UDim2.new(0,150,0,20)
+ExtractLabel.Position = UDim2.new(0,20,0,160)
+ExtractLabel.TextColor3 = Color3.fromRGB(245,245,245)
+ExtractLabel.BackgroundTransparency = 1
+
+local ExtractSlider = Instance.new("TextBox")
+ExtractSlider.Parent = MainTab
+ExtractSlider.Size = UDim2.new(0,150,0,20)
+ExtractSlider.Position = UDim2.new(0,20,0,185)
+ExtractSlider.BackgroundColor3 = Color3.fromRGB(35,35,38)
+ExtractSlider.TextColor3 = Color3.fromRGB(245,245,245)
+ExtractSlider.Text = tostring(extractDelay)
+CreateRounded(ExtractSlider,5)
+ExtractSlider.FocusLost:Connect(function()
+    local val = tonumber(ExtractSlider.Text)
+    if val then extractDelay = math.clamp(val,1,60) end
+    ExtractLabel.Text = "Extract Delay (s): "..extractDelay
+end)
+
+local AutoExtract = Instance.new("TextButton")
+AutoExtract.Parent = MainTab
+AutoExtract.Size = UDim2.new(0,150,0,30)
+AutoExtract.Position = UDim2.new(0,200,0,160)
+AutoExtract.BackgroundColor3 = _G.Primary
+AutoExtract.TextColor3 = Color3.fromRGB(245,245,245)
+AutoExtract.Text = "Auto Extract: OFF"
+CreateRounded(AutoExtract,5)
+AutoExtract.MouseButton1Click:Connect(function()
+    loopExtract = not loopExtract
+    AutoExtract.Text = "Auto Extract: "..(loopExtract and "ON" or "OFF")
+    if loopExtract then
+        extractTask = task.spawn(function()
+            while loopExtract do
+                local plot = getPlayerPlot()
+                if plot and plot:FindFirstChild("Hives") then
+                    local builtHives = {}
+                    for _, hive in pairs(plot.Hives:GetChildren()) do
+                        if hive:GetAttribute("IsBuilt") then
+                            table.insert(builtHives, hive)
+                        end
+                    end
+                    if #builtHives > 0 then
+                        pcall(function() HiveRemote:FireServer("ExtractHoney", builtHives) end)
+                    end
+                end
+                task.wait(extractDelay)
+            end
+        end)
+    else
+        if extractTask then task.cancel(extractTask) end
+    end
+end)
+
+-- ===== Visuals Tab: Anti-Lag =====
+local antiLagActive = false
+local originalStates = {}
+
+local AntiLagToggle = Instance.new("TextButton")
+AntiLagToggle.Parent = VisualsTab
+AntiLagToggle.Size = UDim2.new(0,200,0,40)
+AntiLagToggle.Position = UDim2.new(0,20,0,20)
+AntiLagToggle.BackgroundColor3 = _G.Primary
+AntiLagToggle.TextColor3 = Color3.fromRGB(245,245,245)
+AntiLagToggle.Text = "Anti-Lag: OFF"
+CreateRounded(AntiLagToggle,5)
+AntiLagToggle.MouseButton1Click:Connect(function()
+    antiLagActive = not antiLagActive
+    AntiLagToggle.Text = "Anti-Lag: "..(antiLagActive and "ON" or "OFF")
+    local plot = getPlayerPlot()
+    if plot then
+        for _, part in pairs(plot:GetDescendants()) do
+            if antiLagActive then
+                if part:IsA("Script") or (part:IsA("LocalScript") and part.Name=="FlowerRenderer") then
+                    part.Disabled = true
+                elseif part:IsA("ParticleEmitter") then
+                    originalStates[part] = part.Enabled
+                    part.Enabled = false
+                elseif part:IsA("Accessory") and part:FindFirstChild("Handle") then
+                    originalStates[part] = part.Handle.Transparency
+                    part.Handle.Transparency = 1
+                elseif part:IsA("Motor6D") then
+                    part:Destroy()
+                end
+            else
+                if part:IsA("ParticleEmitter") and originalStates[part] ~= nil then
+                    part.Enabled = originalStates[part]
+                elseif part:IsA("Accessory") and part:FindFirstChild("Handle") and originalStates[part] ~= nil then
+                    part.Handle.Transparency = originalStates[part]
+                end
+            end
+        end
+    end
+end)
+
+-- Show first tab by default
+currentPage = MainTab
+currentPage.Visible = true
