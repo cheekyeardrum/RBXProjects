@@ -1,12 +1,31 @@
--- Cheeky Hub (Base Template)
--- Uses your new Cheeky UI library
+local rawUrl = "https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/main/cheekyui.lua" -- <- replace with the actual Raw URL
 
-local CheekyLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/cheekyeardrum/RBXProjects/refs/heads/main/cheekyui"))()
-
-if CheekyLibrary:LoadAnimation() then
-    CheekyLibrary:StartLoad()
+local function fetch(url)
+    if syn and syn.request then -- common executor fallback
+        return syn.request({ Url = url, Method = "GET" }).Body
+    elseif http and http.request then
+        return http.request({ Url = url, Method = "GET" }).Body
+    else
+        return game:HttpGet(url)
+    end
 end
-if CheekyLibrary:LoadAnimation() then
+
+local ok, libOrErr = pcall(function()
+    local body = fetch(rawUrl)
+    assert(body and #body > 0, "empty response from HTTP GET")
+    local fn = assert(loadstring(body), "loadstring failed (syntax or HTML returned)")
+    return fn()
+end)
+
+if not ok then
+    warn("Failed to load Cheeky UI library:", libOrErr)
+    return
+end
+
+local CheekyLibrary = libOrErr
+
+if CheekyLibrary.LoadAnimation and CheekyLibrary:LoadAnimation() then
+    CheekyLibrary:StartLoad()
     CheekyLibrary:Loaded()
 end
 
