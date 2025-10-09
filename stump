@@ -1,114 +1,145 @@
--- CheekyUI Fruit Automation Hub 🌿
--- By Cheeky | Collects and Sells Fruits Automatically
-
-pcall(function()
-    game:GetService('CoreGui'):FindFirstChild('ui'):Remove()
-end)
-
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
+-- 🔁 Full Loop Collect & Auto Sell Fruits Hub
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local Player = Players.LocalPlayer
-local Library = {}
+-- Remotes
+local CollectRemote = ReplicatedStorage
+    :WaitForChild("Framework")
+    :WaitForChild("Features")
+    :WaitForChild("FruitTreeSystem")
+    :WaitForChild("TreeStumpUtil")
+    :WaitForChild("RemoteEvent")
 
--- // UI Base
-local ui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ui.Name = "ui"
+local SellRemote = ReplicatedStorage
+    :WaitForChild("Framework")
+    :WaitForChild("Features")
+    :WaitForChild("FruitStallSystem")
+    :WaitForChild("FruitStallUtil")
+    :WaitForChild("RemoteEvent")
 
-local mainFrame = Instance.new("Frame", ui)
-mainFrame.Size = UDim2.new(0, 400, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Draggable = true
+-- ================= Loop Collect Fruits =================
+local LoopButton = Instance.new("TextButton")
+LoopButton.Parent = MainTab
+LoopButton.Size = UDim2.new(0,220,0,40)
+LoopButton.Position = UDim2.new(0,20,0,70)
+LoopButton.BackgroundColor3 = _G.Primary
+LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
+LoopButton.Text = "Loop Collect Fruits: OFF"
+CreateRounded(LoopButton,8)
 
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-title.Text = "🍯 CheekyUI - Fruit Hub"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
+local collecting = false
+local collectThread
 
--- // Button Creation Function
-local function createButton(name, parent, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0, #parent:GetChildren() * 35)
-    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    btn.MouseButton1Click:Connect(callback)
-
-    btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(65, 65, 85)}):Play()
-    end)
-    btn.MouseLeave:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 55)}):Play()
-    end)
+-- Helper: find the player's plot
+local function getPlayerPlot()
+	for _, plot in ipairs(workspace:WaitForChild("PlayerPlots"):GetChildren()) do
+		local owner = plot:FindFirstChild("Owner")
+		if owner and owner.Value == player then
+			return plot
+		end
+	end
 end
 
--- // Collect All Fruits Button
-createButton("🍒 Loop Collect All Fruits", mainFrame, function()
-    task.spawn(function()
-        print("Collecting all fruits...")
-        local plots = workspace:WaitForChild("PlayerPlots"):GetChildren()
-        for _, plot in ipairs(plots) do
-            if plot:FindFirstChild("Owner") and plot.Owner.Value == Player then
-                for _, tree in ipairs(plot.Trees:GetChildren()) do
-                    for stumpIndex, stump in ipairs(tree:GetChildren()) do
-                        if stump:FindFirstChild("Models") then
-                            for _, model in ipairs(stump.Models:GetChildren()) do
-                                if string.find(model.Name, "Fruit") then
-                                    for fruitNum = 1, 2 do
-                                        local args = {
-                                            "PickFruit",
-                                            1,
-                                            stumpIndex,
-                                            fruitNum,
-                                            "Fruit" .. fruitNum
-                                        }
-                                        local remote = ReplicatedStorage.Framework.Features.FruitTreeSystem.TreeStumpUtil.RemoteEvent
-                                        remote:FireServer(unpack(args))
-                                        task.wait(0.1)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        print("✅ All fruits collected!")
-    end)
+-- Core collector logic
+local function collectAllFruits()
+	local total = 0
+	pcall(function()
+		local plot = getPlayerPlot()
+		if not plot then return end
+
+		local trees = plot:FindFirstChild("Trees")
+		if not trees then return end
+
+		for _, tree in ipairs(trees:GetChildren()) do
+			for _, stump in ipairs(tree:GetChildren()) do
+				for _, item in ipairs(stump:GetChildren()) do
+					if item:IsA("Folder") or item:IsA("Model") then
+						for _, obj in ipairs(item:GetDescendants()) do
+							if obj.Name:match("_Fruit%d+") or obj.Name:match("Fruit%d+") then
+								local fruitName = obj.Name:match("Fruit%d+")
+								for a2 = 1, 2 do
+									for a3 = 1, 2 do
+										for a4 = 1, 2 do
+											pcall(function()
+												local args = {
+													"PickFruit",
+													a2,
+													a3,
+													a4,
+													fruitName
+												}
+												CollectRemote:FireServer(unpack(args))
+												total += 1
+											end)
+											task.wait(0.03)
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)
+	return total
+end
+
+-- Button toggle logic
+LoopButton.MouseButton1Click:Connect(function()
+	collecting = not collecting
+	LoopButton.Text = "Loop Collect Fruits: " .. (collecting and "ON" or "OFF")
+	LoopButton.BackgroundColor3 = collecting and Color3.fromRGB(60, 200, 90) or _G.Primary
+
+	if collecting then
+		collectThread = task.spawn(function()
+			while collecting do
+				local total = collectAllFruits()
+				print("✅ Collected fruits this cycle:", total)
+				task.wait(0.8)
+			end
+		end)
+	else
+		if collectThread then
+			task.cancel(collectThread)
+		end
+	end
 end)
 
--- // Sell All Fruits Button
-createButton("🍎 Sell All Fruits", mainFrame, function()
-    local args = { "RequestGiveFruits" }
-    local remote = ReplicatedStorage.Framework.Features.FruitStallSystem.FruitStallUtil.RemoteEvent
-    remote:FireServer(unpack(args))
-    print("✅ Sold all fruits!")
+-- ================= Auto Sell Fruits =================
+local SellButton = Instance.new("TextButton")
+SellButton.Parent = MainTab
+SellButton.Size = UDim2.new(0,220,0,40)
+SellButton.Position = UDim2.new(0,20,0,120) -- below the collect button
+SellButton.BackgroundColor3 = _G.Primary
+SellButton.TextColor3 = Color3.fromRGB(255,255,255)
+SellButton.Text = "Auto Sell Fruits: OFF"
+CreateRounded(SellButton,8)
+
+local selling = false
+local sellThread
+
+-- Button toggle logic
+SellButton.MouseButton1Click:Connect(function()
+	selling = not selling
+	SellButton.Text = "Auto Sell Fruits: " .. (selling and "ON" or "OFF")
+	SellButton.BackgroundColor3 = selling and Color3.fromRGB(60, 200, 90) or _G.Primary
+
+	if selling then
+		sellThread = task.spawn(function()
+			while selling do
+				pcall(function()
+					local args = { "RequestGiveFruits" }
+					SellRemote:FireServer(unpack(args))
+				end)
+				print("💰 Sold all fruits this cycle!")
+				task.wait(2) -- interval between sells
+			end
+		end)
+	else
+		if sellThread then
+			task.cancel(sellThread)
+		end
+	end
 end)
-
--- // Auto Sell Toggle
-local autoSell = false
-createButton("🔁 Toggle Auto Sell", mainFrame, function()
-    autoSell = not autoSell
-    print(autoSell and "✅ Auto Sell Enabled" or "⛔ Auto Sell Disabled")
-
-    task.spawn(function()
-        while autoSell do
-            local args = { "RequestGiveFruits" }
-            local remote = ReplicatedStorage.Framework.Features.FruitStallSystem.FruitStallUtil.RemoteEvent
-            remote:FireServer(unpack(args))
-            task.wait(3)
-        end
-    end)
-end)
-
-print("🌿 CheekyUI Fruit Hub Loaded Successfully!")
