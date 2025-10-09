@@ -1,10 +1,10 @@
--- 🔁 Full Loop Collect & Auto Sell Fruits Hub
+-- 🍎 Loop Collect + Sell Fruits System
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- Remotes
-local CollectRemote = ReplicatedStorage
+-- 🌳 Remotes
+local FruitRemote = ReplicatedStorage
     :WaitForChild("Framework")
     :WaitForChild("Features")
     :WaitForChild("FruitTreeSystem")
@@ -18,20 +18,11 @@ local SellRemote = ReplicatedStorage
     :WaitForChild("FruitStallUtil")
     :WaitForChild("RemoteEvent")
 
--- ================= Loop Collect Fruits =================
-local LoopButton = Instance.new("TextButton")
-LoopButton.Parent = MainTab
-LoopButton.Size = UDim2.new(0,220,0,40)
-LoopButton.Position = UDim2.new(0,20,0,70)
-LoopButton.BackgroundColor3 = _G.Primary
-LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
-LoopButton.Text = "Loop Collect Fruits: OFF"
-CreateRounded(LoopButton,8)
+-- 🎨 Colors
+local PRIMARY = Color3.fromRGB(255, 0, 0)
+local ACTIVE = Color3.fromRGB(60, 200, 90)
 
-local collecting = false
-local collectThread
-
--- Helper: find the player's plot
+-- 🧩 Helper: find the player's plot
 local function getPlayerPlot()
 	for _, plot in ipairs(workspace:WaitForChild("PlayerPlots"):GetChildren()) do
 		local owner = plot:FindFirstChild("Owner")
@@ -41,7 +32,7 @@ local function getPlayerPlot()
 	end
 end
 
--- Core collector logic
+-- 🍎 Core collector logic
 local function collectAllFruits()
 	local total = 0
 	pcall(function()
@@ -69,7 +60,7 @@ local function collectAllFruits()
 													a4,
 													fruitName
 												}
-												CollectRemote:FireServer(unpack(args))
+												FruitRemote:FireServer(unpack(args))
 												total += 1
 											end)
 											task.wait(0.03)
@@ -86,11 +77,24 @@ local function collectAllFruits()
 	return total
 end
 
--- Button toggle logic
+-- 🔘 Create Loop Collect Button
+local LoopButton = Instance.new("TextButton")
+LoopButton.Parent = MainTab
+LoopButton.Size = UDim2.new(0,220,0,40)
+LoopButton.Position = UDim2.new(0,20,0,70)
+LoopButton.BackgroundColor3 = PRIMARY
+LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
+LoopButton.Text = "Loop Collect Fruits: OFF"
+CreateRounded(LoopButton,8)
+
+local collecting = false
+local collectThread
+
+-- 🧠 Button toggle logic
 LoopButton.MouseButton1Click:Connect(function()
 	collecting = not collecting
 	LoopButton.Text = "Loop Collect Fruits: " .. (collecting and "ON" or "OFF")
-	LoopButton.BackgroundColor3 = collecting and Color3.fromRGB(60, 200, 90) or _G.Primary
+	LoopButton.BackgroundColor3 = collecting and ACTIVE or PRIMARY
 
 	if collecting then
 		collectThread = task.spawn(function()
@@ -107,39 +111,20 @@ LoopButton.MouseButton1Click:Connect(function()
 	end
 end)
 
--- ================= Auto Sell Fruits =================
+-- 💰 Sell Fruits Button
 local SellButton = Instance.new("TextButton")
 SellButton.Parent = MainTab
 SellButton.Size = UDim2.new(0,220,0,40)
-SellButton.Position = UDim2.new(0,20,0,120) -- below the collect button
-SellButton.BackgroundColor3 = _G.Primary
+SellButton.Position = UDim2.new(0,20,0,120)
+SellButton.BackgroundColor3 = PRIMARY
 SellButton.TextColor3 = Color3.fromRGB(255,255,255)
-SellButton.Text = "Auto Sell Fruits: OFF"
+SellButton.Text = "Sell Fruits"
 CreateRounded(SellButton,8)
 
-local selling = false
-local sellThread
-
--- Button toggle logic
 SellButton.MouseButton1Click:Connect(function()
-	selling = not selling
-	SellButton.Text = "Auto Sell Fruits: " .. (selling and "ON" or "OFF")
-	SellButton.BackgroundColor3 = selling and Color3.fromRGB(60, 200, 90) or _G.Primary
-
-	if selling then
-		sellThread = task.spawn(function()
-			while selling do
-				pcall(function()
-					local args = { "RequestGiveFruits" }
-					SellRemote:FireServer(unpack(args))
-				end)
-				print("💰 Sold all fruits this cycle!")
-				task.wait(2) -- interval between sells
-			end
-		end)
-	else
-		if sellThread then
-			task.cancel(sellThread)
-		end
-	end
+	pcall(function()
+		local args = { "RequestGiveFruits" }
+		SellRemote:FireServer(unpack(args))
+		print("💸 Sold all fruits!")
+	end)
 end)
