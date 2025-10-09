@@ -1,1 +1,239 @@
+-- Services
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Player = Players.LocalPlayer
 
+-- Global Colors
+local _G = {
+    Dark = Color3.fromRGB(24,24,26),
+    Primary = Color3.fromRGB(255,0,0),
+    Third = Color3.fromRGB(255,255,255)
+}
+
+-- Helper Functions
+local function CreateRounded(inst, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0,radius or 8)
+    corner.Parent = inst
+end
+
+local function MakeDraggable(Frame)
+    local dragging, dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                   startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    Frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    Frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- Main ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "CheekyUi"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main window
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.Size = UDim2.new(0, 500, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+MainFrame.BackgroundColor3 = _G.Dark
+MainFrame.BackgroundTransparency = 0.2
+CreateRounded(MainFrame, 15)
+MakeDraggable(MainFrame)
+
+-- Top bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.Size = UDim2.new(1,0,0,40)
+TopBar.Position = UDim2.new(0,0,0,0)
+TopBar.BackgroundColor3 = Color3.fromRGB(20,20,22)
+CreateRounded(TopBar, 10)
+
+local HubTitle = Instance.new("TextLabel")
+HubTitle.Parent = TopBar
+HubTitle.Text = "CheekyUi Template"
+HubTitle.Size = UDim2.new(1,0,1,0)
+HubTitle.BackgroundTransparency = 1
+HubTitle.TextColor3 = Color3.fromRGB(245,245,245)
+HubTitle.Font = Enum.Font.GothamBold
+HubTitle.TextSize = 18
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Parent = TopBar
+CloseButton.Size = UDim2.new(0,30,0,30)
+CloseButton.Position = UDim2.new(1,-35,0.5,-15)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(245,245,245)
+CloseButton.BackgroundColor3 = _G.Primary
+CreateRounded(CloseButton,5)
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui.Enabled = false
+end)
+
+-- Minimize Button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Parent = TopBar
+MinimizeButton.Size = UDim2.new(0,30,0,30)
+MinimizeButton.Position = UDim2.new(1,-70,0.5,-15)
+MinimizeButton.Text = "_"
+MinimizeButton.TextColor3 = Color3.fromRGB(245,245,245)
+MinimizeButton.BackgroundColor3 = _G.Primary
+CreateRounded(MinimizeButton,5)
+
+-- Tabs container
+local TabsFrame = Instance.new("Frame")
+TabsFrame.Parent = MainFrame
+TabsFrame.Size = UDim2.new(0,120,1,-40)
+TabsFrame.Position = UDim2.new(0,0,0,40)
+TabsFrame.BackgroundTransparency = 1
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.Parent = TabsFrame
+TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabListLayout.Padding = UDim.new(0,5)
+
+-- Pages container
+local PagesFrame = Instance.new("Frame")
+PagesFrame.Parent = MainFrame
+PagesFrame.Size = UDim2.new(1,-120,1,-40)
+PagesFrame.Position = UDim2.new(0,120,0,40)
+PagesFrame.BackgroundColor3 = _G.Dark
+CreateRounded(PagesFrame,10)
+
+local currentPage
+
+-- Helper to create a tab
+local function CreateTab(name)
+    local btn = Instance.new("TextButton")
+    btn.Parent = TabsFrame
+    btn.Text = name
+    btn.Size = UDim2.new(1,0,0,35)
+    btn.BackgroundColor3 = Color3.fromRGB(35,35,38)
+    btn.TextColor3 = Color3.fromRGB(245,245,245)
+    CreateRounded(btn,5)
+
+    local page = Instance.new("Frame")
+    page.Parent = PagesFrame
+    page.Size = UDim2.new(1,0,1,0)
+    page.BackgroundTransparency = 1
+    page.Visible = false
+
+    btn.MouseButton1Click:Connect(function()
+        if currentPage then currentPage.Visible = false end
+        page.Visible = true
+        currentPage = page
+    end)
+
+    return page
+end
+
+-- Tabs
+local MainTab = CreateTab("Main")
+local SettingsTab = CreateTab("Settings")
+local VisualsTab = CreateTab("Visuals")
+
+-- ===== Minimize Button Logic =====
+local minimized = false
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        TabsFrame.Visible = false
+        if currentPage then currentPage.Visible = false end
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,500,0,40)}):Play()
+    else
+        TabsFrame.Visible = true
+        if currentPage then currentPage.Visible = true end
+        TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0,500,0,350)}):Play()
+    end
+end)
+
+-- Loop Collect All Fruits Button
+local LoopButton = Instance.new("TextButton")
+LoopButton.Parent = MainTab
+LoopButton.Size = UDim2.new(0,200,0,40)
+LoopButton.Position = UDim2.new(0,20,0,70)
+LoopButton.BackgroundColor3 = _G.Primary
+LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
+LoopButton.Text = "Loop Collect Fruits: OFF"
+CreateRounded(LoopButton,8)
+
+local loopCollect = false
+local fruitLoop
+
+LoopButton.MouseButton1Click:Connect(function()
+    loopCollect = not loopCollect
+    LoopButton.Text = "Loop Collect Fruits: " .. (loopCollect and "ON" or "OFF")
+
+    if loopCollect then
+        fruitLoop = task.spawn(function()
+            while loopCollect do
+                for i = 1, 20 do
+                    if not loopCollect then break end -- stop instantly if toggled off
+                    pcall(function()
+                        local args = {
+                            "PickFruit",
+                            1,
+                            1,
+                            1,
+                            "Fruit" .. i
+                        }
+                        game:GetService("ReplicatedStorage")
+                            :WaitForChild("Framework")
+                            :WaitForChild("Features")
+                            :WaitForChild("FruitTreeSystem")
+                            :WaitForChild("TreeStumpUtil")
+                            :WaitForChild("RemoteEvent")
+                            :FireServer(unpack(args))
+                    end)
+                    task.wait(0.2) -- delay between each fruit
+                end
+            end
+        end)
+    end
+end)
+
+-- Visuals tab example toggle
+local ExampleToggle = Instance.new("TextButton")
+ExampleToggle.Parent = VisualsTab
+ExampleToggle.Size = UDim2.new(0,200,0,40)
+ExampleToggle.Position = UDim2.new(0,20,0,20)
+ExampleToggle.BackgroundColor3 = _G.Primary
+ExampleToggle.TextColor3 = Color3.fromRGB(245,245,245)
+ExampleToggle.Text = "Example Toggle: OFF"
+CreateRounded(ExampleToggle,5)
+local toggleState = false
+ExampleToggle.MouseButton1Click:Connect(function()
+    toggleState = not toggleState
+    ExampleToggle.Text = "Example Toggle: "..(toggleState and "ON" or "OFF")
+end)
+
+-- Show first tab by default
+currentPage = MainTab
+currentPage.Visible = true
