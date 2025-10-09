@@ -174,7 +174,7 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Loop Collect Fruits (direct workspace version)
+-- 🔁 Full Loop Collect Fruits (Handles All Stumps, Crops, Models)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -186,9 +186,10 @@ local Remote = ReplicatedStorage
     :WaitForChild("TreeStumpUtil")
     :WaitForChild("RemoteEvent")
 
+-- Create the button
 local LoopButton = Instance.new("TextButton")
 LoopButton.Parent = MainTab
-LoopButton.Size = UDim2.new(0,200,0,40)
+LoopButton.Size = UDim2.new(0,220,0,40)
 LoopButton.Position = UDim2.new(0,20,0,70)
 LoopButton.BackgroundColor3 = _G.Primary
 LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
@@ -198,6 +199,7 @@ CreateRounded(LoopButton,8)
 local collecting = false
 local collectThread
 
+-- 🧩 Helper: find the player's plot
 local function getPlayerPlot()
 	for _, plot in ipairs(workspace:WaitForChild("PlayerPlots"):GetChildren()) do
 		local owner = plot:FindFirstChild("Owner")
@@ -207,7 +209,9 @@ local function getPlayerPlot()
 	end
 end
 
+-- 🍎 Core collector logic
 local function collectAllFruits()
+	local total = 0
 	pcall(function()
 		local plot = getPlayerPlot()
 		if not plot then return end
@@ -216,26 +220,30 @@ local function collectAllFruits()
 		if not trees then return end
 
 		for _, tree in ipairs(trees:GetChildren()) do
-			for _, sub in ipairs(tree:GetChildren()) do
-				local models = sub:FindFirstChild("Models")
-				if models then
-					for _, obj in ipairs(models:GetChildren()) do
-						if obj.Name:match("_Fruit%d+") then
-							local fruitName = obj.Name:match("Fruit%d+")
-							for a2 = 1, 2 do
-								for a3 = 1, 2 do
-									for a4 = 1, 2 do
-										pcall(function()
-											local args = {
-												"PickFruit",
-												a2,
-												a3,
-												a4,
-												fruitName
-											}
-											Remote:FireServer(unpack(args))
-										end)
-										task.wait(0.05)
+			-- Each stump or tree part
+			for _, stump in ipairs(tree:GetChildren()) do
+				-- Look inside the stump for crops and models
+				for _, item in ipairs(stump:GetChildren()) do
+					if item:IsA("Folder") or item:IsA("Model") then
+						for _, obj in ipairs(item:GetDescendants()) do
+							if obj.Name:match("_Fruit%d+") or obj.Name:match("Fruit%d+") then
+								local fruitName = obj.Name:match("Fruit%d+")
+								for a2 = 1, 2 do
+									for a3 = 1, 2 do
+										for a4 = 1, 2 do
+											pcall(function()
+												local args = {
+													"PickFruit",
+													a2,
+													a3,
+													a4,
+													fruitName
+												}
+												Remote:FireServer(unpack(args))
+												total += 1
+											end)
+											task.wait(0.03)
+										end
 									end
 								end
 							end
@@ -245,8 +253,10 @@ local function collectAllFruits()
 			end
 		end
 	end)
+	return total
 end
 
+-- 🧠 Button toggle logic
 LoopButton.MouseButton1Click:Connect(function()
 	collecting = not collecting
 	LoopButton.Text = "Loop Collect Fruits: " .. (collecting and "ON" or "OFF")
@@ -255,12 +265,15 @@ LoopButton.MouseButton1Click:Connect(function()
 	if collecting then
 		collectThread = task.spawn(function()
 			while collecting do
-				collectAllFruits()
-				task.wait(0.6) -- wait between loops
+				local total = collectAllFruits()
+				print("✅ Collected fruits this cycle:", total)
+				task.wait(0.8)
 			end
 		end)
 	else
-		task.cancel(collectThread)
+		if collectThread then
+			task.cancel(collectThread)
+		end
 	end
 end)
 
