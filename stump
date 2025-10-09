@@ -1,130 +1,262 @@
--- 🍎 Loop Collect + Sell Fruits System
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- 🍎 CheekyUi - Fruit System (Fixed + Working Version)
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local Player = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
--- 🌳 Remotes
-local FruitRemote = ReplicatedStorage
-    :WaitForChild("Framework")
-    :WaitForChild("Features")
-    :WaitForChild("FruitTreeSystem")
-    :WaitForChild("TreeStumpUtil")
-    :WaitForChild("RemoteEvent")
+-- 🎨 UI Colors
+local _G = {
+	Dark = Color3.fromRGB(24, 24, 26),
+	Primary = Color3.fromRGB(255, 0, 0),
+	Active = Color3.fromRGB(60, 200, 90),
+	Text = Color3.fromRGB(255, 255, 255)
+}
 
+-- 🧩 Helper Functions
+local function CreateRounded(inst, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius or 8)
+	corner.Parent = inst
+end
+
+local function MakeDraggable(Frame)
+	local dragging, dragInput, dragStart, startPos
+	local function update(input)
+		local delta = input.Position - dragStart
+		Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+	Frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragging = true
+			dragStart = input.Position
+			startPos = Frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	Frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			dragInput = input
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
+end
+
+-- 🪟 UI Setup
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "CheekyUi"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 500, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+MainFrame.BackgroundColor3 = _G.Dark
+MainFrame.BackgroundTransparency = 0.2
+CreateRounded(MainFrame, 15)
+MakeDraggable(MainFrame)
+
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 22)
+CreateRounded(TopBar, 10)
+
+local HubTitle = Instance.new("TextLabel", TopBar)
+HubTitle.Text = "CheekyUi - Fruit System"
+HubTitle.Size = UDim2.new(1, 0, 1, 0)
+HubTitle.BackgroundTransparency = 1
+HubTitle.TextColor3 = _G.Text
+HubTitle.Font = Enum.Font.GothamBold
+HubTitle.TextSize = 18
+
+-- Close / Minimize
+local CloseButton = Instance.new("TextButton", TopBar)
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0.5, -15)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = _G.Text
+CloseButton.BackgroundColor3 = _G.Primary
+CreateRounded(CloseButton, 5)
+CloseButton.MouseButton1Click:Connect(function()
+	ScreenGui.Enabled = false
+end)
+
+local MinimizeButton = Instance.new("TextButton", TopBar)
+MinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MinimizeButton.Position = UDim2.new(1, -70, 0.5, -15)
+MinimizeButton.Text = "_"
+MinimizeButton.TextColor3 = _G.Text
+MinimizeButton.BackgroundColor3 = _G.Primary
+CreateRounded(MinimizeButton, 5)
+
+local TabsFrame = Instance.new("Frame", MainFrame)
+TabsFrame.Size = UDim2.new(0, 120, 1, -40)
+TabsFrame.Position = UDim2.new(0, 0, 0, 40)
+TabsFrame.BackgroundTransparency = 1
+
+local TabListLayout = Instance.new("UIListLayout", TabsFrame)
+TabListLayout.Padding = UDim.new(0, 5)
+
+local PagesFrame = Instance.new("Frame", MainFrame)
+PagesFrame.Size = UDim2.new(1, -120, 1, -40)
+PagesFrame.Position = UDim2.new(0, 120, 0, 40)
+PagesFrame.BackgroundColor3 = _G.Dark
+CreateRounded(PagesFrame, 10)
+
+local currentPage
+local function CreateTab(name)
+	local btn = Instance.new("TextButton", TabsFrame)
+	btn.Text = name
+	btn.Size = UDim2.new(1, 0, 0, 35)
+	btn.BackgroundColor3 = Color3.fromRGB(35, 35, 38)
+	btn.TextColor3 = _G.Text
+	CreateRounded(btn, 5)
+
+	local page = Instance.new("Frame", PagesFrame)
+	page.Size = UDim2.new(1, 0, 1, 0)
+	page.BackgroundTransparency = 1
+	page.Visible = false
+
+	btn.MouseButton1Click:Connect(function()
+		if currentPage then currentPage.Visible = false end
+		page.Visible = true
+		currentPage = page
+	end)
+	return page
+end
+
+local MainTab = CreateTab("Main")
+currentPage = MainTab
+currentPage.Visible = true
+
+-- Minimize Logic
+local minimized = false
+MinimizeButton.MouseButton1Click:Connect(function()
+	minimized = not minimized
+	if minimized then
+		TabsFrame.Visible = false
+		if currentPage then currentPage.Visible = false end
+		TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 40)}):Play()
+	else
+		TabsFrame.Visible = true
+		if currentPage then currentPage.Visible = true end
+		TweenService:Create(MainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 500, 0, 350)}):Play()
+	end
+end)
+
+-- ===============================
+-- 🍇 FRUIT SYSTEM
+-- ===============================
+local plotFolder = Workspace:WaitForChild("PlayerPlots")
 local SellRemote = ReplicatedStorage
-    :WaitForChild("Framework")
-    :WaitForChild("Features")
-    :WaitForChild("FruitStallSystem")
-    :WaitForChild("FruitStallUtil")
-    :WaitForChild("RemoteEvent")
+	:WaitForChild("Framework"):WaitForChild("Features")
+	:WaitForChild("FruitStallSystem"):WaitForChild("FruitStallUtil"):WaitForChild("RemoteEvent")
 
--- 🎨 Colors
-local PRIMARY = Color3.fromRGB(255, 0, 0)
-local ACTIVE = Color3.fromRGB(60, 200, 90)
-
--- 🧩 Helper: find the player's plot
 local function getPlayerPlot()
-	for _, plot in ipairs(workspace:WaitForChild("PlayerPlots"):GetChildren()) do
+	for _, plot in ipairs(plotFolder:GetChildren()) do
 		local owner = plot:FindFirstChild("Owner")
-		if owner and owner.Value == player then
+		if owner and owner.Value == Player then
 			return plot
 		end
 	end
 end
 
--- 🍎 Core collector logic
 local function collectAllFruits()
+	local plot = getPlayerPlot()
+	if not plot then return end
+	local trees = plot:FindFirstChild("Trees")
+	if not trees then return end
+
 	local total = 0
-	pcall(function()
-		local plot = getPlayerPlot()
-		if not plot then return end
-
-		local trees = plot:FindFirstChild("Trees")
-		if not trees then return end
-
-		for _, tree in ipairs(trees:GetChildren()) do
-			for _, stump in ipairs(tree:GetChildren()) do
-				for _, item in ipairs(stump:GetChildren()) do
-					if item:IsA("Folder") or item:IsA("Model") then
-						for _, obj in ipairs(item:GetDescendants()) do
-							if obj.Name:match("_Fruit%d+") or obj.Name:match("Fruit%d+") then
-								local fruitName = obj.Name:match("Fruit%d+")
-								for a2 = 1, 2 do
-									for a3 = 1, 2 do
-										for a4 = 1, 2 do
-											pcall(function()
-												local args = {
-													"PickFruit",
-													a2,
-													a3,
-													a4,
-													fruitName
-												}
-												FruitRemote:FireServer(unpack(args))
-												total += 1
-											end)
-											task.wait(0.03)
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-			end
+	for _, tree in ipairs(trees:GetDescendants()) do
+		if tree:IsA("ProximityPrompt") then
+			pcall(function()
+				fireproximityprompt(tree)
+				total += 1
+			end)
+		elseif tree:IsA("ProximityPoint") then
+			pcall(function()
+				fireproximitypoint(tree)
+				total += 1
+			end)
 		end
-	end)
-	return total
+	end
+	print("✅ Collected", total, "fruits from your Trees!")
 end
 
--- 🔘 Create Loop Collect Button
-local LoopButton = Instance.new("TextButton")
-LoopButton.Parent = MainTab
-LoopButton.Size = UDim2.new(0,220,0,40)
-LoopButton.Position = UDim2.new(0,20,0,70)
-LoopButton.BackgroundColor3 = PRIMARY
-LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
-LoopButton.Text = "Loop Collect Fruits: OFF"
-CreateRounded(LoopButton,8)
-
+-- Loop Collect
 local collecting = false
-local collectThread
+local CollectButton = Instance.new("TextButton", MainTab)
+CollectButton.Size = UDim2.new(0, 200, 0, 40)
+CollectButton.Position = UDim2.new(0, 20, 0, 20)
+CollectButton.BackgroundColor3 = _G.Primary
+CollectButton.TextColor3 = _G.Text
+CollectButton.Text = "Loop Collect Fruits: OFF"
+CreateRounded(CollectButton, 8)
 
--- 🧠 Button toggle logic
-LoopButton.MouseButton1Click:Connect(function()
+CollectButton.MouseButton1Click:Connect(function()
 	collecting = not collecting
-	LoopButton.Text = "Loop Collect Fruits: " .. (collecting and "ON" or "OFF")
-	LoopButton.BackgroundColor3 = collecting and ACTIVE or PRIMARY
+	CollectButton.Text = "Loop Collect Fruits: " .. (collecting and "ON" or "OFF")
+	CollectButton.BackgroundColor3 = collecting and _G.Active or _G.Primary
 
 	if collecting then
-		collectThread = task.spawn(function()
+		task.spawn(function()
 			while collecting do
-				local total = collectAllFruits()
-				print("✅ Collected fruits this cycle:", total)
-				task.wait(0.8)
+				collectAllFruits()
+				task.wait(1)
 			end
 		end)
-	else
-		if collectThread then
-			task.cancel(collectThread)
+	end
+end)
+
+-- Hotkey P
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	if input.KeyCode == Enum.KeyCode.P then
+		collecting = not collecting
+		CollectButton.Text = "Loop Collect Fruits: " .. (collecting and "ON" or "OFF")
+		CollectButton.BackgroundColor3 = collecting and _G.Active or _G.Primary
+		if collecting then
+			task.spawn(function()
+				while collecting do
+					collectAllFruits()
+					task.wait(1)
+				end
+			end)
 		end
 	end
 end)
 
--- 💰 Sell Fruits Button
-local SellButton = Instance.new("TextButton")
-SellButton.Parent = MainTab
-SellButton.Size = UDim2.new(0,220,0,40)
-SellButton.Position = UDim2.new(0,20,0,120)
-SellButton.BackgroundColor3 = PRIMARY
-SellButton.TextColor3 = Color3.fromRGB(255,255,255)
-SellButton.Text = "Sell Fruits"
-CreateRounded(SellButton,8)
+-- Loop Sell
+local selling = false
+local SellButton = Instance.new("TextButton", MainTab)
+SellButton.Size = UDim2.new(0, 200, 0, 40)
+SellButton.Position = UDim2.new(0, 20, 0, 70)
+SellButton.BackgroundColor3 = _G.Primary
+SellButton.TextColor3 = _G.Text
+SellButton.Text = "Loop Sell Fruits: OFF"
+CreateRounded(SellButton, 8)
 
 SellButton.MouseButton1Click:Connect(function()
-	pcall(function()
-		local args = { "RequestGiveFruits" }
-		SellRemote:FireServer(unpack(args))
-		print("💸 Sold all fruits!")
-	end)
+	selling = not selling
+	SellButton.Text = "Loop Sell Fruits: " .. (selling and "ON" or "OFF")
+	SellButton.BackgroundColor3 = selling and _G.Active or _G.Primary
+	if selling then
+		task.spawn(function()
+			while selling do
+				local args = {"RequestGiveFruits"}
+				pcall(function() SellRemote:FireServer(unpack(args)) end)
+				task.wait(1)
+			end
+		end)
+	end
 end)
