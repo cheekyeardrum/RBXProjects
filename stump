@@ -277,6 +277,25 @@ LoopButton.MouseButton1Click:Connect(function()
 	end
 end)
 
+
+MainTab:AddButton({
+    Name = "Sell All Fruit",
+    Callback = function()
+        local args = { "RequestGiveFruits" }
+        local remote = game:GetService("ReplicatedStorage")
+            :WaitForChild("Framework")
+            :WaitForChild("Features")
+            :WaitForChild("FruitStallSystem")
+            :WaitForChild("FruitStallUtil")
+            :WaitForChild("RemoteEvent")
+
+        remote:FireServer(unpack(args))
+        print("🍎 Sold all fruits!")
+    end
+})
+
+
+
 -- Visuals tab example toggle
 local ExampleToggle = Instance.new("TextButton")
 ExampleToggle.Parent = VisualsTab
