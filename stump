@@ -174,10 +174,10 @@ MinimizeButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- Loop Collect All Fruits Button
+-- Loop Collect All Fruits (Player-Linked Auto Version)
 local LoopButton = Instance.new("TextButton")
 LoopButton.Parent = MainTab
-LoopButton.Size = UDim2.new(0,200,0,40)
+LoopButton.Size = UDim2.new(0,220,0,40)
 LoopButton.Position = UDim2.new(0,20,0,70)
 LoopButton.BackgroundColor3 = _G.Primary
 LoopButton.TextColor3 = Color3.fromRGB(255,255,255)
@@ -188,35 +188,63 @@ local loopCollect = false
 local fruitLoop
 
 LoopButton.MouseButton1Click:Connect(function()
-    loopCollect = not loopCollect
-    LoopButton.Text = "Loop Collect Fruits: " .. (loopCollect and "ON" or "OFF")
+	loopCollect = not loopCollect
+	LoopButton.Text = "Loop Collect Fruits: " .. (loopCollect and "ON" or "OFF")
+	LoopButton.BackgroundColor3 = loopCollect and Color3.fromRGB(0, 200, 0) or _G.Primary
 
-    if loopCollect then
-        fruitLoop = task.spawn(function()
-            while loopCollect do
-                for i = 1, 20 do
-                    if not loopCollect then break end -- stop instantly if toggled off
-                    pcall(function()
-                        local args = {
-                            "PickFruit",
-                            1,
-                            1,
-                            1,
-                            "Fruit" .. i
-                        }
-                        game:GetService("ReplicatedStorage")
-                            :WaitForChild("Framework")
-                            :WaitForChild("Features")
-                            :WaitForChild("FruitTreeSystem")
-                            :WaitForChild("TreeStumpUtil")
-                            :WaitForChild("RemoteEvent")
-                            :FireServer(unpack(args))
-                    end)
-                    task.wait(0.2) -- delay between each fruit
-                end
-            end
-        end)
-    end
+	if loopCollect then
+		fruitLoop = task.spawn(function()
+			local remote = game:GetService("ReplicatedStorage")
+				:WaitForChild("Framework")
+				:WaitForChild("Features")
+				:WaitForChild("FruitTreeSystem")
+				:WaitForChild("TreeStumpUtil")
+				:WaitForChild("RemoteEvent")
+
+			local player = game.Players.LocalPlayer
+
+			while loopCollect do
+				pcall(function()
+					local plots = workspace:WaitForChild("PlayerPlots"):GetChildren()
+					for _, plot in ipairs(plots) do
+						local owner = plot:FindFirstChild("Owner")
+						if owner and owner.Value == player then
+							local trees = plot:FindFirstChild("Trees")
+							if trees then
+								for treeName, tree in pairs(trees:GetChildren()) do
+									local stump = tree:FindFirstChild("Stump")
+									if stump then
+										for _, crop in pairs(stump:GetChildren()) do
+											if crop.Name:match("Crop") then
+												for _, fruit in pairs(crop:GetChildren()) do
+													if fruit.Name:match("Fruit") then
+														local fruitNum = tonumber(fruit.Name:match("%d+")) or 1
+														local cropNum = tonumber(crop.Name:match("%d+")) or 1
+
+														local args = {
+															"PickFruit",
+															1,
+															1,
+															cropNum,
+															"Fruit" .. fruitNum
+														}
+
+														remote:FireServer(unpack(args))
+														task.wait(0.05)
+													end
+												end
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end)
+				task.wait(0.5) -- short delay between loops
+			end
+		end)
+	end
 end)
 
 -- Visuals tab example toggle
